@@ -2,6 +2,24 @@
 
 Current scope: all configured modules on Windows/Linux. After the three-module pass, the user requested all remaining modules: SDL3, vphysics2, scenesystem, networksystem, matchmaking, tier0 and schemasystem. Full-config execution preserves the configured order and reuses existing engine/client/server outputs. The user explicitly authorized all subsequent skill failures in this run to follow: create a GitHub issue, comment the failing skill block, run both mandatory test suites, and resume validation without asking again. Infrastructure failures and unrelated test failures still stop the run.
 
+## CI optional-artifact convergence correction (2026-10-23)
+
+Run `39947946732`, job `120401534456`, completed producer execution but failed `Verify execution evidence and exact Git bytes`: CI generated `engine/CEngineServer_GetFrameTimeAmnesty.windows.yaml`, which was absent from the prospective Git tree. Comparing the complete diagnostics inventories found exactly one extra file: actual **4009**, expected **4008**, zero missing files and zero changed files. The hosted C++ validation job was skipped after this failure.
+
+The local all-module log records that the old signature matched nothing and caller recovery found no candidate, so this optional producer was skipped. In CI, the same noinline finder recovered the unique caller at `0x180075980`, generated a unique 8-byte signature, and resolved vtable slot **26** (`0xd0`). Optional output absence is permitted by the source contract, but a successful rebuild must reproduce the exact committed presence and bytes; the previous C++ run consumed the incomplete committed inventory and did not test producer convergence.
+
+The user authorized adding the successful CI output and rerunning validation. The restored YAML is byte-identical to the diagnostic artifact, SHA-256 `b8642e4de9479b0925332a63998fe3bd47f8bf3afc4b1ff36103b0bd97cf07dd`. Independent inspection of the local Windows binary verified bytes `0f b6 ca e9 c8 b9 1a 00`, the tail jump to `GetFrameTimeAmnesty` at `0x180221350`, the actual vtable pointer at slot 26, and a single signature match. The active noinline producer and all 16 existing quarantines remain unchanged.
+
+Current inventory is **4009 YAML files** (engine **1203**, server **1891**); earlier counts below are historical. Verification evidence is kept outside the checkout in `%TEMP%/cpp-14192-amnesty-20261023-212225/`.
+
+Pre-push verification for this correction:
+
+- `uv run bin_artifact_contract.py -gamever 14192`: passed, **3948 required + 61 optional = 4009** tracked artifacts.
+- Complete repository inventory versus the CI diagnostic actual root: **4009 byte-identical files**, zero missing, extra or changed paths; the staged Git blob also matches the restored YAML exactly.
+- Fresh immutable candidate: SHA-256 `25b8fb51ca204dabab879b79c7afa025eba51fb8bd18841163d892799bbfb683`; candidate guard passed after testing.
+- Native Windows and WSL Linux `run_cpp_tests.py` runs with explicit `--platform` and the same new snapshot: each executed **21/21 tests** and **22 layout comparisons**, with zero compile failures, invalid items, differences or unsupported-target skips. Logs and result JSON: `windows.log`, `windows-result.json`, `linux.log`, `linux-result.json` under the evidence directory above.
+- `uv run format_repo_files.py --check`: passed; `git diff --check` and `git diff --cached --check`: passed.
+
 ## CI artifact-contract correction (2026-10-23)
 
 Run `39933677784` failed during trusted source-artifact planning, before IDA validation: `extra/stale Git artifacts for 14192: server/GetCSWeaponDataFromKey.windows.yaml`. Quarantining the shared `find-GetCSWeaponDataFromKey-inlined` block under #1185 removed the Windows producer; the surviving noinline producer is Linux-only. Retaining the previously generated Windows YAML therefore violated the active artifact contract.
