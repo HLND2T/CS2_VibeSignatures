@@ -2,6 +2,18 @@
 
 Current scope: all configured modules on Windows/Linux. After the three-module pass, the user requested all remaining modules: SDL3, vphysics2, scenesystem, networksystem, matchmaking, tier0 and schemasystem. Full-config execution preserves the configured order and reuses existing engine/client/server outputs. The user explicitly authorized all subsequent skill failures in this run to follow: create a GitHub issue, comment the failing skill block, run both mandatory test suites, and resume validation without asking again. Infrastructure failures and unrelated test failures still stop the run.
 
+## CI artifact-contract correction (2026-10-23)
+
+Run `39933677784` failed during trusted source-artifact planning, before IDA validation: `extra/stale Git artifacts for 14192: server/GetCSWeaponDataFromKey.windows.yaml`. Quarantining the shared `find-GetCSWeaponDataFromKey-inlined` block under #1185 removed the Windows producer; the surviving noinline producer is Linux-only. Retaining the previously generated Windows YAML therefore violated the active artifact contract.
+
+The user explicitly authorized removing this one extra YAML. Artifact inventory is now **4008 YAML files**, with server reduced to **1891**; all 16 locator quarantines remain unchanged. Earlier artifact counts and the initial decision to retain the Windows output below are historical. The previous unit/repository-contract suites tested validation behavior using fixtures and did not replace a real GAMEVER inventory check.
+
+Pre-push gates for this correction:
+
+- Real tracked inventory: `uv run python bin_artifact_contract.py -gamever 14192`; full evidence `%TEMP%/artifact-contract-14192-cleanup.log`.
+- Trusted CI planning: build `trusted_pr_context.py` identity for the staged prospective merge tree, then run `trusted_artifact_pr.py plan` using unchanged base-owned planner code. Evidence: `%TEMP%/trusted-plan-14192-cleanup.json`, `%TEMP%/trusted-plan-14192-cleanup.log`. The delivery commit must have the exact tree checked by this plan.
+- `git diff --cached --check`.
+
 ## Completed all-module IDA verification (2026-10-23)
 
 The user subsequently requested all remaining modules. Executed the complete configuration in its original order, including late cross-module passes:
