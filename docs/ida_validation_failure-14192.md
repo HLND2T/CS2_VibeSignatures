@@ -1,0 +1,1434 @@
+# IDA validation failures — 14192
+
+Current scope: all configured modules on Windows/Linux. After the three-module pass, the user requested all remaining modules: SDL3, vphysics2, scenesystem, networksystem, matchmaking, tier0 and schemasystem. Full-config execution preserves the configured order and reuses existing engine/client/server outputs. The user explicitly authorized all subsequent skill failures in this run to follow: create a GitHub issue, comment the failing skill block, run both mandatory test suites, and resume validation without asking again. Infrastructure failures and unrelated test failures still stop the run.
+
+## CI optional-artifact convergence correction (2026-10-23)
+
+Run `39947946732`, job `120401534456`, completed producer execution but failed `Verify execution evidence and exact Git bytes`: CI generated `engine/CEngineServer_GetFrameTimeAmnesty.windows.yaml`, which was absent from the prospective Git tree. Comparing the complete diagnostics inventories found exactly one extra file: actual **4009**, expected **4008**, zero missing files and zero changed files. The hosted C++ validation job was skipped after this failure.
+
+The local all-module log records that the old signature matched nothing and caller recovery found no candidate, so this optional producer was skipped. In CI, the same noinline finder recovered the unique caller at `0x180075980`, generated a unique 8-byte signature, and resolved vtable slot **26** (`0xd0`). Optional output absence is permitted by the source contract, but a successful rebuild must reproduce the exact committed presence and bytes; the previous C++ run consumed the incomplete committed inventory and did not test producer convergence.
+
+The user authorized adding the successful CI output and rerunning validation. The restored YAML is byte-identical to the diagnostic artifact, SHA-256 `b8642e4de9479b0925332a63998fe3bd47f8bf3afc4b1ff36103b0bd97cf07dd`. Independent inspection of the local Windows binary verified bytes `0f b6 ca e9 c8 b9 1a 00`, the tail jump to `GetFrameTimeAmnesty` at `0x180221350`, the actual vtable pointer at slot 26, and a single signature match. The active noinline producer and all 16 existing quarantines remain unchanged.
+
+Current inventory is **4009 YAML files** (engine **1203**, server **1891**); earlier counts below are historical. Verification evidence is kept outside the checkout in `%TEMP%/cpp-14192-amnesty-20261023-212225/`.
+
+Pre-push verification for this correction:
+
+- `uv run bin_artifact_contract.py -gamever 14192`: passed, **3948 required + 61 optional = 4009** tracked artifacts.
+- Complete repository inventory versus the CI diagnostic actual root: **4009 byte-identical files**, zero missing, extra or changed paths; the staged Git blob also matches the restored YAML exactly.
+- Fresh immutable candidate: SHA-256 `25b8fb51ca204dabab879b79c7afa025eba51fb8bd18841163d892799bbfb683`; candidate guard passed after testing.
+- Native Windows and WSL Linux `run_cpp_tests.py` runs with explicit `--platform` and the same new snapshot: each executed **21/21 tests** and **22 layout comparisons**, with zero compile failures, invalid items, differences or unsupported-target skips. Logs and result JSON: `windows.log`, `windows-result.json`, `linux.log`, `linux-result.json` under the evidence directory above.
+- `uv run format_repo_files.py --check`: passed; `git diff --check` and `git diff --cached --check`: passed.
+
+## CI artifact-contract correction (2026-10-23)
+
+Run `39933677784` failed during trusted source-artifact planning, before IDA validation: `extra/stale Git artifacts for 14192: server/GetCSWeaponDataFromKey.windows.yaml`. Quarantining the shared `find-GetCSWeaponDataFromKey-inlined` block under #1185 removed the Windows producer; the surviving noinline producer is Linux-only. Retaining the previously generated Windows YAML therefore violated the active artifact contract.
+
+The user explicitly authorized removing this one extra YAML. Artifact inventory is now **4008 YAML files**, with server reduced to **1891**; all 16 locator quarantines remain unchanged. Earlier artifact counts and the initial decision to retain the Windows output below are historical. The previous unit/repository-contract suites tested validation behavior using fixtures and did not replace a real GAMEVER inventory check.
+
+Pre-push gates for this correction:
+
+- Real tracked inventory: `uv run python bin_artifact_contract.py -gamever 14192`; full evidence `%TEMP%/artifact-contract-14192-cleanup.log`.
+- Trusted CI planning: build `trusted_pr_context.py` identity for the staged prospective merge tree, then run `trusted_artifact_pr.py plan` using unchanged base-owned planner code. Evidence: `%TEMP%/trusted-plan-14192-cleanup.json`, `%TEMP%/trusted-plan-14192-cleanup.log`. The delivery commit must have the exact tree checked by this plan.
+- `git diff --cached --check`.
+
+## Completed all-module IDA verification (2026-10-23)
+
+The user subsequently requested all remaining modules. Executed the complete configuration in its original order, including late cross-module passes:
+
+`uv run ida_analyze_bin.py -gamever 14192 -configyaml configs/14192.yaml -modules '*' -debug`
+
+- Exit code: **0**; summary: `Successful: 254`, `Failed: 0`, `Skipped: 2650`. Existing engine/client/server outputs were reused; platform-restricted skills and absent optional outputs follow their configuration.
+- All 10 module names were visited: SDL3, vphysics2, scenesystem, networksystem, matchmaking, engine, client, server, tier0, schemasystem (15 ordered module blocks, including repeated dependency passes).
+- Full log: `C:\Users\HZDEV\AppData\Local\Temp\ida-validation-14192-all-20261023-01.log`.
+- No new mandatory skill failure, issue or configuration quarantine was required. The same 16 documented locator quarantines remain; zero failure does not mean those disabled locators were repaired.
+- Artifacts now total **4009 YAML files**, an increase of **286** from the three-module pass: SDL3 18, client 629, engine 1202, matchmaking 2, networksystem 157, scenesystem 12, schemasystem 26, server 1892, tier0 69, vphysics2 2.
+- Final all-module test verification: both exit code 0. Unit: 1610 tests, OK (60 skipped), 117.367s; repository-contract: 124 tests, OK, 179.467s. Logs: `%TEMP%/unit-14192-all-final.log`, `%TEMP%/repository-contract-14192-all-final.log`.
+- `git diff --check` passed. Configuration, generated artifacts and this report remain uncommitted.
+
+## Completed three-module verification (2026-10-23)
+
+- Branch: `bump-download/14192`, PR #1175, HEAD `3bde23a93`.
+- Initialization: all configured binary paths ready (30 ready / 0 missing; 20 distinct binaries), source binary lock verified; all 20 IDBs warmed with IDA/idalib 9.3.
+- Final command: `uv run ida_analyze_bin.py -gamever 14192 -configyaml configs/14192.yaml -modules engine,client,server -debug`.
+- Final exit code: 0. Summary: `Successful: 5`, `Failed: 0`, `Skipped: 2607`. These are the final iteration counts; prior successful outputs were reused. Optional outputs may be absent by design.
+- Final full log: `C:\Users\HZDEV\AppData\Local\Temp\ida-validation-14192-engine-client-server-20261023-09.log`.
+- Latest mandatory gates after the final configuration quarantine: unit 1610 tests, OK (60 skipped), 112.904s; repository-contract 124 tests, OK, 175.036s. Logs: `%TEMP%/unit-14192-issue-1192.log` and `%TEMP%/repository-contract-14192-issue-1192.log`. Every preceding quarantine also passed both gates before IDA resumed; `git diff --check` passed.
+- Generated untracked artifacts: 3723 YAML files (`engine`: 1202, `client`: 629, `server`: 1892). Configuration, artifacts and this report remain uncommitted.
+- Active temporary quarantines: **16 complete skill blocks**, tracked by #1176–#1183 and #1185–#1192. This is zero failure under the quarantined configuration; those locators have not been repaired or validated on disabled platforms. Failures were observed on Windows except #1185 (server/Linux); shared blocks affect both platforms, while #1178 and #1182 retain their Windows-only scope. The existing Windows output for #1185 is retained.
+- All 18 earlier #1184 scope-only quarantines were first restored after server authorization. Four restored consumers subsequently failed as real locators and were quarantined under new issues #1186–#1189, and the restored GetEventDispatcher failed under #1191; the other restored dependency chains executed successfully. #1184 remains open for the partial-module selector's unresolved dependency-closure behavior.
+
+Current quarantine status: locator failures tracked by issues #1176–#1183 and #1185 onward remain disabled as recorded below and in the active configuration. After the user authorized server validation, all 18 temporary scope/dependency quarantines tracked by issue #1184 were restored together; server producers can now supply their inputs. Subsequent actual locator failures among those restored consumers receive separate issues. The historical #1184 quarantine and test records below describe earlier iterations, not the active configuration. Both suites passed again before expanded validation: unit 1610 tests / 60 skipped (105.942s), repository-contract 124 tests (164.699s). Logs: `%TEMP%/unit-14192-server-restored.log`, `%TEMP%/repository-contract-14192-server-restored.log`.
+
+## find-CEngineClient_DumpNetStats (module: engine, observed platform: windows)
+
+Issue: https://github.com/HLND2T/CS2_VibeSignatures/issues/1176
+
+Command: `uv run ida_analyze_bin.py -gamever 14192 -configyaml configs/14192.yaml -modules engine,client -debug`
+
+Environment: Windows, IDA/idalib 9.3, old artifact baseline `14191b`; all 20 configured IDBs warmed successfully before this run.
+
+Failure (from `ida_analyze_bin.py -debug`):
+
+```text
+  Start skill: find-CEngineClient_DumpNetStats
+    Preprocess: CEngineClient_DumpNetStats.windows.yaml func_sig matched 0 (need 1)
+    Preprocess: trying func_xrefs fallback for CEngineClient_DumpNetStats
+    Preprocess: undefined func recovery skipped: blocked_existing_function
+    Preprocess: undefined func recovery skipped: no_entry
+    Preprocess: undefined func recovery skipped: no_entry
+    Preprocess: undefined func recovery skipped: no_entry
+    Preprocess: vtable CEngineClient_vtable has 175 entries as candidate set
+    Preprocess: exclude string xref 'For packet-level statistics, see net_connections_stats.' matched 1 function(s)
+    Preprocess: excluded_string_func_addrs = ['0x18006e9c0']
+    Preprocess: common_funcs before excludes = []
+    Preprocess: common_funcs after excludes = []
+    Preprocess: xref intersection yielded 0 function(s) for CEngineClient_DumpNetStats (need exactly 1)
+    Preprocess: failed to locate CEngineClient_DumpNetStats
+    Preprocess failed: find-CEngineClient_DumpNetStats; falling back to AGENT SKILL
+    Starting agent skill: find-CEngineClient_DumpNetStats
+    Falling back to: .claude\skills\find-CEngineClient_DumpNetStats\SKILL.md
+    Error: Skill file not found: .claude\skills\find-CEngineClient_DumpNetStats\SKILL.md
+    Failed
+```
+
+Diagnosis: the old function signature matches nothing, the caller/vtable candidate intersection is empty, and no agent fallback skill exists. The previous artifact records vtable index 184. The current vtable artifact actually contains 185 slots; the logged count of 175 is the number of distinct candidate addresses after set deduplication, not the number of slots. It does not establish slot removal or an out-of-range old index. Whether the function was removed, inlined, or missed by the locator remains unconfirmed.
+
+Decision: the user explicitly requested filing a GitHub issue, temporarily disabling the failing skill in config, and continuing analysis. The complete `{platform}` block is commented for both Windows and Linux; only Windows has been observed failing. No symbol declarations or other skills were disabled.
+
+Validation before quarantine: `Successful: 82, Failed: 1, Skipped: 118`, exit code 1. The run stopped before engine/Linux and client.
+
+Quarantine verification:
+
+- `uv run python tests/run_test_suite.py unit -b --durations 30`: 1610 tests, OK (60 skipped), exit code 0.
+- `uv run python tests/run_test_suite.py repository-contract -b --durations 30`: 124 tests, OK, exit code 0; no active input dependency gaps reported.
+- `git diff --check`: exit code 0.
+
+## find-CEngineServer_KickClient (module: engine, observed platform: windows)
+
+Issue: https://github.com/HLND2T/CS2_VibeSignatures/issues/1177
+
+Failure (from the same `ida_analyze_bin.py -debug` command and environment above):
+
+```text
+  Start skill: find-CEngineServer_KickClient
+    Preprocess: CEngineServer_KickClient.windows.yaml func_sig matched 0 (need 1)
+    Preprocess: trying func_xrefs fallback for CEngineServer_KickClient
+    Preprocess: undefined func recovery skipped: blocked_existing_function
+    Preprocess: undefined func recovery skipped: no_entry
+    Preprocess: undefined func recovery skipped: no_entry
+    Preprocess: undefined func recovery skipped: no_entry
+    Preprocess: vtable CEngineServer_vtable has 122 entries as candidate set
+    Preprocess: common_funcs before excludes = []
+    Preprocess: common_funcs after excludes = []
+    Preprocess: xref intersection yielded 0 function(s) for CEngineServer_KickClient (need exactly 1)
+    Preprocess: failed to locate CEngineServer_KickClient
+    Preprocess failed: find-CEngineServer_KickClient; falling back to AGENT SKILL
+    Starting agent skill: find-CEngineServer_KickClient
+    Falling back to: .claude\skills\find-CEngineServer_KickClient\SKILL.md
+    Error: Skill file not found: .claude\skills\find-CEngineServer_KickClient\SKILL.md
+    Failed
+```
+
+Diagnosis: the old signature matches nothing. The dependency `CNetworkGameServerBase_KickClient` was successfully found at `0x1800b50b0`, but its callers intersected with the 122-entry `CEngineServer_vtable` candidate set yield no function. The agent fallback skill is absent. Removal, inlining, changed calls, and function/vtable recognition remain unconfirmed alternatives.
+
+Decision: apply the user's standing authorization to file an issue and temporarily comment this skill's complete Windows/Linux `{platform}` block. Symbol declarations are unchanged. Only Windows has been observed failing.
+
+Validation before quarantine: `Successful: 30, Failed: 1, Skipped: 201`, exit code 1.
+
+Quarantine verification:
+
+- `uv run python tests/run_test_suite.py unit -b --durations 30`: 1610 tests, OK (60 skipped), exit code 0.
+- `uv run python tests/run_test_suite.py repository-contract -b --durations 30`: 124 tests, OK, exit code 0; no active input dependency gaps reported.
+- `git diff --check`: exit code 0.
+
+## find-CEngineClient_FindOrCreateWorldSession (module: engine, platform: windows)
+
+Issue: https://github.com/HLND2T/CS2_VibeSignatures/issues/1178
+
+Failure (from the same validation command and environment above):
+
+```text
+  Start skill: find-CEngineClient_FindOrCreateWorldSession
+    Preprocess: CEngineClient_FindOrCreateWorldSession.windows.yaml func_sig matched 0 (need 1)
+    Preprocess: trying func_xrefs fallback for CEngineClient_FindOrCreateWorldSession
+    Preprocess: undefined func recovery skipped: blocked_existing_function
+    Preprocess: undefined func recovery skipped: no_entry
+    Preprocess: vtable CEngineClient_vtable has 175 entries as candidate set
+    Preprocess: common_funcs before excludes = []
+    Preprocess: common_funcs after excludes = []
+    Preprocess: xref intersection yielded 0 function(s) for CEngineClient_FindOrCreateWorldSession (need exactly 1)
+    Preprocess: failed to locate CEngineClient_FindOrCreateWorldSession
+    Preprocess failed: find-CEngineClient_FindOrCreateWorldSession; falling back to AGENT SKILL
+    Starting agent skill: find-CEngineClient_FindOrCreateWorldSession
+    Falling back to: .claude\skills\find-CEngineClient_FindOrCreateWorldSession\SKILL.md
+    Error: Skill file not found: .claude\skills\find-CEngineClient_FindOrCreateWorldSession\SKILL.md
+    Failed
+```
+
+Diagnosis: the old signature matches nothing. Both rendering-session dependencies were successfully located (`0x18023f970` and `0x18023fac0`), but the required callee's callers have no intersection with the 175-entry CEngineClient vtable candidate set. The agent fallback skill is absent. The old artifact is a 0x11-byte wrapper at vtable index 13; the underlying binary change remains unconfirmed.
+
+Decision: apply the user's standing authorization to create an issue and comment this complete skill block. Its original `platform: windows` restriction is preserved in the comment; this quarantine affects only Windows. Symbol declarations are unchanged.
+
+Validation before quarantine: `Successful: 74, Failed: 1, Skipped: 238`, exit code 1.
+
+Quarantine verification:
+
+- `uv run python tests/run_test_suite.py unit -b --durations 30`: 1610 tests, OK (60 skipped), exit code 0.
+- `uv run python tests/run_test_suite.py repository-contract -b --durations 30`: 124 tests, OK, exit code 0; no active input dependency gaps reported.
+- `git diff --check`: exit code 0.
+
+## find-CEngineServer_GetFrameTimeAmnesty-inlined (module: engine, observed platform: windows)
+
+Issue: https://github.com/HLND2T/CS2_VibeSignatures/issues/1179
+
+Failure (from the same validation command and environment above):
+
+```text
+  Start skill: find-CEngineServer_GetFrameTimeAmnesty-inlined
+    Preprocess: CEngineServer_GetFrameTimeAmnesty.windows.yaml func_sig matched 0 (need 1)
+    Preprocess: trying func_xrefs fallback for CEngineServer_GetFrameTimeAmnesty
+    Preprocess: vtable CEngineServer_vtable has 122 entries as candidate set
+    Preprocess: common_funcs before excludes = []
+    Preprocess: common_funcs after excludes = []
+    Preprocess: xref intersection yielded 0 function(s) for CEngineServer_GetFrameTimeAmnesty (need exactly 1)
+    Preprocess: failed to locate CEngineServer_GetFrameTimeAmnesty
+    Preprocess failed: find-CEngineServer_GetFrameTimeAmnesty-inlined; falling back to AGENT SKILL
+    Starting agent skill: find-CEngineServer_GetFrameTimeAmnesty-inlined
+    Falling back to: .claude\skills\find-CEngineServer_GetFrameTimeAmnesty-inlined\SKILL.md
+    Error: Skill file not found: .claude\skills\find-CEngineServer_GetFrameTimeAmnesty-inlined\SKILL.md
+    Failed
+```
+
+Diagnosis: `GetFrameTimeAmnesty` was found at `0x180221350`. The optional noinline path first failed to find a matching vfunc and was skipped. The required inlined path then found neither the old signature nor any intersection of the `!engine_frametime_warnings_enable` string's referencing functions with the 122-entry CEngineServer vtable. No agent fallback exists. The old artifact is an 8-byte wrapper at index 26; the actual interface/implementation change remains unconfirmed.
+
+Decision: apply the user's standing authorization to create an issue and comment this complete Windows/Linux skill block. The optional noinline producer and symbol declarations remain unchanged. Only Windows has been observed failing.
+
+Validation before quarantine: `Successful: 72, Failed: 1, Skipped: 313`, exit code 1.
+
+Quarantine verification:
+
+- `uv run python tests/run_test_suite.py unit -b --durations 30`: 1610 tests, OK (60 skipped), exit code 0.
+- `uv run python tests/run_test_suite.py repository-contract -b --durations 30`: 124 tests, OK, exit code 0; no active input dependency gaps reported.
+- `git diff --check`: exit code 0.
+
+## find-CEngineServiceMgr_GetAddonCount (module: engine, observed platform: windows)
+
+Issue: https://github.com/HLND2T/CS2_VibeSignatures/issues/1180
+
+Failure (from the same validation command and environment above):
+
+```text
+  Start skill: find-CEngineServiceMgr_GetAddonCount
+    Preprocess: no func_sig/vfunc_sig in CEngineServiceMgr_GetAddonCount.windows.yaml
+    Preprocess: failed to query function info for CEngineServiceMgr_GetAddonCount
+    Preprocess: failed to locate CEngineServiceMgr_GetAddonCount
+    Preprocess failed: find-CEngineServiceMgr_GetAddonCount; falling back to AGENT SKILL
+    Starting agent skill: find-CEngineServiceMgr_GetAddonCount
+    Falling back to: .claude\skills\find-CEngineServiceMgr_GetAddonCount\SKILL.md
+    Error: Skill file not found: .claude\skills\find-CEngineServiceMgr_GetAddonCount\SKILL.md
+    Failed
+```
+
+Diagnosis: absence of a stable signature is intentional for this inherited getter. The new interface artifact contains slot 38 (offset 0x130); the 60-entry CEngineServiceMgr vtable maps that slot to `0x180216e70`. The inherit-vfunc path failed to obtain a function-info dictionary for that exact entry. Its implementation requires `get_func(addr)` with `start_ea == addr`, otherwise returns null; the exact function boundary/result still needs investigation. Other preceding queries succeeded and there is no MCP disconnect or database-open error. No agent fallback exists.
+
+Decision: apply the user's standing authorization to create an issue and comment the complete Windows/Linux skill block. Interface and vtable producers and symbol declarations remain unchanged. Only Windows has been observed failing.
+
+Validation before quarantine: `Successful: 11, Failed: 1, Skipped: 386`, exit code 1.
+
+Quarantine verification:
+
+- `uv run python tests/run_test_suite.py unit -b --durations 30`: 1610 tests, OK (60 skipped), exit code 0.
+- `uv run python tests/run_test_suite.py repository-contract -b --durations 30`: 124 tests, OK, exit code 0; no active input dependency gaps reported.
+- `git diff --check`: exit code 0.
+
+## find-CEngineServiceMgr_RegisterPrerequisite (module: engine, observed platform: windows)
+
+Issue: https://github.com/HLND2T/CS2_VibeSignatures/issues/1181
+
+Failure (from the same validation command and environment above):
+
+```text
+  Start skill: find-CEngineServiceMgr_RegisterPrerequisite
+    Preprocess: no func_sig/vfunc_sig in CEngineServiceMgr_RegisterPrerequisite.windows.yaml
+    Preprocess: failed to query function info for CEngineServiceMgr_RegisterPrerequisite
+    Preprocess: failed to locate CEngineServiceMgr_RegisterPrerequisite
+    Preprocess failed: find-CEngineServiceMgr_RegisterPrerequisite; falling back to AGENT SKILL
+    Starting agent skill: find-CEngineServiceMgr_RegisterPrerequisite
+    Falling back to: .claude\skills\find-CEngineServiceMgr_RegisterPrerequisite\SKILL.md
+    Error: Skill file not found: .claude\skills\find-CEngineServiceMgr_RegisterPrerequisite\SKILL.md
+    Failed
+```
+
+Diagnosis: the generated `ILoopModePrerequisiteRegistry_RegisterPrerequisite` interface artifact specifies slot 0. `CEngineServiceMgr_vtable2` contains two entries and slot 0 is `0x180217c28`, but the inherit-vfunc path did not obtain a function-info dictionary for that exact entry. The old artifact is a 9-byte secondary-base this-adjusting thunk; omitting a stable signature is intentional. As with #1180, exact entry recognition and query parsing need inspection. No MCP disconnect or database-open error was logged, and no fallback skill exists.
+
+Decision: apply the user's standing authorization to create an issue and comment the complete Windows/Linux skill block. Interface/vtable producers and symbol declarations remain unchanged. Only Windows has been observed failing.
+
+Validation before quarantine: `Successful: 13, Failed: 1, Skipped: 397`, exit code 1.
+
+Quarantine verification:
+
+- `uv run python tests/run_test_suite.py unit -b --durations 30`: 1610 tests, OK (60 skipped), exit code 0.
+- `uv run python tests/run_test_suite.py repository-contract -b --durations 30`: 124 tests, OK, exit code 0; no active input dependency gaps reported.
+- `git diff --check`: exit code 0.
+
+## find-CEngineClient_GetStatsAppID (module: engine, platform: windows)
+
+Issue: https://github.com/HLND2T/CS2_VibeSignatures/issues/1182
+
+Failure (from the same validation command and environment above):
+
+```text
+  Start skill: find-CEngineClient_GetStatsAppID
+    Preprocess: no func_sig/vfunc_sig in CEngineClient_GetStatsAppID.windows.yaml
+    Preprocess: trying func_xrefs fallback for CEngineClient_GetStatsAppID
+    Preprocess: undefined func recovery skipped: blocked_existing_function
+    Preprocess: vtable CEngineClient_vtable has 175 entries as candidate set
+    Preprocess: common_funcs before excludes = []
+    Preprocess: common_funcs after excludes = []
+    Preprocess: xref intersection yielded 0 function(s) for CEngineClient_GetStatsAppID (need exactly 1)
+    Preprocess: failed to locate CEngineClient_GetStatsAppID
+    Preprocess failed: find-CEngineClient_GetStatsAppID; falling back to AGENT SKILL
+    Starting agent skill: find-CEngineClient_GetStatsAppID
+    Falling back to: .claude\skills\find-CEngineClient_GetStatsAppID\SKILL.md
+    Error: Skill file not found: .claude\skills\find-CEngineClient_GetStatsAppID\SKILL.md
+    Failed
+```
+
+Diagnosis: this short getter intentionally has no stable signature. `InitSteam-decompiles` successfully generated `g_nBreakpadAppId` at `0x1809bcfa8`, but functions referencing it have no intersection with the 175-entry CEngineClient vtable candidate set. Undefined-function recovery also reports `blocked_existing_function`; no agent fallback exists. The old artifact is a 7-byte function at vtable index 15. Whether the interface/function changed or entry recognition failed remains unconfirmed.
+
+Decision: apply the user's standing authorization to create an issue and comment this complete Windows-only skill block. Its original `platform: windows` restriction is preserved; symbol declarations remain unchanged.
+
+Validation before quarantine: `Successful: 48, Failed: 1, Skipped: 410`, exit code 1.
+
+Quarantine verification:
+
+- `uv run python tests/run_test_suite.py unit -b --durations 30`: 1610 tests, OK (60 skipped), exit code 0.
+- `uv run python tests/run_test_suite.py repository-contract -b --durations 30`: 124 tests, OK, exit code 0; no active input dependency gaps reported.
+- `git diff --check`: exit code 0.
+
+## find-CEngineClient_IsPlayingDemo (module: engine, observed platform: windows)
+
+Issue: https://github.com/HLND2T/CS2_VibeSignatures/issues/1183
+
+Failure (from the same validation command and environment above, in the later engine module block after client):
+
+```text
+  Start skill: find-CEngineClient_IsPlayingDemo
+    Preprocess: no func_sig/vfunc_sig in CEngineClient_IsPlayingDemo.windows.yaml
+    Preprocess: failed to query function info for CEngineClient_IsPlayingDemo
+    Preprocess: failed to locate CEngineClient_IsPlayingDemo
+    Preprocess failed: find-CEngineClient_IsPlayingDemo; falling back to AGENT SKILL
+    Starting agent skill: find-CEngineClient_IsPlayingDemo
+    Falling back to: .claude\skills\find-CEngineClient_IsPlayingDemo\SKILL.md
+    Error: Skill file not found: .claude\skills\find-CEngineClient_IsPlayingDemo\SKILL.md
+    Failed
+```
+
+Diagnosis: the client `IVEngineClient2_IsPlayingDemo` artifact supplies index 42 / offset 0x150. The 185-slot CEngineClient vtable maps that slot to `0x180076550`, but inherit-vfunc could not obtain exact-entry function information. Omitting a signature is intentional for this short implementation; the old artifact is at the same slot and has size 0x1b. No agent fallback exists. Like #1180/#1181, exact function boundaries and query parsing remain to be checked. The earlier 175-candidate count is address deduplication, not table truncation.
+
+Decision: apply the user's standing authorization to create an issue and comment this complete Windows/Linux skill block. Only Windows has been observed failing; client interface producers and symbol declarations remain unchanged.
+
+Validation before quarantine: `Successful: 654, Failed: 1, Skipped: 559`, exit code 1. Both platforms of the preceding engine and client skill blocks completed before this later engine block failed.
+
+Quarantine verification:
+
+- `uv run python tests/run_test_suite.py unit -b --durations 30`: 1610 tests, OK (60 skipped), exit code 0.
+- `uv run python tests/run_test_suite.py repository-contract -b --durations 30`: 124 tests, OK, exit code 0; no active input dependency gaps reported.
+- `git diff --check`: exit code 0.
+
+
+## find-CEngineServer_GetAchievementMgr (module: engine, observed platform: windows)
+
+Issue: https://github.com/HLND2T/CS2_VibeSignatures/issues/1184
+
+Failure from the engine/client-only validation run:
+
+```text
+  Start skill: find-CEngineServer_GetAchievementMgr
+  Failed: find-CEngineServer_GetAchievementMgr (missing expected_input: IVEngineServer2_GetAchievementMgr.windows.yaml)
+```
+
+Diagnosis: a required input is absent in the selected-module run. The dependency chain ultimately relies on producers outside the requested engine/client scope, or on consumers already blocked by that missing cross-module input. This records a deferred dependency, not a confirmed symbol-locator defect; see the shared scope/dependency issue for the complete original 29-failure inventory.
+
+Decision: apply the user's standing authorization to temporarily comment this complete skill block and continue only engine/client validation. Original platform restrictions are preserved in the commented block. Symbol declarations are unchanged.
+
+Quarantine verification for `find-CEngineServer_GetAchievementMgr`: unit 1610 tests, OK (skipped=60); repository-contract 124 tests, OK; both exit code 0. `git diff --check` passed.
+
+## find-CEngineServiceMgr_GetEngineWindow (GitHub issue #1192)
+
+Issue: https://github.com/HLND2T/CS2_VibeSignatures/issues/1192
+
+## 问题与复现
+
+PR #1175（`bump-download/14192`，提交 `3bde23a93`）验证 GAMEVER `14192` 时，`engine / windows` 的 `find-CEngineServiceMgr_GetEngineWindow` 失败。
+
+环境：Windows、IDA/idalib 9.3；二进制通过 init-gamebin 的 Steam depot fallback 初始化并校验 source binary lock；全部 20 个 IDB 预热成功。旧版本签名基线为 `14191b`。
+
+```powershell
+uv run ida_analyze_bin.py -gamever 14192 -configyaml configs/14192.yaml -modules engine,client,server -debug
+```
+
+预期：该 skill 准确生成配置声明的输出，验证继续执行。
+实际：该 skill 定位失败，fail-fast 验证终止，剩余平台和模块未执行。本 issue 记录的失败仅在上述平台被观察到。
+
+## 原始失败日志
+
+```text
+  Start skill: find-CEngineServiceMgr_GetEngineWindow
+    Preprocess: no func_sig/vfunc_sig in CEngineServiceMgr_GetEngineWindow.windows.yaml
+    Preprocess: failed to query function info for CEngineServiceMgr_GetEngineWindow
+    Preprocess: failed to locate CEngineServiceMgr_GetEngineWindow
+    Preprocess failed: find-CEngineServiceMgr_GetEngineWindow; falling back to AGENT SKILL
+    Starting agent skill: find-CEngineServiceMgr_GetEngineWindow
+    Falling back to: .claude\skills\find-CEngineServiceMgr_GetEngineWindow\SKILL.md
+    Error: Skill file not found: .claude\skills\find-CEngineServiceMgr_GetEngineWindow\SKILL.md
+    Failed
+```
+
+本轮汇总：
+
+```text
+  Successful: 2
+  Failed: 1
+  Skipped: 2605
+```
+
+## 诊断
+
+本轮 CPanoramaEngineHandler_OnClientPreOutput 与 IEngineServiceMgr_GetEngineWindow 均成功生成，接口槽位 index18、offset0x90，CEngineServiceMgr_vtable 输入存在。脚本设计上不保留短 getter 的 func_sig，通过 INHERIT_VFUNCS 取得 slot18 真实入口，失败发生在 ida_analyze_util.py:5990-6025 的严格函数入口元数据查询（仅 get_func(addr) 且 start_ea==addr 返回 dict），随后缺少 fallback SKILL.md。与 #1191 同属继承虚表入口后缺少函数边界诊断/安全恢复的定位覆盖缺口，非上游 Panorama/LLM 失败，不能把无签名设计当根因。应核查 slot18 新代码和函数边界、共享 getter/thunk 或 MCP 返回格式，补充安全解析恢复后再启用。仅 engine/Windows 观察失败，共享配置暂时屏蔽两平台。
+
+## 临时处理与验收
+
+用户已明确授权对后续失败统一执行“建 issue → 屏蔽 → 两套测试 → 继续”。本 issue 创建后，将仅注释 `configs/14192.yaml` 内对应模块的完整 skill 配置块，并记录到 `docs/ida_validation_failure-14192.md`。禁用范围遵循该块原有的 `platform` 限制；无平台限制的共享块会同时屏蔽 Windows/Linux，不能据此推断两个平台均已验证失败。不移除符号声明。
+
+- [ ] 对照旧/新二进制确认目标符号状态和定位失败根因。
+- [ ] 修复预处理逻辑或明确处理被移除的符号约定。
+- [ ] 运行针对性验证及必要回归测试。
+- [ ] 恢复该 skill 配置并验证正确输出。
+
+Source log: `C:\Users\HZDEV\AppData\Local\Temp\ida-validation-14192-engine-client-server-20261023-08.log`
+
+Quarantine verification for `find-CEngineServiceMgr_GetEngineWindow`: unit 1610 tests, OK (skipped=60); repository-contract 124 tests, OK; both exit code 0. `git diff --check` passed.
+
+## find-CEngineServiceMgr_GetEventDispatcher (GitHub issue #1191)
+
+Issue: https://github.com/HLND2T/CS2_VibeSignatures/issues/1191
+
+## 问题与复现
+
+PR #1175（`bump-download/14192`，提交 `3bde23a93`）验证 GAMEVER `14192` 时，`engine / windows` 的 `find-CEngineServiceMgr_GetEventDispatcher` 失败。
+
+环境：Windows、IDA/idalib 9.3；二进制通过 init-gamebin 的 Steam depot fallback 初始化并校验 source binary lock；全部 20 个 IDB 预热成功。旧版本签名基线为 `14191b`。
+
+```powershell
+uv run ida_analyze_bin.py -gamever 14192 -configyaml configs/14192.yaml -modules engine,client,server -debug
+```
+
+预期：该 skill 准确生成配置声明的输出，验证继续执行。
+实际：该 skill 定位失败，fail-fast 验证终止，剩余平台和模块未执行。本 issue 记录的失败仅在上述平台被观察到。
+
+## 原始失败日志
+
+```text
+  Start skill: find-CEngineServiceMgr_GetEventDispatcher
+    Preprocess: no func_sig/vfunc_sig in CEngineServiceMgr_GetEventDispatcher.windows.yaml
+    Preprocess: failed to query function info for CEngineServiceMgr_GetEventDispatcher
+    Preprocess: failed to locate CEngineServiceMgr_GetEventDispatcher
+    Preprocess failed: find-CEngineServiceMgr_GetEventDispatcher; falling back to AGENT SKILL
+    Starting agent skill: find-CEngineServiceMgr_GetEventDispatcher
+    Falling back to: .claude\skills\find-CEngineServiceMgr_GetEventDispatcher\SKILL.md
+    Error: Skill file not found: .claude\skills\find-CEngineServiceMgr_GetEventDispatcher\SKILL.md
+    Failed
+```
+
+本轮汇总：
+
+```text
+  Successful: 0
+  Failed: 1
+  Skipped: 2605
+```
+
+## 诊断
+
+client 的 IEngineServiceMgr_GetEventDispatcher.windows.yaml 已生成（index28、offset0xe0），晚期 client/server Shutdown 链已通过，故不是 #1184 的依赖缺口。GetEventDispatcher 是短 getter，脚本有意不保留 func_sig，INHERIT_VFUNCS 读取 CEngineServiceMgr_vtable slot28 并查询具体函数元数据。ida_analyze_util.py:5990-6025 仅当 get_func(addr) 且 start_ea==addr 才返回 dict，本次 failed to query function info，随后对应 fallback SKILL.md 不存在。缺口是继承虚表入口与严格函数边界查询之间没有诊断/安全恢复后备；需核查实际短函数入口、共享代码/thunk 及 MCP 返回格式，补充安全定位再恢复。无签名是设计，不能据此认定符号被删除。仅 engine/Windows 观察失败，共享配置暂时屏蔽两平台。
+
+## 临时处理与验收
+
+用户已明确授权对后续失败统一执行“建 issue → 屏蔽 → 两套测试 → 继续”。本 issue 创建后，将仅注释 `configs/14192.yaml` 内对应模块的完整 skill 配置块，并记录到 `docs/ida_validation_failure-14192.md`。禁用范围遵循该块原有的 `platform` 限制；无平台限制的共享块会同时屏蔽 Windows/Linux，不能据此推断两个平台均已验证失败。不移除符号声明。
+
+- [ ] 对照旧/新二进制确认目标符号状态和定位失败根因。
+- [ ] 修复预处理逻辑或明确处理被移除的符号约定。
+- [ ] 运行针对性验证及必要回归测试。
+- [ ] 恢复该 skill 配置并验证正确输出。
+
+Source log: `C:\Users\HZDEV\AppData\Local\Temp\ida-validation-14192-engine-client-server-20261023-07.log`
+
+Quarantine verification for `find-CEngineServiceMgr_GetEventDispatcher`: unit 1610 tests, OK (skipped=60); repository-contract 124 tests, OK; both exit code 0. `git diff --check` passed.
+
+## find-CEngineServer_SynchronizeAndBlockUntilLoaded (GitHub issue #1190)
+
+Issue: https://github.com/HLND2T/CS2_VibeSignatures/issues/1190
+
+## 问题与复现
+
+PR #1175（`bump-download/14192`，提交 `3bde23a93`）验证 GAMEVER `14192` 时，`engine / windows` 的 `find-CEngineServer_SynchronizeAndBlockUntilLoaded` 失败。
+
+环境：Windows、IDA/idalib 9.3；二进制通过 init-gamebin 的 Steam depot fallback 初始化并校验 source binary lock；全部 20 个 IDB 预热成功。旧版本签名基线为 `14191b`。
+
+```powershell
+uv run ida_analyze_bin.py -gamever 14192 -configyaml configs/14192.yaml -modules engine,client,server -debug
+```
+
+预期：该 skill 准确生成配置声明的输出，验证继续执行。
+实际：该 skill 定位失败，fail-fast 验证终止，剩余平台和模块未执行。本 issue 记录的失败仅在上述平台被观察到。
+
+## 原始失败日志
+
+```text
+  Start skill: find-CEngineServer_SynchronizeAndBlockUntilLoaded
+    Preprocess: no old YAML for CEngineServer_SynchronizeAndBlockUntilLoaded.windows.yaml
+    Preprocess: trying func_xrefs fallback for CEngineServer_SynchronizeAndBlockUntilLoaded
+    Preprocess: undefined func recovery skipped: blocked_existing_function
+    Preprocess: undefined func recovery skipped: no_entry
+    Preprocess: vtable CEngineServer_vtable has 122 entries as candidate set
+    Preprocess: common_funcs before excludes = []
+    Preprocess: common_funcs after excludes = []
+    Preprocess: xref intersection yielded 0 function(s) for CEngineServer_SynchronizeAndBlockUntilLoaded (need exactly 1)
+    Preprocess: failed to locate CEngineServer_SynchronizeAndBlockUntilLoaded
+    Preprocess failed: find-CEngineServer_SynchronizeAndBlockUntilLoaded; falling back to AGENT SKILL
+    Starting agent skill: find-CEngineServer_SynchronizeAndBlockUntilLoaded
+    Falling back to: .claude\skills\find-CEngineServer_SynchronizeAndBlockUntilLoaded\SKILL.md
+    Error: Skill file not found: .claude\skills\find-CEngineServer_SynchronizeAndBlockUntilLoaded\SKILL.md
+    Failed
+```
+
+本轮汇总：
+
+```text
+  Successful: 81
+  Failed: 1
+  Skipped: 2524
+```
+
+## 诊断
+
+该脚本明确 old_yaml_map=None，防止旧 prologue 误匹配 IsSpawnGroupLoading，因此日志 no old YAML 是有意设计。实际依赖已生成：CNetworkGameServerBase_SynchronizeAndBlockUntilLoaded=0x1800a9b20、排除项 SpawnGroupThink=0x1800a96b0，CEngineServer_vtable 有123槽位（日志122是去重后的候选地址数）。FUNC_XREFS 假设目标是上述 callee 的非 SpawnGroupThink caller，并叠加 CEngineServer 虚表约束；本次 common_funcs 在排除前即为空，恢复入口又报告 blocked_existing_function/no_entry，最终交集0，且无 fallback SKILL.md。这表明当前 caller+vtable 锚点链未覆盖 14192 入口/调用形态，不能将有意禁用旧签名或虚表缩短当根因。应核查新版本 callee 全部 xref、wrapper/thunk/内联结构以及 IDA 入口边界，更新锚点或安全恢复策略，再恢复配置。仅 engine/Windows 观察失败，共享块暂时屏蔽两平台。
+
+## 临时处理与验收
+
+用户已明确授权对后续失败统一执行“建 issue → 屏蔽 → 两套测试 → 继续”。本 issue 创建后，将仅注释 `configs/14192.yaml` 内对应模块的完整 skill 配置块，并记录到 `docs/ida_validation_failure-14192.md`。禁用范围遵循该块原有的 `platform` 限制；无平台限制的共享块会同时屏蔽 Windows/Linux，不能据此推断两个平台均已验证失败。不移除符号声明。
+
+- [ ] 对照旧/新二进制确认目标符号状态和定位失败根因。
+- [ ] 修复预处理逻辑或明确处理被移除的符号约定。
+- [ ] 运行针对性验证及必要回归测试。
+- [ ] 恢复该 skill 配置并验证正确输出。
+
+Source log: `C:\Users\HZDEV\AppData\Local\Temp\ida-validation-14192-engine-client-server-20261023-06.log`
+
+Quarantine verification for `find-CEngineServer_SynchronizeAndBlockUntilLoaded`: unit 1610 tests, OK (skipped=60); repository-contract 124 tests, OK; both exit code 0. `git diff --check` passed.
+
+## find-CEngineServer_ServerCommand (GitHub issue #1189)
+
+Issue: https://github.com/HLND2T/CS2_VibeSignatures/issues/1189
+
+## 问题与复现
+
+PR #1175（`bump-download/14192`，提交 `3bde23a93`）验证 GAMEVER `14192` 时，`engine / windows` 的 `find-CEngineServer_ServerCommand` 失败。
+
+环境：Windows、IDA/idalib 9.3；二进制通过 init-gamebin 的 Steam depot fallback 初始化并校验 source binary lock；全部 20 个 IDB 预热成功。旧版本签名基线为 `14191b`。
+
+```powershell
+uv run ida_analyze_bin.py -gamever 14192 -configyaml configs/14192.yaml -modules engine,client,server -debug
+```
+
+预期：该 skill 准确生成配置声明的输出，验证继续执行。
+实际：该 skill 定位失败，fail-fast 验证终止，剩余平台和模块未执行。本 issue 记录的失败仅在上述平台被观察到。
+
+## 原始失败日志
+
+```text
+  Start skill: find-CEngineServer_ServerCommand
+    Preprocess: CEngineServer_ServerCommand.windows.yaml func_sig matched 0 (need 1)
+    Preprocess: failed to query function info for CEngineServer_ServerCommand
+    Preprocess: failed to locate CEngineServer_ServerCommand
+    Preprocess failed: find-CEngineServer_ServerCommand; falling back to AGENT SKILL
+    Starting agent skill: find-CEngineServer_ServerCommand
+    Falling back to: .claude\skills\find-CEngineServer_ServerCommand\SKILL.md
+    Error: Skill file not found: .claude\skills\find-CEngineServer_ServerCommand\SKILL.md
+    Failed
+```
+
+本轮汇总：
+
+```text
+  Successful: 0
+  Failed: 1
+  Skipped: 2516
+```
+
+## 诊断
+
+旧 func_sig 匹配 0 后，脚本按 INHERIT_VFUNCS 从已生成的 ../server/IVEngineServer2_ServerCommand.windows.yaml 取得 index45、offset0x168，再查询 CEngineServer_vtable 对应入口。server 输入已齐，不是 #1184 的 scope 问题。ida_analyze_util.py:5990-6025 要求 get_func(addr) 且 start_ea==addr，查询未得到元数据 dict，因此 failed to query function info；缺少对应 fallback SKILL.md 后硬失败。定位链缺口是旧签名失效加上继承虚表入口的严格函数边界查询无法回退，需核查 slot45 新代码/函数边界及 MCP 返回形态，补充安全恢复和独立锚点，再恢复配置。仅 engine/Windows 观察失败，共享块暂时屏蔽两平台。
+
+## 临时处理与验收
+
+用户已明确授权对后续失败统一执行“建 issue → 屏蔽 → 两套测试 → 继续”。本 issue 创建后，将仅注释 `configs/14192.yaml` 内对应模块的完整 skill 配置块，并记录到 `docs/ida_validation_failure-14192.md`。禁用范围遵循该块原有的 `platform` 限制；无平台限制的共享块会同时屏蔽 Windows/Linux，不能据此推断两个平台均已验证失败。不移除符号声明。
+
+- [ ] 对照旧/新二进制确认目标符号状态和定位失败根因。
+- [ ] 修复预处理逻辑或明确处理被移除的符号约定。
+- [ ] 运行针对性验证及必要回归测试。
+- [ ] 恢复该 skill 配置并验证正确输出。
+
+Source log: `C:\Users\HZDEV\AppData\Local\Temp\ida-validation-14192-engine-client-server-20261023-05.log`
+
+Quarantine verification for `find-CEngineServer_ServerCommand`: unit 1610 tests, OK (skipped=60); repository-contract 124 tests, OK; both exit code 0. `git diff --check` passed.
+
+## find-CEngineServer_IsLogEnabled (GitHub issue #1188)
+
+Issue: https://github.com/HLND2T/CS2_VibeSignatures/issues/1188
+
+## 问题与复现
+
+PR #1175（`bump-download/14192`，提交 `3bde23a93`）验证 GAMEVER `14192` 时，`engine / windows` 的 `find-CEngineServer_IsLogEnabled` 失败。
+
+环境：Windows、IDA/idalib 9.3；二进制通过 init-gamebin 的 Steam depot fallback 初始化并校验 source binary lock；全部 20 个 IDB 预热成功。旧版本签名基线为 `14191b`。
+
+```powershell
+uv run ida_analyze_bin.py -gamever 14192 -configyaml configs/14192.yaml -modules engine,client,server -debug
+```
+
+预期：该 skill 准确生成配置声明的输出，验证继续执行。
+实际：该 skill 定位失败，fail-fast 验证终止，剩余平台和模块未执行。本 issue 记录的失败仅在上述平台被观察到。
+
+## 原始失败日志
+
+```text
+  Start skill: find-CEngineServer_IsLogEnabled
+    Preprocess: no func_sig/vfunc_sig in CEngineServer_IsLogEnabled.windows.yaml
+    Preprocess: failed to query function info for CEngineServer_IsLogEnabled
+    Preprocess: failed to locate CEngineServer_IsLogEnabled
+    Preprocess failed: find-CEngineServer_IsLogEnabled; falling back to AGENT SKILL
+    Starting agent skill: find-CEngineServer_IsLogEnabled
+    Falling back to: .claude\skills\find-CEngineServer_IsLogEnabled\SKILL.md
+    Error: Skill file not found: .claude\skills\find-CEngineServer_IsLogEnabled\SKILL.md
+    Failed
+```
+
+本轮汇总：
+
+```text
+  Successful: 0
+  Failed: 1
+  Skipped: 2516
+```
+
+## 诊断
+
+IVEngineServer2_IsLogEnabled.windows.yaml 已生成：index55、offset0x1b8，具体 CEngineServer_vtable 也存在。脚本将短 bool getter 配置为 generate_func_sig=False 是设计；真实失败发生于继承槽位解析之后的严格入口函数元数据查询。ida_analyze_util.py:5990-6025 要求 get_func(addr) 且 start_ea==addr 才返回 dict，本次 failed to query function info；随后缺少 fallback SKILL.md。与 #1186/#1187 同属虚表入口的函数边界/返回格式缺少诊断恢复覆盖，非缺少 server 输入。应核查 slot55 的实际入口、函数边界及共享短函数/thunk，区分未定义函数和 MCP 返回处理问题，补充安全恢复和独立定位路径，再恢复配置。仅 Windows 观察失败，共享块暂时屏蔽两平台。
+
+## 临时处理与验收
+
+用户已明确授权对后续失败统一执行“建 issue → 屏蔽 → 两套测试 → 继续”。本 issue 创建后，将仅注释 `configs/14192.yaml` 内对应模块的完整 skill 配置块，并记录到 `docs/ida_validation_failure-14192.md`。禁用范围遵循该块原有的 `platform` 限制；无平台限制的共享块会同时屏蔽 Windows/Linux，不能据此推断两个平台均已验证失败。不移除符号声明。
+
+- [ ] 对照旧/新二进制确认目标符号状态和定位失败根因。
+- [ ] 修复预处理逻辑或明确处理被移除的符号约定。
+- [ ] 运行针对性验证及必要回归测试。
+- [ ] 恢复该 skill 配置并验证正确输出。
+
+Source log: `C:\Users\HZDEV\AppData\Local\Temp\ida-validation-14192-engine-client-server-20261023-04.log`
+
+Quarantine verification for `find-CEngineServer_IsLogEnabled`: unit 1610 tests, OK (skipped=60); repository-contract 124 tests, OK; both exit code 0. `git diff --check` passed.
+
+## find-CEngineServer_IsDedicatedServer (GitHub issue #1187)
+
+Issue: https://github.com/HLND2T/CS2_VibeSignatures/issues/1187
+
+## 问题与复现
+
+PR #1175（`bump-download/14192`，提交 `3bde23a93`）验证 GAMEVER `14192` 时，`engine / windows` 的 `find-CEngineServer_IsDedicatedServer` 失败。
+
+环境：Windows、IDA/idalib 9.3；二进制通过 init-gamebin 的 Steam depot fallback 初始化并校验 source binary lock；全部 20 个 IDB 预热成功。旧版本签名基线为 `14191b`。
+
+```powershell
+uv run ida_analyze_bin.py -gamever 14192 -configyaml configs/14192.yaml -modules engine,client,server -debug
+```
+
+预期：该 skill 准确生成配置声明的输出，验证继续执行。
+实际：该 skill 定位失败，fail-fast 验证终止，剩余平台和模块未执行。本 issue 记录的失败仅在上述平台被观察到。
+
+## 原始失败日志
+
+```text
+  Start skill: find-CEngineServer_IsDedicatedServer
+    Preprocess: no func_sig/vfunc_sig in CEngineServer_IsDedicatedServer.windows.yaml
+    Preprocess: failed to query function info for CEngineServer_IsDedicatedServer
+    Preprocess: failed to locate CEngineServer_IsDedicatedServer
+    Preprocess failed: find-CEngineServer_IsDedicatedServer; falling back to AGENT SKILL
+    Starting agent skill: find-CEngineServer_IsDedicatedServer
+    Falling back to: .claude\skills\find-CEngineServer_IsDedicatedServer\SKILL.md
+    Error: Skill file not found: .claude\skills\find-CEngineServer_IsDedicatedServer\SKILL.md
+    Failed
+```
+
+本轮汇总：
+
+```text
+  Successful: 2
+  Failed: 1
+  Skipped: 2514
+```
+
+## 诊断
+
+server 的 IVEngineServer2_IsDedicatedServer.windows.yaml 已生成（index34、offset0x110），CEngineServer_vtable 存在；GetClientSteamID/GetServerGlobals 已通过，故不是范围缺失。该函数过短，脚本有意不生成 func_sig，INHERIT_VFUNCS 通过基类槽位解析真实入口；ida_analyze_util.py:5990-6025 严格要求 get_func(addr) 且 start_ea==addr，本次没有返回函数元数据 dict，于是 failed to query function info，且 fallback SKILL.md 缺失。这是虚表定位后函数边界/返回值处理缺少诊断恢复路径的覆盖缺口，不能把无签名设计或缺少 server 输入当根因。应核查 slot34 的实际代码及 IDA 函数边界，区分共享入口/thunk/未定义函数和 MCP 返回格式，再补充安全解析恢复及定位后备路径。仅 engine/Windows 观察失败，共享配置暂时屏蔽两平台。
+
+## 临时处理与验收
+
+用户已明确授权对后续失败统一执行“建 issue → 屏蔽 → 两套测试 → 继续”。本 issue 创建后，将仅注释 `configs/14192.yaml` 内对应模块的完整 skill 配置块，并记录到 `docs/ida_validation_failure-14192.md`。禁用范围遵循该块原有的 `platform` 限制；无平台限制的共享块会同时屏蔽 Windows/Linux，不能据此推断两个平台均已验证失败。不移除符号声明。
+
+- [ ] 对照旧/新二进制确认目标符号状态和定位失败根因。
+- [ ] 修复预处理逻辑或明确处理被移除的符号约定。
+- [ ] 运行针对性验证及必要回归测试。
+- [ ] 恢复该 skill 配置并验证正确输出。
+
+Source log: `C:\Users\HZDEV\AppData\Local\Temp\ida-validation-14192-engine-client-server-20261023-03.log`
+
+Quarantine verification for `find-CEngineServer_IsDedicatedServer`: unit 1610 tests, OK (skipped=60); repository-contract 124 tests, OK; both exit code 0. `git diff --check` passed.
+
+
+## find-CEngineServer_GetClientSteamID (module: engine, observed platform: windows)
+
+Issue: https://github.com/HLND2T/CS2_VibeSignatures/issues/1184
+
+Failure from the engine/client-only validation run:
+
+```text
+  Start skill: find-CEngineServer_GetClientSteamID
+  Failed: find-CEngineServer_GetClientSteamID (missing expected_input: IVEngineServer2_GetClientSteamID.windows.yaml)
+```
+
+Diagnosis: a required input is absent in the selected-module run. The dependency chain ultimately relies on producers outside the requested engine/client scope, or on consumers already blocked by that missing cross-module input. This records a deferred dependency, not a confirmed symbol-locator defect; see the shared scope/dependency issue for the complete original 29-failure inventory.
+
+Decision: apply the user's standing authorization to temporarily comment this complete skill block and continue only engine/client validation. Original platform restrictions are preserved in the commented block. Symbol declarations are unchanged.
+
+Quarantine verification for `find-CEngineServer_GetClientSteamID`: unit 1610 tests, OK (skipped=60); repository-contract 124 tests, OK; both exit code 0. `git diff --check` passed.
+
+
+## find-CEngineServer_GetServerGlobals (module: engine, observed platform: windows)
+
+Issue: https://github.com/HLND2T/CS2_VibeSignatures/issues/1184
+
+Failure from the engine/client-only validation run:
+
+```text
+  Start skill: find-CEngineServer_GetServerGlobals
+  Failed: find-CEngineServer_GetServerGlobals (missing expected_input: IVEngineServer2_GetServerGlobals.windows.yaml)
+```
+
+Diagnosis: a required input is absent in the selected-module run. The dependency chain ultimately relies on producers outside the requested engine/client scope, or on consumers already blocked by that missing cross-module input. This records a deferred dependency, not a confirmed symbol-locator defect; see the shared scope/dependency issue for the complete original 29-failure inventory.
+
+Decision: apply the user's standing authorization to temporarily comment this complete skill block and continue only engine/client validation. Original platform restrictions are preserved in the commented block. Symbol declarations are unchanged.
+
+Quarantine verification for `find-CEngineServer_GetServerGlobals`: unit 1610 tests, OK (skipped=60); repository-contract 124 tests, OK; both exit code 0. `git diff --check` passed.
+
+
+## find-CEngineServer_IsDedicatedServer (module: engine, observed platform: windows)
+
+Issue: https://github.com/HLND2T/CS2_VibeSignatures/issues/1184
+
+Failure from the engine/client-only validation run:
+
+```text
+  Start skill: find-CEngineServer_IsDedicatedServer
+  Failed: find-CEngineServer_IsDedicatedServer (missing expected_input: IVEngineServer2_IsDedicatedServer.windows.yaml)
+```
+
+Diagnosis: a required input is absent in the selected-module run. The dependency chain ultimately relies on producers outside the requested engine/client scope, or on consumers already blocked by that missing cross-module input. This records a deferred dependency, not a confirmed symbol-locator defect; see the shared scope/dependency issue for the complete original 29-failure inventory.
+
+Decision: apply the user's standing authorization to temporarily comment this complete skill block and continue only engine/client validation. Original platform restrictions are preserved in the commented block. Symbol declarations are unchanged.
+
+Quarantine verification for `find-CEngineServer_IsDedicatedServer`: unit 1610 tests, OK (skipped=60); repository-contract 124 tests, OK; both exit code 0. `git diff --check` passed.
+
+
+## find-CEngineServer_IsLogEnabled (module: engine, observed platform: windows)
+
+Issue: https://github.com/HLND2T/CS2_VibeSignatures/issues/1184
+
+Failure from the engine/client-only validation run:
+
+```text
+  Start skill: find-CEngineServer_IsLogEnabled
+  Failed: find-CEngineServer_IsLogEnabled (missing expected_input: IVEngineServer2_IsLogEnabled.windows.yaml)
+```
+
+Diagnosis: a required input is absent in the selected-module run. The dependency chain ultimately relies on producers outside the requested engine/client scope, or on consumers already blocked by that missing cross-module input. This records a deferred dependency, not a confirmed symbol-locator defect; see the shared scope/dependency issue for the complete original 29-failure inventory.
+
+Decision: apply the user's standing authorization to temporarily comment this complete skill block and continue only engine/client validation. Original platform restrictions are preserved in the commented block. Symbol declarations are unchanged.
+
+Quarantine verification for `find-CEngineServer_IsLogEnabled`: unit 1610 tests, OK (skipped=60); repository-contract 124 tests, OK; both exit code 0. `git diff --check` passed.
+
+
+## find-CEngineServer_ServerCommand (module: engine, observed platform: windows)
+
+Issue: https://github.com/HLND2T/CS2_VibeSignatures/issues/1184
+
+Failure from the engine/client-only validation run:
+
+```text
+  Start skill: find-CEngineServer_ServerCommand
+  Failed: find-CEngineServer_ServerCommand (missing expected_input: IVEngineServer2_ServerCommand.windows.yaml)
+```
+
+Diagnosis: a required input is absent in the selected-module run. The dependency chain ultimately relies on producers outside the requested engine/client scope, or on consumers already blocked by that missing cross-module input. This records a deferred dependency, not a confirmed symbol-locator defect; see the shared scope/dependency issue for the complete original 29-failure inventory.
+
+Decision: apply the user's standing authorization to temporarily comment this complete skill block and continue only engine/client validation. Original platform restrictions are preserved in the commented block. Symbol declarations are unchanged.
+
+Quarantine verification for `find-CEngineServer_ServerCommand`: unit 1610 tests, OK (skipped=60); repository-contract 124 tests, OK; both exit code 0. `git diff --check` passed.
+
+
+## find-CEngineServiceMgr_UnregisterEngineService (module: engine, observed platform: windows)
+
+Issue: https://github.com/HLND2T/CS2_VibeSignatures/issues/1184
+
+Failure from the engine/client-only validation run:
+
+```text
+  Start skill: find-CEngineServiceMgr_UnregisterEngineService
+  Failed: find-CEngineServiceMgr_UnregisterEngineService (missing expected_input: IEngineServiceMgr_UnregisterEngineService.windows.yaml)
+```
+
+Diagnosis: a required input is absent in the selected-module run. The dependency chain ultimately relies on producers outside the requested engine/client scope, or on consumers already blocked by that missing cross-module input. This records a deferred dependency, not a confirmed symbol-locator defect; see the shared scope/dependency issue for the complete original 29-failure inventory.
+
+Decision: apply the user's standing authorization to temporarily comment this complete skill block and continue only engine/client validation. Original platform restrictions are preserved in the commented block. Symbol declarations are unchanged.
+
+Quarantine verification for `find-CEngineServiceMgr_UnregisterEngineService`: unit 1610 tests, OK (skipped=60); repository-contract 124 tests, OK; both exit code 0. `git diff --check` passed.
+
+
+## find-CEngineServiceMgr_UnregisterLoopMode (module: engine, observed platform: windows)
+
+Issue: https://github.com/HLND2T/CS2_VibeSignatures/issues/1184
+
+Failure from the engine/client-only validation run:
+
+```text
+  Start skill: find-CEngineServiceMgr_UnregisterLoopMode
+  Failed: find-CEngineServiceMgr_UnregisterLoopMode (missing expected_input: IEngineServiceMgr_UnregisterLoopMode.windows.yaml)
+```
+
+Diagnosis: a required input is absent in the selected-module run. The dependency chain ultimately relies on producers outside the requested engine/client scope, or on consumers already blocked by that missing cross-module input. This records a deferred dependency, not a confirmed symbol-locator defect; see the shared scope/dependency issue for the complete original 29-failure inventory.
+
+Decision: apply the user's standing authorization to temporarily comment this complete skill block and continue only engine/client validation. Original platform restrictions are preserved in the commented block. Symbol declarations are unchanged.
+
+Initial quarantine verification for `find-CEngineServiceMgr_UnregisterLoopMode`: unit 1610 tests, OK (60 skipped); repository-contract 124 tests, FAILED (1 dependency-graph failure). The current repository test `TestConfigSchedulingDependencies.test_all_configs_have_satisfied_dependency_graphs` calls the same `find_module_skill_dependency_gaps` dependency checker referenced by the skill workflow. It reports the inlined consumer on Windows/Linux and the optional factory/noinline consumers on Linux. These descendants will be handled individually under the user's standing authorization; IDA validation remains stopped until both suites pass.
+
+
+## find-CEngineServiceMgr_UnregisterLoopMode-inlined (module: engine, observed platform: windows/linux dependency gate)
+
+Issue: https://github.com/HLND2T/CS2_VibeSignatures/issues/1184
+
+Failure from the engine/client-only validation run:
+
+```text
+FAIL: test_all_configs_have_satisfied_dependency_graphs (test_config_scheduling_dependencies.TestConfigSchedulingDependencies.test_all_configs_have_satisfied_dependency_graphs) (config='14192.yaml')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\CS2_VibeSignatures\tests\test_config_scheduling_dependencies.py", line 86, in test_all_configs_have_satisfied_dependency_graphs
+    self.assertEqual([], gaps)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^
+AssertionError: Lists differ: [] != ['windows module[8] engine/find-CEngineSer[543 chars]aml']
+
+Second list contains 4 additional elements.
+First extra element 0:
+'windows module[8] engine/find-CEngineServiceMgr_UnregisterLoopMode-inlined missing: _artifacts/engine/CEngineServiceMgr_UnregisterLoopMode.windows.yaml'
+
+- []
++ ['windows module[8] engine/find-CEngineServiceMgr_UnregisterLoopMode-inlined '
++  'missing: _artifacts/engine/CEngineServiceMgr_UnregisterLoopMode.windows.yaml',
++  'linux module[8] engine/find-UnregisterLoopModeFactory missing: '
++  '_artifacts/engine/CEngineServiceMgr_UnregisterLoopMode.linux.yaml',
++  'linux module[8] engine/find-CEngineServiceMgr_UnregisterLoopMode-noinline '
++  'missing: _artifacts/engine/CEngineServiceMgr_UnregisterLoopMode.linux.yaml',
++  'linux module[8] engine/find-CEngineServiceMgr_UnregisterLoopMode-inlined '
++  'missing: _artifacts/engine/CEngineServiceMgr_UnregisterLoopMode.linux.yaml']
+
+----------------------------------------------------------------------
+```
+
+Diagnosis: a required input is absent in the selected-module run. The dependency chain ultimately relies on producers outside the requested engine/client scope, or on consumers already blocked by that missing cross-module input. This records a deferred dependency, not a confirmed symbol-locator defect; see the shared scope/dependency issue for the complete original 29-failure inventory.
+
+Decision: apply the user's standing authorization to temporarily comment this complete skill block and continue only engine/client validation. Original platform restrictions are preserved in the commented block. Symbol declarations are unchanged.
+
+Initial quarantine verification for `find-CEngineServiceMgr_UnregisterLoopMode-inlined`: unit 1610 tests, OK (60 skipped); repository-contract 124 tests, FAILED (only the config dependency-graph test). Remaining gaps: windows module[9] client/find-CLoopModeFactory_CLoopModeGame_Shutdown missing: _artifacts/engine/ILoopModeFactory_Shutdown.windows.yaml; windows module[10] server/find-CLoopModeFactory_CLoopModeGame_Shutdown missing: _artifacts/engine/ILoopModeFactory_Shutdown.windows.yaml; linux module[8] engine/find-UnregisterLoopModeFactory missing: _artifacts/engine/CEngineServiceMgr_UnregisterLoopMode.linux.yaml; linux module[8] engine/find-CEngineServiceMgr_UnregisterLoopMode-noinline missing: _artifacts/engine/CEngineServiceMgr_UnregisterLoopMode.linux.yaml; linux module[9] client/find-CLoopModeFactory_CLoopModeGame_Shutdown missing: _artifacts/engine/ILoopModeFactory_Shutdown.linux.yaml; linux module[10] server/find-CLoopModeFactory_CLoopModeGame_Shutdown missing: _artifacts/engine/ILoopModeFactory_Shutdown.linux.yaml. IDA validation remains stopped while these descendants are quarantined individually.
+
+
+## find-CLoopModeFactory_CLoopModeGame_Shutdown (module: client, observed platform: windows/linux dependency gate)
+
+Issue: https://github.com/HLND2T/CS2_VibeSignatures/issues/1184
+
+Failure from the engine/client-only validation run:
+
+```text
+FAIL: test_all_configs_have_satisfied_dependency_graphs (test_config_scheduling_dependencies.TestConfigSchedulingDependencies.test_all_configs_have_satisfied_dependency_graphs) (config='14192.yaml')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\CS2_VibeSignatures\tests\test_config_scheduling_dependencies.py", line 86, in test_all_configs_have_satisfied_dependency_graphs
+    self.assertEqual([], gaps)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^
+AssertionError: Lists differ: [] != ['windows module[9] client/find-CLoopModeF[787 chars]aml']
+
+Second list contains 6 additional elements.
+First extra element 0:
+'windows module[9] client/find-CLoopModeFactory_CLoopModeGame_Shutdown missing: _artifacts/engine/ILoopModeFactory_Shutdown.windows.yaml'
+
+Diff is 893 characters long. Set self.maxDiff to None to see it.
+
+----------------------------------------------------------------------
+```
+
+Diagnosis: a required input is absent in the selected-module run. The dependency chain ultimately relies on producers outside the requested engine/client scope, or on consumers already blocked by that missing cross-module input. This records a deferred dependency, not a confirmed symbol-locator defect; see the shared scope/dependency issue for the complete original 29-failure inventory.
+
+Decision: apply the user's standing authorization to temporarily comment this complete skill block and continue only engine/client validation. Original platform restrictions are preserved in the commented block. Symbol declarations are unchanged.
+
+Initial quarantine verification for `find-CLoopModeFactory_CLoopModeGame_Shutdown`: unit 1610 tests, OK (60 skipped); repository-contract 124 tests, FAILED (only the config dependency-graph test). Remaining gaps: windows module[9] client/find-CLoopModeFactory_CLoopModeGame_Shutdown-decompiles missing: _artifacts/client/CLoopModeFactory_CLoopModeGame_Shutdown.windows.yaml; windows module[10] server/find-CLoopModeFactory_CLoopModeGame_Shutdown missing: _artifacts/engine/ILoopModeFactory_Shutdown.windows.yaml; linux module[8] engine/find-UnregisterLoopModeFactory missing: _artifacts/engine/CEngineServiceMgr_UnregisterLoopMode.linux.yaml; linux module[8] engine/find-CEngineServiceMgr_UnregisterLoopMode-noinline missing: _artifacts/engine/CEngineServiceMgr_UnregisterLoopMode.linux.yaml; linux module[9] client/find-CLoopModeFactory_CLoopModeGame_Shutdown-decompiles missing: _artifacts/client/CLoopModeFactory_CLoopModeGame_Shutdown.linux.yaml; linux module[10] server/find-CLoopModeFactory_CLoopModeGame_Shutdown missing: _artifacts/engine/ILoopModeFactory_Shutdown.linux.yaml. IDA validation remains stopped while these descendants are quarantined individually.
+
+
+## find-CLoopModeFactory_CLoopModeGame_Shutdown-decompiles (module: client, observed platform: windows/linux dependency gate)
+
+Issue: https://github.com/HLND2T/CS2_VibeSignatures/issues/1184
+
+Failure from the engine/client-only validation run:
+
+```text
+FAIL: test_all_configs_have_satisfied_dependency_graphs (test_config_scheduling_dependencies.TestConfigSchedulingDependencies.test_all_configs_have_satisfied_dependency_graphs) (config='14192.yaml')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\CS2_VibeSignatures\tests\test_config_scheduling_dependencies.py", line 86, in test_all_configs_have_satisfied_dependency_graphs
+    self.assertEqual([], gaps)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^
+AssertionError: Lists differ: [] != ['windows module[9] client/find-CLoopModeF[837 chars]aml']
+
+Second list contains 6 additional elements.
+First extra element 0:
+'windows module[9] client/find-CLoopModeFactory_CLoopModeGame_Shutdown-decompiles missing: _artifacts/client/CLoopModeFactory_CLoopModeGame_Shutdown.windows.yaml'
+
+Diff is 955 characters long. Set self.maxDiff to None to see it.
+
+----------------------------------------------------------------------
+```
+
+Diagnosis: a required input is absent in the selected-module run. The dependency chain ultimately relies on producers outside the requested engine/client scope, or on consumers already blocked by that missing cross-module input. This records a deferred dependency, not a confirmed symbol-locator defect; see the shared scope/dependency issue for the complete original 29-failure inventory.
+
+Decision: apply the user's standing authorization to temporarily comment this complete skill block and continue only engine/client validation. Original platform restrictions are preserved in the commented block. Symbol declarations are unchanged.
+
+Initial quarantine verification for `find-CLoopModeFactory_CLoopModeGame_Shutdown-decompiles`: unit 1610 tests, OK (60 skipped); repository-contract 124 tests, FAILED (only the config dependency-graph test). Remaining gaps: windows module[9] client/find-IGameSystemFactory_Shutdown missing: _artifacts/client/IGameSystem_ShutdownAllSystems.windows.yaml; windows module[10] server/find-CLoopModeFactory_CLoopModeGame_Shutdown missing: _artifacts/engine/ILoopModeFactory_Shutdown.windows.yaml; windows module[11] engine/find-CEngineServiceMgr_GetEventDispatcher missing: _artifacts/client/IEngineServiceMgr_GetEventDispatcher.windows.yaml; linux module[8] engine/find-UnregisterLoopModeFactory missing: _artifacts/engine/CEngineServiceMgr_UnregisterLoopMode.linux.yaml; linux module[8] engine/find-CEngineServiceMgr_UnregisterLoopMode-noinline missing: _artifacts/engine/CEngineServiceMgr_UnregisterLoopMode.linux.yaml; linux module[9] client/find-IGameSystemFactory_Shutdown missing: _artifacts/client/IGameSystem_ShutdownAllSystems.linux.yaml; linux module[10] server/find-CLoopModeFactory_CLoopModeGame_Shutdown missing: _artifacts/engine/ILoopModeFactory_Shutdown.linux.yaml; linux module[11] engine/find-CEngineServiceMgr_GetEventDispatcher missing: _artifacts/client/IEngineServiceMgr_GetEventDispatcher.linux.yaml. IDA validation remains stopped while these descendants are quarantined individually.
+
+
+## find-IGameSystemFactory_Shutdown (module: client, observed platform: windows/linux dependency gate)
+
+Issue: https://github.com/HLND2T/CS2_VibeSignatures/issues/1184
+
+Failure from the engine/client-only validation run:
+
+```text
+FAIL: test_all_configs_have_satisfied_dependency_graphs (test_config_scheduling_dependencies.TestConfigSchedulingDependencies.test_all_configs_have_satisfied_dependency_graphs) (config='14192.yaml')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\CS2_VibeSignatures\tests\test_config_scheduling_dependencies.py", line 86, in test_all_configs_have_satisfied_dependency_graphs
+    self.assertEqual([], gaps)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^
+AssertionError: Lists differ: [] != ['windows module[9] client/find-IGameSyste[1065 chars]aml']
+
+Second list contains 8 additional elements.
+First extra element 0:
+'windows module[9] client/find-IGameSystemFactory_Shutdown missing: _artifacts/client/IGameSystem_ShutdownAllSystems.windows.yaml'
+
+Diff is 1189 characters long. Set self.maxDiff to None to see it.
+
+----------------------------------------------------------------------
+```
+
+Diagnosis: a required input is absent in the selected-module run. The dependency chain ultimately relies on producers outside the requested engine/client scope, or on consumers already blocked by that missing cross-module input. This records a deferred dependency, not a confirmed symbol-locator defect; see the shared scope/dependency issue for the complete original 29-failure inventory.
+
+Decision: apply the user's standing authorization to temporarily comment this complete skill block and continue only engine/client validation. Original platform restrictions are preserved in the commented block. Symbol declarations are unchanged.
+
+Initial quarantine verification for `find-IGameSystemFactory_Shutdown`: unit 1610 tests, OK (60 skipped); repository-contract 124 tests, FAILED (only the config dependency-graph test). Remaining gaps: windows module[10] server/find-CLoopModeFactory_CLoopModeGame_Shutdown missing: _artifacts/engine/ILoopModeFactory_Shutdown.windows.yaml; windows module[11] engine/find-CEngineServiceMgr_GetEventDispatcher missing: _artifacts/client/IEngineServiceMgr_GetEventDispatcher.windows.yaml; linux module[8] engine/find-UnregisterLoopModeFactory missing: _artifacts/engine/CEngineServiceMgr_UnregisterLoopMode.linux.yaml; linux module[8] engine/find-CEngineServiceMgr_UnregisterLoopMode-noinline missing: _artifacts/engine/CEngineServiceMgr_UnregisterLoopMode.linux.yaml; linux module[10] server/find-CLoopModeFactory_CLoopModeGame_Shutdown missing: _artifacts/engine/ILoopModeFactory_Shutdown.linux.yaml; linux module[11] engine/find-CEngineServiceMgr_GetEventDispatcher missing: _artifacts/client/IEngineServiceMgr_GetEventDispatcher.linux.yaml. IDA validation remains stopped while these descendants are quarantined individually.
+
+
+## find-CLoopModeFactory_CLoopModeGame_Shutdown (module: server, observed platform: windows/linux dependency gate)
+
+Issue: https://github.com/HLND2T/CS2_VibeSignatures/issues/1184
+
+Failure from the engine/client-only validation run:
+
+```text
+FAIL: test_all_configs_have_satisfied_dependency_graphs (test_config_scheduling_dependencies.TestConfigSchedulingDependencies.test_all_configs_have_satisfied_dependency_graphs) (config='14192.yaml')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\CS2_VibeSignatures\tests\test_config_scheduling_dependencies.py", line 86, in test_all_configs_have_satisfied_dependency_graphs
+    self.assertEqual([], gaps)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^
+AssertionError: Lists differ: [] != ['windows module[10] server/find-CLoopMode[805 chars]aml']
+
+Second list contains 6 additional elements.
+First extra element 0:
+'windows module[10] server/find-CLoopModeFactory_CLoopModeGame_Shutdown missing: _artifacts/engine/ILoopModeFactory_Shutdown.windows.yaml'
+
+Diff is 911 characters long. Set self.maxDiff to None to see it.
+
+----------------------------------------------------------------------
+```
+
+Diagnosis: a required input is absent in the selected-module run. The dependency chain ultimately relies on producers outside the requested engine/client scope, or on consumers already blocked by that missing cross-module input. This records a deferred dependency, not a confirmed symbol-locator defect; see the shared scope/dependency issue for the complete original 29-failure inventory.
+
+Decision: apply the user's standing authorization to temporarily comment this complete skill block and continue only engine/client validation. Original platform restrictions are preserved in the commented block. Symbol declarations are unchanged.
+
+Initial quarantine verification for `find-CLoopModeFactory_CLoopModeGame_Shutdown`: unit 1610 tests, OK (60 skipped); repository-contract 124 tests, FAILED (only the config dependency-graph test). Remaining gaps: windows module[10] server/find-CLoopModeFactory_CLoopModeGame_Shutdown-decompiles missing: _artifacts/server/CLoopModeFactory_CLoopModeGame_Shutdown.windows.yaml; windows module[11] engine/find-CEngineServiceMgr_GetEventDispatcher missing: _artifacts/client/IEngineServiceMgr_GetEventDispatcher.windows.yaml; linux module[8] engine/find-UnregisterLoopModeFactory missing: _artifacts/engine/CEngineServiceMgr_UnregisterLoopMode.linux.yaml; linux module[8] engine/find-CEngineServiceMgr_UnregisterLoopMode-noinline missing: _artifacts/engine/CEngineServiceMgr_UnregisterLoopMode.linux.yaml; linux module[10] server/find-CLoopModeFactory_CLoopModeGame_Shutdown-decompiles missing: _artifacts/server/CLoopModeFactory_CLoopModeGame_Shutdown.linux.yaml; linux module[11] engine/find-CEngineServiceMgr_GetEventDispatcher missing: _artifacts/client/IEngineServiceMgr_GetEventDispatcher.linux.yaml. IDA validation remains stopped while these descendants are quarantined individually.
+
+
+## find-CLoopModeFactory_CLoopModeGame_Shutdown-decompiles (module: server, observed platform: windows/linux dependency gate)
+
+Issue: https://github.com/HLND2T/CS2_VibeSignatures/issues/1184
+
+Failure from the engine/client-only validation run:
+
+```text
+FAIL: test_all_configs_have_satisfied_dependency_graphs (test_config_scheduling_dependencies.TestConfigSchedulingDependencies.test_all_configs_have_satisfied_dependency_graphs) (config='14192.yaml')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\CS2_VibeSignatures\tests\test_config_scheduling_dependencies.py", line 86, in test_all_configs_have_satisfied_dependency_graphs
+    self.assertEqual([], gaps)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^
+AssertionError: Lists differ: [] != ['windows module[10] server/find-CLoopMode[855 chars]aml']
+
+Second list contains 6 additional elements.
+First extra element 0:
+'windows module[10] server/find-CLoopModeFactory_CLoopModeGame_Shutdown-decompiles missing: _artifacts/server/CLoopModeFactory_CLoopModeGame_Shutdown.windows.yaml'
+
+Diff is 973 characters long. Set self.maxDiff to None to see it.
+
+----------------------------------------------------------------------
+```
+
+Diagnosis: a required input is absent in the selected-module run. The dependency chain ultimately relies on producers outside the requested engine/client scope, or on consumers already blocked by that missing cross-module input. This records a deferred dependency, not a confirmed symbol-locator defect; see the shared scope/dependency issue for the complete original 29-failure inventory.
+
+Decision: apply the user's standing authorization to temporarily comment this complete skill block and continue only engine/client validation. Original platform restrictions are preserved in the commented block. Symbol declarations are unchanged.
+
+Initial quarantine verification for `find-CLoopModeFactory_CLoopModeGame_Shutdown-decompiles`: unit 1610 tests, OK (60 skipped); repository-contract 124 tests, FAILED (only the config dependency-graph test). Remaining gaps: windows module[10] server/find-IGameSystemFactory_Shutdown missing: _artifacts/server/IGameSystem_ShutdownAllSystems.windows.yaml; windows module[11] engine/find-CEngineServiceMgr_GetEventDispatcher missing: _artifacts/client/IEngineServiceMgr_GetEventDispatcher.windows.yaml; linux module[8] engine/find-UnregisterLoopModeFactory missing: _artifacts/engine/CEngineServiceMgr_UnregisterLoopMode.linux.yaml; linux module[8] engine/find-CEngineServiceMgr_UnregisterLoopMode-noinline missing: _artifacts/engine/CEngineServiceMgr_UnregisterLoopMode.linux.yaml; linux module[10] server/find-IGameSystemFactory_Shutdown missing: _artifacts/server/IGameSystem_ShutdownAllSystems.linux.yaml; linux module[11] engine/find-CEngineServiceMgr_GetEventDispatcher missing: _artifacts/client/IEngineServiceMgr_GetEventDispatcher.linux.yaml. IDA validation remains stopped while these descendants are quarantined individually.
+
+
+## find-IGameSystemFactory_Shutdown (module: server, observed platform: windows/linux dependency gate)
+
+Issue: https://github.com/HLND2T/CS2_VibeSignatures/issues/1184
+
+Failure from the engine/client-only validation run:
+
+```text
+FAIL: test_all_configs_have_satisfied_dependency_graphs (test_config_scheduling_dependencies.TestConfigSchedulingDependencies.test_all_configs_have_satisfied_dependency_graphs) (config='14192.yaml')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\CS2_VibeSignatures\tests\test_config_scheduling_dependencies.py", line 86, in test_all_configs_have_satisfied_dependency_graphs
+    self.assertEqual([], gaps)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^
+AssertionError: Lists differ: [] != ['windows module[10] server/find-IGameSyst[791 chars]aml']
+
+Second list contains 6 additional elements.
+First extra element 0:
+'windows module[10] server/find-IGameSystemFactory_Shutdown missing: _artifacts/server/IGameSystem_ShutdownAllSystems.windows.yaml'
+
+Diff is 897 characters long. Set self.maxDiff to None to see it.
+
+----------------------------------------------------------------------
+```
+
+Diagnosis: a required input is absent in the selected-module run. The dependency chain ultimately relies on producers outside the requested engine/client scope, or on consumers already blocked by that missing cross-module input. This records a deferred dependency, not a confirmed symbol-locator defect; see the shared scope/dependency issue for the complete original 29-failure inventory.
+
+Decision: apply the user's standing authorization to temporarily comment this complete skill block and continue only engine/client validation. Original platform restrictions are preserved in the commented block. Symbol declarations are unchanged.
+
+Initial quarantine verification for `find-IGameSystemFactory_Shutdown`: unit 1610 tests, OK (60 skipped); repository-contract 124 tests, FAILED (only the config dependency-graph test). Remaining gaps: windows module[11] engine/find-CEngineServiceMgr_GetEventDispatcher missing: _artifacts/client/IEngineServiceMgr_GetEventDispatcher.windows.yaml; linux module[8] engine/find-UnregisterLoopModeFactory missing: _artifacts/engine/CEngineServiceMgr_UnregisterLoopMode.linux.yaml; linux module[8] engine/find-CEngineServiceMgr_UnregisterLoopMode-noinline missing: _artifacts/engine/CEngineServiceMgr_UnregisterLoopMode.linux.yaml; linux module[11] engine/find-CEngineServiceMgr_GetEventDispatcher missing: _artifacts/client/IEngineServiceMgr_GetEventDispatcher.linux.yaml. IDA validation remains stopped while these descendants are quarantined individually.
+
+
+## find-CEngineServiceMgr_GetEventDispatcher (module: engine, observed platform: windows/linux dependency gate)
+
+Issue: https://github.com/HLND2T/CS2_VibeSignatures/issues/1184
+
+Failure from the engine/client-only validation run:
+
+```text
+FAIL: test_all_configs_have_satisfied_dependency_graphs (test_config_scheduling_dependencies.TestConfigSchedulingDependencies.test_all_configs_have_satisfied_dependency_graphs) (config='14192.yaml')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\CS2_VibeSignatures\tests\test_config_scheduling_dependencies.py", line 86, in test_all_configs_have_satisfied_dependency_graphs
+    self.assertEqual([], gaps)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^
+AssertionError: Lists differ: [] != ['windows module[11] engine/find-CEngineSe[529 chars]aml']
+
+Second list contains 4 additional elements.
+First extra element 0:
+'windows module[11] engine/find-CEngineServiceMgr_GetEventDispatcher missing: _artifacts/client/IEngineServiceMgr_GetEventDispatcher.windows.yaml'
+
+- []
++ ['windows module[11] engine/find-CEngineServiceMgr_GetEventDispatcher missing: '
++  '_artifacts/client/IEngineServiceMgr_GetEventDispatcher.windows.yaml',
++  'linux module[8] engine/find-UnregisterLoopModeFactory missing: '
++  '_artifacts/engine/CEngineServiceMgr_UnregisterLoopMode.linux.yaml',
++  'linux module[8] engine/find-CEngineServiceMgr_UnregisterLoopMode-noinline '
++  'missing: _artifacts/engine/CEngineServiceMgr_UnregisterLoopMode.linux.yaml',
++  'linux module[11] engine/find-CEngineServiceMgr_GetEventDispatcher missing: '
++  '_artifacts/client/IEngineServiceMgr_GetEventDispatcher.linux.yaml']
+
+----------------------------------------------------------------------
+```
+
+Diagnosis: a required input is absent in the selected-module run. The dependency chain ultimately relies on producers outside the requested engine/client scope, or on consumers already blocked by that missing cross-module input. This records a deferred dependency, not a confirmed symbol-locator defect; see the shared scope/dependency issue for the complete original 29-failure inventory.
+
+Decision: apply the user's standing authorization to temporarily comment this complete skill block and continue only engine/client validation. Original platform restrictions are preserved in the commented block. Symbol declarations are unchanged.
+
+Initial quarantine verification for `find-CEngineServiceMgr_GetEventDispatcher`: unit 1610 tests, OK (60 skipped); repository-contract 124 tests, FAILED (only the config dependency-graph test). Remaining gaps: linux module[8] engine/find-UnregisterLoopModeFactory missing: _artifacts/engine/CEngineServiceMgr_UnregisterLoopMode.linux.yaml; linux module[8] engine/find-CEngineServiceMgr_UnregisterLoopMode-noinline missing: _artifacts/engine/CEngineServiceMgr_UnregisterLoopMode.linux.yaml. IDA validation remains stopped while these descendants are quarantined individually.
+
+
+## find-UnregisterLoopModeFactory (module: engine, observed platform: windows/linux dependency gate)
+
+Issue: https://github.com/HLND2T/CS2_VibeSignatures/issues/1184
+
+Failure from the engine/client-only validation run:
+
+```text
+FAIL: test_all_configs_have_satisfied_dependency_graphs (test_config_scheduling_dependencies.TestConfigSchedulingDependencies.test_all_configs_have_satisfied_dependency_graphs) (config='14192.yaml')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\CS2_VibeSignatures\tests\test_config_scheduling_dependencies.py", line 86, in test_all_configs_have_satisfied_dependency_graphs
+    self.assertEqual([], gaps)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^
+AssertionError: Lists differ: [] != ['linux module[8] engine/find-UnregisterLo[237 chars]aml']
+
+Second list contains 2 additional elements.
+First extra element 0:
+'linux module[8] engine/find-UnregisterLoopModeFactory missing: _artifacts/engine/CEngineServiceMgr_UnregisterLoopMode.linux.yaml'
+
+- []
++ ['linux module[8] engine/find-UnregisterLoopModeFactory missing: '
++  '_artifacts/engine/CEngineServiceMgr_UnregisterLoopMode.linux.yaml',
++  'linux module[8] engine/find-CEngineServiceMgr_UnregisterLoopMode-noinline '
++  'missing: _artifacts/engine/CEngineServiceMgr_UnregisterLoopMode.linux.yaml']
+
+----------------------------------------------------------------------
+```
+
+Diagnosis: a required input is absent in the selected-module run. The dependency chain ultimately relies on producers outside the requested engine/client scope, or on consumers already blocked by that missing cross-module input. This records a deferred dependency, not a confirmed symbol-locator defect; see the shared scope/dependency issue for the complete original 29-failure inventory.
+
+Decision: apply the user's standing authorization to temporarily comment this complete skill block and continue only engine/client validation. Original platform restrictions are preserved in the commented block. Symbol declarations are unchanged.
+
+Initial quarantine verification for `find-UnregisterLoopModeFactory`: unit 1610 tests, OK (60 skipped); repository-contract 124 tests, FAILED (only the config dependency-graph test). Remaining gaps: linux module[8] engine/find-CEngineServiceMgr_UnregisterLoopMode-noinline missing: _artifacts/engine/CEngineServiceMgr_UnregisterLoopMode.linux.yaml. IDA validation remains stopped while these descendants are quarantined individually.
+
+
+## find-CEngineServiceMgr_UnregisterLoopMode-noinline (module: engine, observed platform: windows/linux dependency gate)
+
+Issue: https://github.com/HLND2T/CS2_VibeSignatures/issues/1184
+
+Failure from the engine/client-only validation run:
+
+```text
+FAIL: test_all_configs_have_satisfied_dependency_graphs (test_config_scheduling_dependencies.TestConfigSchedulingDependencies.test_all_configs_have_satisfied_dependency_graphs) (config='14192.yaml')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\CS2_VibeSignatures\tests\test_config_scheduling_dependencies.py", line 86, in test_all_configs_have_satisfied_dependency_graphs
+    self.assertEqual([], gaps)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^
+AssertionError: Lists differ: [] != ['linux module[8] engine/find-CEngineServi[105 chars]aml']
+
+Second list contains 1 additional elements.
+First extra element 0:
+'linux module[8] engine/find-CEngineServiceMgr_UnregisterLoopMode-noinline missing: _artifacts/engine/CEngineServiceMgr_UnregisterLoopMode.linux.yaml'
+
+- []
++ ['linux module[8] engine/find-CEngineServiceMgr_UnregisterLoopMode-noinline '
++  'missing: _artifacts/engine/CEngineServiceMgr_UnregisterLoopMode.linux.yaml']
+
+----------------------------------------------------------------------
+```
+
+Diagnosis: a required input is absent in the selected-module run. The dependency chain ultimately relies on producers outside the requested engine/client scope, or on consumers already blocked by that missing cross-module input. This records a deferred dependency, not a confirmed symbol-locator defect; see the shared scope/dependency issue for the complete original 29-failure inventory.
+
+Decision: apply the user's standing authorization to temporarily comment this complete skill block and continue only engine/client validation. Original platform restrictions are preserved in the commented block. Symbol declarations are unchanged.
+
+Quarantine verification for `find-CEngineServiceMgr_UnregisterLoopMode-noinline`: unit 1610 tests, OK (skipped=60); repository-contract 124 tests, OK; both exit code 0. `git diff --check` passed.
+
+## UnregisterLoopMode dependency-closure verification
+
+After the parent and its ten dependency-broken descendants were quarantined individually, both complete suites passed again: unit 1610 tests, OK (60 skipped); repository-contract 124 tests, OK; both exit code 0. `git diff --check` passed. Earlier failed dependency-gate results above are retained as evidence of the cascade; the final passing run is in `unit-14192-scope-18.log` and `repository-contract-14192-scope-18.log`.
+
+The deferred descendants include three late client Shutdown skills, the corresponding three late server Shutdown skills, the late engine GetEventDispatcher skill, and three engine UnregisterLoopMode helper/fallback skills. The server changes are configuration-only dependency quarantines; no server binary analysis was run.
+
+## find-GetCSWeaponDataFromKey-inlined (module: server, observed platform: linux)
+
+Issue: https://github.com/HLND2T/CS2_VibeSignatures/issues/1185
+
+Command: `uv run ida_analyze_bin.py -gamever 14192 -configyaml configs/14192.yaml -modules engine,client,server -debug`
+
+Diagnosis: old signature matched 0. Both the optional noinline extraction from the located CSmokeGrenadeProjectile_GetCSWeaponData (0xef8b80) and required inlined extraction from CSmokeGrenadeProjectile_Create returned explicit_empty with no schema issues. The required branch then found no fallback SKILL.md. The old-signature and caller-reference extraction chain has no remaining locator; inspect the actual new caller structure and update anchors/extraction before restoring. Empty results alone do not establish symbol removal. Windows succeeded earlier; only Linux failure was observed.
+
+Decision: standing user authorization applies; comment the shared server skill block (Windows/Linux), preserving the optional noinline producer and existing Windows artifact. No output is fabricated.
+
+Full failure evidence:
+
+```text
+  Start skill: find-GetCSWeaponDataFromKey-inlined
+    Preprocess: GetCSWeaponDataFromKey.linux.yaml func_sig matched 0 (need 1)
+    Preprocess: llm_decompile request ready for GetCSWeaponDataFromKey: platform=linux, model=deepseek-flash, prompt_path=D:\CS2_VibeSignatures\ida_preprocessor_scripts\prompt\call_llm_decompile.md, reference_yaml_paths=['D:\\CS2_VibeSignatures\\ida_preprocessor_scripts\\references\\server\\CSmokeGrenadeProjectile_Create.linux.yaml']
+    Preprocess: llm_decompile reference payloads for GetCSWeaponDataFromKey BEGIN
+[
+  {
+    "func_name": "CSmokeGrenadeProjectile_Create",
+    "func_va": "0x1409240",
+    "disasm_code": ".text:0000000001409240                 push    rbp\n.text:0000000001409241                 mov     rcx, r8\n.text:0000000001409244                 mov     rbp, rsp\n.text:0000000001409247                 push    r15\n.text:0000000001409249                 mov     r15, rdi\n.text:000000000140924C                 push    r14\n.text:000000000140924E                 mov     r14d, r9d\n.text:0000000001409251                 push    r13\n.text:0000000001409253                 mov     r13, r8\n.text:0000000001409256                 push    r12\n.text:0000000001409258                 push    rbx\n.text:0000000001409259                 sub     rsp, 58h\n.text:000000000140925D                 mov     [rbp+var_78], rdx\n.text:0000000001409261                 mov     rdx, rsi\n.text:0000000001409264                 mov     rsi, rdi\n.text:0000000001409267                 lea     rdi, aSmokegrenadePr_0; \"smokegrenade_projectile\"\n.text:000000000140926E                 call    CEntitySpawner_CBaseEntity_Spawn\n.text:0000000001409273                 mov     rbx, rax\n.text:0000000001409276                 call    sub_14ABEC0\n.text:000000000140927B                 movzx   esi, r14w\n.text:000000000140927F                 xor     ecx, ecx\n.text:0000000001409281                 xor     edx, edx\n.text:0000000001409283                 mov     rdi, rax\n.text:0000000001409286                 call    sub_1B00220\n.text:000000000140928B                 mov     r12, rax\n.text:000000000140928E                 test    rax, rax\n.text:0000000001409291                 jz      short loc_14092A6\n.text:0000000001409293                 mov     rdi, rax\n.text:0000000001409296                 call    sub_1B4F9B0\n.text:000000000140929B                 mov     rdi, rax\n.text:000000000140929E                 call    CSmokeGrenadeProjectile_GetCSWeaponData\n.text:00000000014092A3                 mov     r12, rax\n.text:00000000014092A6                 movss   xmm0, cs:dword_7BA7F8\n.text:00000000014092AE                 xor     r8d, r8d\n.text:00000000014092B1                 xor     ecx, ecx\n.text:00000000014092B3                 xor     edx, edx\n.text:00000000014092B5                 lea     rsi, sub_13F3FD0\n.text:00000000014092BC                 mov     rdi, rbx\n.text:00000000014092BF                 call    sub_D53CE0\n.text:00000000014092C4                 mov     rax, [rbx+10h]\n.text:00000000014092C8                 mov     edi, [rax+38h]\n.text:00000000014092CB                 call    sub_12F8C50\n.text:00000000014092D0                 xor     esi, esi\n.text:00000000014092D2                 mov     rdi, rbx\n.text:00000000014092D5                 call    sub_D53900\n.text:00000000014092DA                 lea     rax, g_pCSBotManager\n.text:00000000014092E1                 mov     rsi, rbx\n.text:00000000014092E4                 pxor    xmm0, xmm0\n.text:00000000014092E8                 mov     rdi, [rax]\n.text:00000000014092EB                 call    sub_C706A0\n.text:00000000014092F0                 mov     rsi, [rbp+var_78]\n.text:00000000014092F4                 mov     rdi, rbx\n.text:00000000014092F7                 call    sub_D31930\n.text:00000000014092FC                 mov     rsi, [rbp+var_78]\n.text:0000000001409300                 mov     rdx, r15\n.text:0000000001409303                 mov     rdi, rbx\n.text:0000000001409306                 call    sub_1404100\n.text:000000000140930B                 mov     rsi, r13\n.text:000000000140930E                 mov     rdi, rbx\n.text:0000000001409311                 call    sub_130F960\n.text:0000000001409316                 movss   xmm0, dword ptr [rbx+0C90h]\n.text:000000000140931E                 ucomiss xmm0, cs:dword_8CDACC\n.text:0000000001409325                 jp      loc_14099C0\n.text:000000000140932B                 jnz     loc_14099C0\n.text:0000000001409331                 mov     rax, [rbx]\n.text:0000000001409334                 xor     esi, esi\n.text:0000000001409336                 mov     rax, [rax+330h]\n.text:000000000140933D                 test    r13, r13\n.text:0000000001409340                 jz      short loc_140934A\n.text:0000000001409342                 movzx   esi, byte ptr [r13+624h]\n.text:000000000140934A                 mov     rdi, rbx\n.text:000000000140934D                 call    rax\n.text:000000000140934F                 movss   xmm0, dword ptr cs:xmmword_8CCFD0\n.text:0000000001409357                 mov     rdi, rbx\n.text:000000000140935A                 mov     qword ptr [rbx+570h], 991h\n.text:0000000001409365                 mov     qword ptr [rbx+578h], 0\n.text:0000000001409370                 call    CBaseEntity_SetGravityScale\n.text:0000000001409375                 movss   xmm0, cs:dword_8CDA10\n.text:000000000140937D                 mov     rdi, rbx\n.text:0000000001409380                 call    sub_17F0E90\n.text:0000000001409385                 movss   xmm0, dword ptr [rbx+6D8h]\n.text:000000000140938D                 ucomiss xmm0, cs:dword_8CD830\n.text:0000000001409394                 jp      loc_1409938\n.text:000000000140939A                 jnz     loc_1409938\n.text:00000000014093A0                 cmp     byte ptr [rbx+0D64h], 0\n.text:00000000014093A7                 jz      short loc_1409427\n.text:00000000014093A9                 lea     rdi, [rbp+var_60]\n.text:00000000014093AD                 xor     r8d, r8d\n.text:00000000014093B0                 pxor    xmm0, xmm0\n.text:00000000014093B4                 mov     esi, 1\n.text:00000000014093B9                 movaps  [rbp+var_50], xmm0\n.text:00000000014093BD                 lea     r15, [rbp+var_70]\n.text:00000000014093C1                 mov     [rbp+var_34], r8w\n.text:00000000014093C6                 mov     [rbp+var_70], 1\n.text:00000000014093CE                 mov     [rbp+var_68], 0\n.text:00000000014093D6                 mov     [rbp+var_60], 0\n.text:00000000014093DE                 mov     [rbp+var_58], 0\n.text:00000000014093E6                 mov     [rbp+var_40], 0FFFFFFFFFFFFFFFFh\n.text:00000000014093EE                 mov     [rbp+var_38], 0FFFFFFFFh\n.text:00000000014093F5                 call    sub_A31D00\n.text:00000000014093FA                 mov     rax, [rbp+var_60]\n.text:00000000014093FE                 mov     rsi, r15\n.text:0000000001409401                 mov     rdi, rbx\n.text:0000000001409404                 add     dword ptr [rbp+var_68], 1\n.text:0000000001409408                 mov     dword ptr [rax], 0D64h\n.text:000000000140940E                 mov     rax, [rbx]\n.text:0000000001409411                 call    qword ptr [rax+0E8h]\n.text:0000000001409417                 lea     rdi, [rbp+var_68]\n.text:000000000140941B                 call    sub_A315F0\n.text:0000000001409420                 mov     byte ptr [rbx+0D64h], 0\n.text:0000000001409427                 mov     edi, [rbx+0D60h]\n.text:000000000140942D                 test    edi, edi\n.text:000000000140942F                 jz      short loc_14094B0\n.text:0000000001409431                 xor     esi, esi\n.text:0000000001409433                 pxor    xmm0, xmm0\n.text:0000000001409437                 mov     [rbp+var_70], 1\n.text:000000000140943F                 mov     [rbp+var_34], si\n.text:0000000001409443                 lea     rdi, [rbp+var_60]\n.text:0000000001409447                 mov     esi, 1\n.text:000000000140944C                 movaps  [rbp+var_50], xmm0\n.text:0000000001409450                 lea     r15, [rbp+var_70]\n.text:0000000001409454                 mov     [rbp+var_68], 0\n.text:000000000140945C                 mov     [rbp+var_60], 0\n.text:0000000001409464                 mov     [rbp+var_58], 0\n.text:000000000140946C                 mov     [rbp+var_40], 0FFFFFFFFFFFFFFFFh\n.text:0000000001409474                 mov     [rbp+var_38], 0FFFFFFFFh\n.text:000000000140947B                 call    sub_A31D00\n.text:0000000001409480                 mov     rax, [rbp+var_60]\n.text:0000000001409484                 mov     rsi, r15\n.text:000000000
+... [truncated 30298 chars; sha256:8272840ca5ab72ef87ff7bb85f62fffb66fc11625fa7b9d6c8e5a349c8645a02]
+    Preprocess: llm_decompile reference payloads for GetCSWeaponDataFromKey END
+    Preprocess: using current YAML func_va for llm_decompile target CSmokeGrenadeProjectile_Create: 0x14710d0
+    Preprocess: calling llm_decompile for GetCSWeaponDataFromKey with model=deepseek-flash platform=linux
+    Preprocess: llm_decompile system prompt for GetCSWeaponDataFromKey BEGIN
+You are a reverse engineering expert.
+    Preprocess: llm_decompile system prompt for GetCSWeaponDataFromKey END
+    Preprocess: llm_decompile user prompt for GetCSWeaponDataFromKey BEGIN
+I have disassembly outputs and procedure code for multiple related functions.
+
+These are the reference functions:
+
+### Reference Function: CSmokeGrenadeProjectile_Create
+
+**Disassembly**
+
+```c
+.text:0000000001409240                 push    rbp
+.text:0000000001409241                 mov     rcx, r8
+.text:0000000001409244                 mov     rbp, rsp
+.text:0000000001409247                 push    r15
+.text:0000000001409249                 mov     r15, rdi
+.text:000000000140924C                 push    r14
+.text:000000000140924E                 mov     r14d, r9d
+.text:0000000001409251                 push    r13
+.text:0000000001409253                 mov     r13, r8
+.text:0000000001409256                 push    r12
+.text:0000000001409258                 push    rbx
+.text:0000000001409259                 sub     rsp, 58h
+.text:000000000140925D                 mov     [rbp+var_78], rdx
+.text:0000000001409261                 mov     rdx, rsi
+.text:0000000001409264                 mov     rsi, rdi
+.text:0000000001409267                 lea     rdi, aSmokegrenadePr_0; "smokegrenade_projectile"
+.text:000000000140926E                 call    CEntitySpawner_CBaseEntity_Spawn
+.text:0000000001409273                 mov     rbx, rax
+.text:0000000001409276                 call    sub_14ABEC0
+.text:000000000140927B                 movzx   esi, r14w
+.text:000000000140927F                 xor     ecx, ecx
+.text:0000000001409281                 xor     edx, edx
+.text:0000000001409283                 mov     rdi, rax
+.text:0000000001409286                 call    sub_1B00220
+.text:000000000140928B                 mov     r12, rax
+.text:000000000140928E                 test    rax, rax
+.text:0000000001409291                 jz      short loc_14092A6
+.text:0000000001409293                 mov     rdi, rax
+.text:0000000001409296                 call    sub_1B4F9B0
+.text:000000000140929B                 mov     rdi, rax
+.text:000000000140929E                 call    CSmokeGrenadeProjectile_GetCSWeaponData
+.text:00000000014092A3                 mov     r12, rax
+.text:00000000014092A6                 movss   xmm0, cs:dword_7BA7F8
+.text:00000000014092AE                 xor     r8d, r8d
+.text:00000000014092B1                 xor     ecx, ecx
+.text:00000000014092B3                 xor     edx, edx
+.text:00000000014092B5                 lea     rsi, sub_13F3FD0
+.text:00000000014092BC                 mov     rdi, rbx
+.text:00000000014092BF                 call    sub_D53CE0
+.text:00000000014092C4                 mov     rax, [rbx+10h]
+.text:00000000014092C8                 mov     edi, [rax+38h]
+.text:00000000014092CB                 call    sub_12F8C50
+.text:00000000014092D0                 xor     esi, esi
+.text:00000000014092D2                 mov     rdi, rbx
+.text:00000000014092D5                 call    sub_D53900
+.text:00000000014092DA                 lea     rax, g_pCSBotManager
+.text:00000000014092E1                 mov     rsi, rbx
+.text:00000000014092E4                 pxor    xmm0, xmm0
+.text:00000000014092E8                 mov     rdi, [rax]
+.text:00000000014092EB                 call    sub_C706A0
+.text:00000000014092F0                 mov     rsi, [rbp+var_78]
+.text:00000000014092F4                 mov     rdi, rbx
+.text:00000000014092F7                 call    sub_D31930
+.text:00000000014092FC                 mov     rsi, [rbp+var_78]
+.text:0000000001409300                 mov     rdx, r15
+.text:0000000001409303                 mov     rdi, rbx
+.text:0000000001409306                 call    sub_1404100
+.text:000000000140930B                 mov     rsi, r13
+.text:000000000140930E                 mov     rdi, rbx
+.text:0000000001409311                 call    sub_130F960
+.text:0000000001409316                 movss   xmm0, dword ptr [rbx+0C90h]
+.text:000000000140931E                 ucomiss xmm0, cs:dword_8CDACC
+.text:0000000001409325                 jp      loc_14099C0
+.text:000000000140932B                 jnz     loc_14099C0
+.text:0000000001409331                 mov     rax, [rbx]
+.text:0000000001409334                 xor     esi, esi
+.text:0000000001409336                 mov     rax, [rax+330h]
+.text:000000000140933D                 test    r13, r13
+.text:0000000001409340                 jz      short loc_140934A
+.text:0000000001409342                 movzx   esi, byte ptr [r13+624h]
+.text:000000000140934A                 mov     rdi, rbx
+.text:000000000140934D                 call    rax
+.text:000000000140934F                 movss   xmm0, dword ptr cs:xmmword_8CCFD0
+.text:0000000001409357                 mov     rdi, rbx
+.text:000000000140935A                 mov     qword ptr [rbx+570h], 991h
+.text:0000000001409365                 mov     qword ptr [rbx+578h], 0
+.text:0000000001409370                 call    CBaseEntity_SetGravityScale
+.text:0000000001409375                 movss   xmm0, cs:dword_8CDA10
+.text:000000000140937D                 mov     rdi, rbx
+.text:0000000001409380                 call    sub_17F0E90
+.text:0000000001409385                 movss   xmm0, dword ptr [rbx+6D8h]
+.text:000000000140938D                 ucomiss xmm0, cs:dword_8CD830
+.text:0000000001409394                 jp      loc_1409938
+.text:000000000140939A                 jnz     loc_1409938
+.text:00000000014093A0                 cmp     byte ptr [rbx+0D64h], 0
+.text:00000000014093A7                 jz      short loc_1409427
+.text:00000000014093A9                 lea     rdi, [rbp+var_60]
+.text:00000000014093AD                 xor     r8d, r8d
+.text:00000000014093B0                 pxor    xmm0, xmm0
+.text:00000000014093B4                 mov     esi, 1
+.text:00000000014093B9                 movaps  [rbp+var_50], xmm0
+.text:00000000014093BD                 lea     r15, [rbp+var_70]
+.text:00000000014093C1                 mov     [rbp+var_34], r8w
+.text:00000000014093C6                 mov     [rbp+var_70], 1
+.text:00000000014093CE                 mov     [rbp+var_68], 0
+.text:00000000014093D6                 mov     [rbp+var_60], 0
+.text:00000000014093DE                 mov     [rbp+var_58], 0
+.text:00000000014093E6                 mov     [rbp+var_40], 0FFFFFFFFFFFFFFFFh
+.text:00000000014093EE                 mov     [rbp+var_38], 0FFFFFFFFh
+.text:00000000014093F5                 call    sub_A31D00
+.text:00000000014093FA                 mov     rax, [rbp+var_60]
+.text:00000000014093FE                 mov     rsi, r15
+.text:0000000001409401                 mov     rdi, rbx
+.text:0000000001409404                 add     dword ptr [rbp+var_68], 1
+.text:0000000001409408                 mov     dword ptr [rax], 0D64h
+.text:000000000140940E                 mov     rax, [rbx]
+.text:0000000001409411                 call    qword ptr [rax+0E8h]
+.text:0000000001409417                 lea     rdi, [rbp+var_68]
+.text:000000000140941B                 call    sub_A315F0
+.text:0000000001409420                 mov     byte ptr [rbx+0D64h], 0
+.text:0000000001409427                 mov     edi, [rbx+0D60h]
+.text:000000000140942D                 test    edi, edi
+.text:000000000140942F                 jz      short loc_14094B0
+.text:0000000001409431                 xor     esi, esi
+.text:0000000001409433                 pxor    xmm0, xmm0
+.text:0000000001409437                 mov     [rbp+var_70], 1
+.text:000000000140943F                 mov     [rbp+var_34], si
+.text:0000000001409443                 lea     rdi, [rbp+var_60]
+.text:0000000001409447                 mov     esi, 1
+.text:000000000140944C                 movaps  [rbp+var_50], xmm0
+.text:0000000001409450                 lea     r15, [rbp+var_70]
+.text:0000000001409454                 mov     [rbp+var_68], 0
+.text:000000000140945C                 mov     [rbp+var_60], 0
+.text:0000000001409464                 mov     [rbp+var_58], 0
+.text:000000000140946C                 mov     [rbp+var_40], 0FFFFFFFFFFFFFFFFh
+.text:0000000001409474                 mov     [rbp+var_38], 0FFFFFFFFh
+.text:000000000140947B                 call    sub_A31D00
+.text:0000000001409480                 mov     rax, [rbp+var_60]
+.text:0000000001409484                 mov     rsi, r15
+.text:0000000001409487                 mov     rdi, rbx
+.t
+... [truncated 78546 chars; sha256:f23bd0e727e3241ea374f185689458805840769cdee1d327d3057a4b94145ba8]
+    Preprocess: llm_decompile user prompt for GetCSWeaponDataFromKey END
+    Preprocess: llm_decompile raw response for GetCSWeaponDataFromKey BEGIN
+```yaml
+found_vcall: []
+found_call: []
+found_funcptr: []
+found_gv: []
+found_struct_offset: []
+```
+    Preprocess: llm_decompile raw response for GetCSWeaponDataFromKey END
+    Preprocess: llm_decompile schema outcome for GetCSWeaponDataFromKey BEGIN
+{
+  "schema_kind": "explicit_empty",
+  "root_keys": [
+    "found_call",
+    "found_funcptr",
+    "found_gv",
+    "found_struct_offset",
+    "found_vcall"
+  ],
+  "compatibility_flattened": false,
+  "issues": []
+}
+    Preprocess: llm_decompile schema outcome for GetCSWeaponDataFromKey END
+    Preprocess: llm_decompile parsed response for GetCSWeaponDataFromKey BEGIN
+{
+  "found_vcall": [],
+  "found_call": [],
+  "found_funcptr": [],
+  "found_gv": [],
+  "found_struct_offset": []
+}
+    Preprocess: llm_decompile parsed response for GetCSWeaponDataFromKey END
+    Preprocess: failed to locate GetCSWeaponDataFromKey
+    Preprocess failed: find-GetCSWeaponDataFromKey-inlined; falling back to AGENT SKILL
+    Starting agent skill: find-GetCSWeaponDataFromKey-inlined
+    Falling back to: .claude\skills\find-GetCSWeaponDataFromKey-inlined\SKILL.md
+    Error: Skill file not found: .claude\skills\find-GetCSWeaponDataFromKey-inlined\SKILL.md
+    Failed
+```
+
+Source log: `C:\Users\HZDEV\AppData\Local\Temp\ida-validation-14192-engine-client-server-20261023-01.log`
+
+Quarantine verification for `find-GetCSWeaponDataFromKey-inlined`: unit 1610 tests, OK (skipped=60); repository-contract 124 tests, OK; both exit code 0. `git diff --check` passed.
+
+## find-CEngineServer_GetAchievementMgr (GitHub issue #1186)
+
+Issue: https://github.com/HLND2T/CS2_VibeSignatures/issues/1186
+
+## 问题与复现
+
+PR #1175（`bump-download/14192`，提交 `3bde23a93`）验证 GAMEVER `14192` 时，`engine / windows` 的 `find-CEngineServer_GetAchievementMgr` 失败。
+
+环境：Windows、IDA/idalib 9.3；二进制通过 init-gamebin 的 Steam depot fallback 初始化并校验 source binary lock；全部 20 个 IDB 预热成功。旧版本签名基线为 `14191b`。
+
+```powershell
+uv run ida_analyze_bin.py -gamever 14192 -configyaml configs/14192.yaml -modules engine,client,server -debug
+```
+
+预期：该 skill 准确生成配置声明的输出，验证继续执行。
+实际：该 skill 定位失败，fail-fast 验证终止，剩余平台和模块未执行。本 issue 记录的失败仅在上述平台被观察到。
+
+## 原始失败日志
+
+```text
+  Start skill: find-CEngineServer_GetAchievementMgr
+    Preprocess: no func_sig/vfunc_sig in CEngineServer_GetAchievementMgr.windows.yaml
+    Preprocess: failed to query function info for CEngineServer_GetAchievementMgr
+    Preprocess: failed to locate CEngineServer_GetAchievementMgr
+    Preprocess failed: find-CEngineServer_GetAchievementMgr; falling back to AGENT SKILL
+    Starting agent skill: find-CEngineServer_GetAchievementMgr
+    Falling back to: .claude\skills\find-CEngineServer_GetAchievementMgr\SKILL.md
+    Error: Skill file not found: .claude\skills\find-CEngineServer_GetAchievementMgr\SKILL.md
+    Failed
+```
+
+本轮汇总：
+
+```text
+  Successful: 131
+  Failed: 1
+  Skipped: 2383
+```
+
+## 诊断
+
+server producer 已生成 IVEngineServer2_GetAchievementMgr.windows.yaml：index=80、offset=0x280；当前 CEngineServer_vtable 输入存在，故不是 #1184 的缺失依赖。该预处理器有意不保留 trivial getter 的 func_sig，通过 INHERIT_VFUNCS 解析继承槽位；ida_analyze_util.py:5990-6025 只有 get_func(addr) 且 start_ea==addr 时才返回函数元数据，本次未得到 dict，最终 failed to query function info。定位链对虚表入口不是精确已定义函数或返回异常缺少进一步诊断/恢复路径，且对应 fallback SKILL.md 不存在。无签名是设计而非根因；应检查 slot80 的真实代码/函数边界（包括共享入口或 thunk）、补充安全的入口验证/恢复及错误详情，再恢复配置。仅观察到 engine/Windows 失败，共享块临时屏蔽两平台。
+
+## 临时处理与验收
+
+用户已明确授权对后续失败统一执行“建 issue → 屏蔽 → 两套测试 → 继续”。本 issue 创建后，将仅注释 `configs/14192.yaml` 内对应模块的完整 skill 配置块，并记录到 `docs/ida_validation_failure-14192.md`。禁用范围遵循该块原有的 `platform` 限制；无平台限制的共享块会同时屏蔽 Windows/Linux，不能据此推断两个平台均已验证失败。不移除符号声明。
+
+- [ ] 对照旧/新二进制确认目标符号状态和定位失败根因。
+- [ ] 修复预处理逻辑或明确处理被移除的符号约定。
+- [ ] 运行针对性验证及必要回归测试。
+- [ ] 恢复该 skill 配置并验证正确输出。
+
+Source log: `C:\Users\HZDEV\AppData\Local\Temp\ida-validation-14192-engine-client-server-20261023-02.log`
+
+Quarantine verification for `find-CEngineServer_GetAchievementMgr`: unit 1610 tests, OK (skipped=60); repository-contract 124 tests, OK; both exit code 0. `git diff --check` passed.
