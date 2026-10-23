@@ -152,6 +152,7 @@ UNIT_MODULES = frozenset(
         "test_update_gamedata",
         "test_vtable_slot_anchor_common",
         "test_warmup_idb",
+        "test_weapon_data_preprocessor",
     }
 )
 
