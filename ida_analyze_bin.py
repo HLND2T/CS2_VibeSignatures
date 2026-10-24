@@ -5485,7 +5485,8 @@ def _validate_selected_module_dependencies(modules, args):
         for module in modules:
             for skill in module.get("skills", []):
                 for path in _config_skill_platform_paths(skill, "expected_input", platform):
-                    if (artifact_root / module["name"] / path).is_file():
+                    seeded_path = Path(os.path.normpath(artifact_root / module["name"] / path))
+                    if seeded_path.is_file():
                         initial_artifacts.add(_config_artifact_key(module["name"], path))
         gaps.extend(find_module_skill_dependency_gaps(modules, platform, initial_artifacts))
     if gaps:
