@@ -2299,31 +2299,28 @@ modules:
         expected_input:
           - CRenderingWorldSession_GetEntityLumpForTemplate.{platform}.yaml
           - CEngineClient_vtable.{platform}.yaml
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14192.md" (GitHub issue #1178)
-      #- name: find-CEngineClient_FindOrCreateWorldSession
-      #  platform: windows
-      #  expected_output:
-      #    - CEngineClient_FindOrCreateWorldSession.{platform}.yaml
-      #  expected_input:
-      #    - CRenderingWorldSession_FindOrCreateWorldSession.{platform}.yaml
-      #    - CRenderingWorldSession_GetEntityLumpForTemplate.{platform}.yaml
-      #    - CEngineClient_vtable.{platform}.yaml
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14192.md" (GitHub issue #1182)
-      #- name: find-CEngineClient_GetStatsAppID
-      #  platform: windows
-      #  expected_output:
-      #    - CEngineClient_GetStatsAppID.{platform}.yaml
-      #  expected_input:
-      #    - g_nBreakpadAppId.{platform}.yaml
-      #    - CEngineClient_vtable.{platform}.yaml
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14192.md" (GitHub issue #1176)
-      #- name: find-CEngineClient_DumpNetStats
-      #  expected_output:
-      #    - CEngineClient_DumpNetStats.{platform}.yaml
-      #  expected_input:
-      #    - CNetworkGameClient_PrintNetStats.{platform}.yaml
-      #    - CL_NET_PrintSummary_CommandHandler.{platform}.yaml
-      #    - CEngineClient_vtable.{platform}.yaml
+      - name: find-CEngineClient_FindOrCreateWorldSession
+        platform: windows
+        expected_output:
+          - CEngineClient_FindOrCreateWorldSession.{platform}.yaml
+        expected_input:
+          - CRenderingWorldSession_FindOrCreateWorldSession.{platform}.yaml
+          - CRenderingWorldSession_GetEntityLumpForTemplate.{platform}.yaml
+          - CEngineClient_vtable.{platform}.yaml
+      - name: find-CEngineClient_GetStatsAppID
+        platform: windows
+        expected_output:
+          - CEngineClient_GetStatsAppID.{platform}.yaml
+        expected_input:
+          - g_nBreakpadAppId.{platform}.yaml
+          - CEngineClient_vtable.{platform}.yaml
+      - name: find-CEngineClient_DumpNetStats
+        expected_output:
+          - CEngineClient_DumpNetStats.{platform}.yaml
+        expected_input:
+          - CNetworkGameClient_PrintNetStats.{platform}.yaml
+          - CL_NET_PrintSummary_CommandHandler.{platform}.yaml
+          - CEngineClient_vtable.{platform}.yaml
       - name: find-CEngineServer_vtable
         expected_output:
           - CEngineServer_vtable.{platform}.yaml
@@ -2359,16 +2356,15 @@ modules:
           - CEngineServer_vtable.{platform}.yaml
         prerequisite:
           - find-GetFrameTimeAmnesty
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14192.md" (GitHub issue #1179)
-      #- name: find-CEngineServer_GetFrameTimeAmnesty-inlined
-      #  expected_output:
-      #    - CEngineServer_GetFrameTimeAmnesty.{platform}.yaml
-      #  expected_input:
-      #    - CEngineServer_vtable.{platform}.yaml
-      #  skip_if_exists:
-      #    - CEngineServer_GetFrameTimeAmnesty.{platform}.yaml
-      #  prerequisite:
-      #    - find-CEngineServer_GetFrameTimeAmnesty-noinline
+      - name: find-CEngineServer_GetFrameTimeAmnesty-inlined
+        expected_output:
+          - CEngineServer_GetFrameTimeAmnesty.{platform}.yaml
+        expected_input:
+          - CEngineServer_vtable.{platform}.yaml
+        skip_if_exists:
+          - CEngineServer_GetFrameTimeAmnesty.{platform}.yaml
+        prerequisite:
+          - find-CEngineServer_GetFrameTimeAmnesty-noinline
       - name: find-ShowFrameTimeReport
         expected_output:
           - ShowFrameTimeReport.{platform}.yaml
@@ -2585,13 +2581,12 @@ modules:
       - name: find-CNetworkGameServerBase_KickClient
         expected_output:
           - CNetworkGameServerBase_KickClient.{platform}.yaml
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14192.md" (GitHub issue #1177)
-      #- name: find-CEngineServer_KickClient
-      #  expected_output:
-      #    - CEngineServer_KickClient.{platform}.yaml
-      #  expected_input:
-      #    - CNetworkGameServerBase_KickClient.{platform}.yaml
-      #    - CEngineServer_vtable.{platform}.yaml
+      - name: find-CEngineServer_KickClient
+        expected_output:
+          - CEngineServer_KickClient.{platform}.yaml
+        expected_input:
+          - CNetworkGameServerBase_KickClient.{platform}.yaml
+          - CEngineServer_vtable.{platform}.yaml
       - name: find-CLoopTypeClientServerService_vtable
         expected_output:
           - CLoopTypeClientServerService_vtable.{platform}.yaml
@@ -2797,13 +2792,12 @@ modules:
           - ILoopModePrerequisiteRegistry_RegisterPrerequisite.{platform}.yaml
         expected_input:
           - CLoopModeLevelLoad_LoopInit.{platform}.yaml
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14192.md" (GitHub issue #1181)
-      #- name: find-CEngineServiceMgr_RegisterPrerequisite
-      #  expected_output:
-      #    - CEngineServiceMgr_RegisterPrerequisite.{platform}.yaml
-      #  expected_input:
-      #    - CEngineServiceMgr_vtable2.{platform}.yaml
-      #    - ILoopModePrerequisiteRegistry_RegisterPrerequisite.{platform}.yaml
+      - name: find-CEngineServiceMgr_RegisterPrerequisite
+        expected_output:
+          - CEngineServiceMgr_RegisterPrerequisite.{platform}.yaml
+        expected_input:
+          - CEngineServiceMgr_vtable2.{platform}.yaml
+          - ILoopModePrerequisiteRegistry_RegisterPrerequisite.{platform}.yaml
       - name: find-CEngineServiceMgr_GetAddonsString
         expected_output:
           - CEngineServiceMgr_GetAddonsString.{platform}.yaml
@@ -2840,13 +2834,12 @@ modules:
           - IEngineServiceMgr_GetAddonCount.{platform}.yaml
         expected_input:
           - CNetworkGameClient_DisconnectGame.{platform}.yaml
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14192.md" (GitHub issue #1180)
-      #- name: find-CEngineServiceMgr_GetAddonCount
-      #  expected_output:
-      #    - CEngineServiceMgr_GetAddonCount.{platform}.yaml
-      #  expected_input:
-      #    - CEngineServiceMgr_vtable.{platform}.yaml
-      #    - IEngineServiceMgr_GetAddonCount.{platform}.yaml
+      - name: find-CEngineServiceMgr_GetAddonCount
+        expected_output:
+          - CEngineServiceMgr_GetAddonCount.{platform}.yaml
+        expected_input:
+          - CEngineServiceMgr_vtable.{platform}.yaml
+          - IEngineServiceMgr_GetAddonCount.{platform}.yaml
       - name: find-CRenderService_OnClientOutput
         expected_output:
           - CRenderService_OnClientOutput.{platform}.yaml
@@ -9184,16 +9177,15 @@ modules:
         optional_input:
           - CSmokeGrenadeProjectile_GetCSWeaponData.{platform}.yaml
         platform: linux
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14192.md" (GitHub issue #1185)
-      #- name: find-GetCSWeaponDataFromKey-inlined
-      #  expected_output:
-      #    - GetCSWeaponDataFromKey.{platform}.yaml
-      #  expected_input:
-      #    - CSmokeGrenadeProjectile_Create.{platform}.yaml
-      #  skip_if_exists:
-      #    - GetCSWeaponDataFromKey.{platform}.yaml
-      #  prerequisite:
-      #    - find-GetCSWeaponDataFromKey-noinline
+      - name: find-GetCSWeaponDataFromKey-inlined
+        expected_output:
+          - GetCSWeaponDataFromKey.{platform}.yaml
+        expected_input:
+          - CSmokeGrenadeProjectile_Create.{platform}.yaml
+        skip_if_exists:
+          - GetCSWeaponDataFromKey.{platform}.yaml
+        prerequisite:
+          - find-GetCSWeaponDataFromKey-noinline
       - name: find-GiveNamedItem
         expected_output:
           - GiveNamedItem.{platform}.yaml
@@ -14939,13 +14931,12 @@ modules:
         expected_input:
           - CEngineClient_vtable.{platform}.yaml
           - ../client/IVEngineClient2_ExecuteClientCmd.{platform}.yaml
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14192.md" (GitHub issue #1183)
-      #- name: find-CEngineClient_IsPlayingDemo
-      #  expected_output:
-      #    - CEngineClient_IsPlayingDemo.{platform}.yaml
-      #  expected_input:
-      #    - CEngineClient_vtable.{platform}.yaml
-      #    - ../client/IVEngineClient2_IsPlayingDemo.{platform}.yaml
+      - name: find-CEngineClient_IsPlayingDemo
+        expected_output:
+          - CEngineClient_IsPlayingDemo.{platform}.yaml
+        expected_input:
+          - CEngineClient_vtable.{platform}.yaml
+          - ../client/IVEngineClient2_IsPlayingDemo.{platform}.yaml
       - name: find-CNetworkServerService_SetGameSpawnGroupMgr
         expected_output:
           - CNetworkServerService_SetGameSpawnGroupMgr.{platform}.yaml
@@ -15074,46 +15065,42 @@ modules:
         expected_input:
           - ../server/IAppSystem_Connect.{platform}.yaml
           - CNetSupportImpl_vtable.{platform}.yaml
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14192.md" (GitHub issue #1187)
-      #- name: find-CEngineServer_IsDedicatedServer
-      #  expected_output:
-      #    - CEngineServer_IsDedicatedServer.{platform}.yaml
-      #  expected_input:
-      #    - CEngineServer_vtable.{platform}.yaml
-      #    - ../server/IVEngineServer2_IsDedicatedServer.{platform}.yaml
+      - name: find-CEngineServer_IsDedicatedServer
+        expected_output:
+          - CEngineServer_IsDedicatedServer.{platform}.yaml
+        expected_input:
+          - CEngineServer_vtable.{platform}.yaml
+          - ../server/IVEngineServer2_IsDedicatedServer.{platform}.yaml
       - name: find-CEngineServer_GetServerGlobals
         expected_output:
           - CEngineServer_GetServerGlobals.{platform}.yaml
         expected_input:
           - CEngineServer_vtable.{platform}.yaml
           - ../server/IVEngineServer2_GetServerGlobals.{platform}.yaml
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14192.md" (GitHub issue #1186)
-      #- name: find-CEngineServer_GetAchievementMgr
-      #  expected_output:
-      #    - CEngineServer_GetAchievementMgr.{platform}.yaml
-      #  expected_input:
-      #    - CEngineServer_vtable.{platform}.yaml
-      #    - ../server/IVEngineServer2_GetAchievementMgr.{platform}.yaml
+      - name: find-CEngineServer_GetAchievementMgr
+        expected_output:
+          - CEngineServer_GetAchievementMgr.{platform}.yaml
+        expected_input:
+          - CEngineServer_vtable.{platform}.yaml
+          - ../server/IVEngineServer2_GetAchievementMgr.{platform}.yaml
       - name: find-CEngineServer_GetClientSteamID
         expected_output:
           - CEngineServer_GetClientSteamID.{platform}.yaml
         expected_input:
           - CEngineServer_vtable.{platform}.yaml
           - ../server/IVEngineServer2_GetClientSteamID.{platform}.yaml
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14192.md" (GitHub issue #1188)
-      #- name: find-CEngineServer_IsLogEnabled
-      #  expected_output:
-      #    - CEngineServer_IsLogEnabled.{platform}.yaml
-      #  expected_input:
-      #    - CEngineServer_vtable.{platform}.yaml
-      #    - ../server/IVEngineServer2_IsLogEnabled.{platform}.yaml
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14192.md" (GitHub issue #1189)
-      #- name: find-CEngineServer_ServerCommand
-      #  expected_output:
-      #    - CEngineServer_ServerCommand.{platform}.yaml
-      #  expected_input:
-      #    - CEngineServer_vtable.{platform}.yaml
-      #    - ../server/IVEngineServer2_ServerCommand.{platform}.yaml
+      - name: find-CEngineServer_IsLogEnabled
+        expected_output:
+          - CEngineServer_IsLogEnabled.{platform}.yaml
+        expected_input:
+          - CEngineServer_vtable.{platform}.yaml
+          - ../server/IVEngineServer2_IsLogEnabled.{platform}.yaml
+      - name: find-CEngineServer_ServerCommand
+        expected_output:
+          - CEngineServer_ServerCommand.{platform}.yaml
+        expected_input:
+          - CEngineServer_vtable.{platform}.yaml
+          - ../server/IVEngineServer2_ServerCommand.{platform}.yaml
       - name: find-ConnectInterfaces
         expected_output:
           - ConnectInterfaces.{platform}.yaml
@@ -15441,13 +15428,12 @@ modules:
     path_windows: game/bin/win64/engine2.dll
     path_linux: game/bin/linuxsteamrt64/libengine2.so
     skills:
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14192.md" (GitHub issue #1191)
-      #- name: find-CEngineServiceMgr_GetEventDispatcher
-      #  expected_output:
-      #    - CEngineServiceMgr_GetEventDispatcher.{platform}.yaml
-      #  expected_input:
-      #    - CEngineServiceMgr_vtable.{platform}.yaml
-      #    - ../client/IEngineServiceMgr_GetEventDispatcher.{platform}.yaml
+      - name: find-CEngineServiceMgr_GetEventDispatcher
+        expected_output:
+          - CEngineServiceMgr_GetEventDispatcher.{platform}.yaml
+        expected_input:
+          - CEngineServiceMgr_vtable.{platform}.yaml
+          - ../client/IEngineServiceMgr_GetEventDispatcher.{platform}.yaml
       - name: find-CPanoramaEngineHandler_OnClientPreOutput
         expected_output:
           - CPanoramaEngineHandler_OnClientPreOutput.{platform}.yaml
@@ -15459,13 +15445,12 @@ modules:
           - IEngineServiceMgr_GetEngineWindow.{platform}.yaml
         expected_input:
           - CPanoramaEngineHandler_OnClientPreOutput.{platform}.yaml
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14192.md" (GitHub issue #1192)
-      #- name: find-CEngineServiceMgr_GetEngineWindow
-      #  expected_output:
-      #    - CEngineServiceMgr_GetEngineWindow.{platform}.yaml
-      #  expected_input:
-      #    - CEngineServiceMgr_vtable.{platform}.yaml
-      #    - IEngineServiceMgr_GetEngineWindow.{platform}.yaml
+      - name: find-CEngineServiceMgr_GetEngineWindow
+        expected_output:
+          - CEngineServiceMgr_GetEngineWindow.{platform}.yaml
+        expected_input:
+          - CEngineServiceMgr_vtable.{platform}.yaml
+          - IEngineServiceMgr_GetEngineWindow.{platform}.yaml
       # CEngineServer::GetPlayerNetInfo lives in engine2.dll but its interface
       # slot is recovered from server.dll (CPlayerCommandQueue::UpdateStats),
       # so the concrete-class skill runs in this late engine pass, after server.
@@ -15487,13 +15472,12 @@ modules:
         expected_input:
           - ../server/IVEngineServer2_IsUserIDInUse.{platform}.yaml
           - CEngineServer_vtable.{platform}.yaml
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14192.md" (GitHub issue #1190)
-      #- name: find-CEngineServer_SynchronizeAndBlockUntilLoaded
-      #  expected_output:
-      #    - CEngineServer_SynchronizeAndBlockUntilLoaded.{platform}.yaml
-      #  expected_input:
-      #    - CNetworkGameServerBase_SynchronizeAndBlockUntilLoaded.{platform}.yaml
-      #    - CEngineServer_vtable.{platform}.yaml
+      - name: find-CEngineServer_SynchronizeAndBlockUntilLoaded
+        expected_output:
+          - CEngineServer_SynchronizeAndBlockUntilLoaded.{platform}.yaml
+        expected_input:
+          - CNetworkGameServerBase_SynchronizeAndBlockUntilLoaded.{platform}.yaml
+          - CEngineServer_vtable.{platform}.yaml
   - name: networksystem  # Execute skills for networksystem.dll again after server.dll
     path_windows: game/bin/win64/networksystem.dll
     path_linux: game/bin/linuxsteamrt64/libnetworksystem.so

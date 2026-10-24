@@ -6019,6 +6019,15 @@ async def preprocess_index_based_vfunc_via_mcp(
             except (json.JSONDecodeError, TypeError):
                 pass
 
+    if not isinstance(func_info, dict) and await _recover_vtable_entries_via_mcp(
+        session, vtable_data, indices=[target_index], debug=debug
+    ):
+        try:
+            retry = await session.call_tool(name="py_eval", arguments={"code": py_code})
+            func_info = _parse_py_eval_json_object(parse_mcp_result(retry), debug=debug)
+        except Exception:
+            func_info = None
+
     if not isinstance(func_info, dict):
         if debug:
             print(f"    Preprocess: failed to query function info for {target_func_name}")
@@ -6317,6 +6326,56 @@ def _parse_py_eval_json_object(eval_data, debug=False):
     if not isinstance(parsed, dict):
         return None
     return parsed
+
+
+async def _recover_vtable_entries_via_mcp(session, vtable_data, *, indices=None, debug=False):
+    """Restore code-only entries from a cached vtable without splitting functions.
+
+    Reusing a vtable artifact skips the producer's IDB side effects. Verify each
+    pointer against the live binary before using it as evidence of an entry.
+    """
+    try:
+        table_va = _parse_int_value(vtable_data["vtable_va"])
+        entries = [
+            (int(index), _parse_int_value(addr))
+            for index, addr in vtable_data["vtable_entries"].items()
+            if indices is None or int(index) in indices
+        ]
+    except (KeyError, TypeError, ValueError):
+        return False
+    py_code = (
+        "import idaapi, ida_bytes, ida_auto, json\n"
+        f"table_va = {table_va}\n"
+        f"entries = {entries!r}\n"
+        "recovered = []\n"
+        "for index, addr in entries:\n"
+        "    if index < 0 or ida_bytes.get_qword(table_va + index * 8) != addr:\n"
+        "        continue\n"
+        "    if idaapi.get_func(addr) is not None:\n"
+        "        continue\n"
+        "    segment = idaapi.getseg(addr)\n"
+        "    if not segment or not (segment.perm & idaapi.SEGPERM_EXEC):\n"
+        "        continue\n"
+        "    if not ida_bytes.is_code(ida_bytes.get_full_flags(addr)):\n"
+        "        continue\n"
+        "    idaapi.add_func(addr)\n"
+        "    ida_auto.auto_wait()\n"
+        "    func = idaapi.get_func(addr)\n"
+        "    if func and func.start_ea == addr:\n"
+        "        recovered.append(hex(addr))\n"
+        "result = json.dumps({'recovered': recovered})\n"
+    )
+    try:
+        response = await session.call_tool(name="py_eval", arguments={"code": py_code})
+        data = _parse_py_eval_json_object(parse_mcp_result(response), debug=debug)
+    except Exception as exc:
+        if debug:
+            print(f"    Preprocess: vtable entry recovery failed: {exc}")
+        return False
+    recovered = data.get("recovered", []) if data else []
+    if recovered and debug:
+        print(f"    Preprocess: restored {len(recovered)} cached vtable function entries")
+    return bool(recovered)
 
 
 async def _probe_func_start_or_entry_candidate(session, code_addr, debug=False):
@@ -7806,6 +7865,7 @@ async def preprocess_func_xrefs_via_mcp(
     exclude_floats=None,
     inline_alias=None,
     exclude_callees=None,
+    _recover_cached_vtable=True,
 ):
     """
     Resolve target function by intersecting candidate sets collected from
@@ -8037,6 +8097,38 @@ async def preprocess_func_xrefs_via_mcp(
         return None
 
     common_funcs = _intersect_addr_sets(candidate_sets)
+
+    if (
+        not common_funcs
+        and vtable_class
+        and _recover_cached_vtable
+        and await _recover_vtable_entries_via_mcp(session, vtable_data, debug=debug)
+    ):
+        # Xref normalization needs the function boundaries that the vtable
+        # producer normally creates. Cached artifacts do not carry IDB state.
+        return await preprocess_func_xrefs_via_mcp(
+            session=session,
+            func_name=func_name,
+            xref_strings=xref_strings,
+            xref_gvs=xref_gvs,
+            xref_signatures=xref_signatures,
+            xref_funcs=xref_funcs,
+            exclude_funcs=exclude_funcs,
+            exclude_strings=exclude_strings,
+            exclude_gvs=exclude_gvs,
+            exclude_signatures=exclude_signatures,
+            new_binary_dir=new_binary_dir,
+            platform=platform,
+            image_base=image_base,
+            vtable_class=vtable_class,
+            allow_func_sig_across_function_boundary=allow_func_sig_across_function_boundary,
+            debug=debug,
+            xref_floats=xref_floats,
+            exclude_floats=exclude_floats,
+            inline_alias=inline_alias,
+            exclude_callees=exclude_callees,
+            _recover_cached_vtable=False,
+        )
 
     excluded_string_func_addrs = set()
     for excluded_string in exclude_strings or []:

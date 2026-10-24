@@ -2189,9 +2189,9 @@ def _config_skill_platform_paths(skill, base_key, platform):
     return [path.replace("{platform}", platform) for path in paths]
 
 
-def find_module_skill_dependency_gaps(modules, platform):
+def find_module_skill_dependency_gaps(modules, platform, initial_artifacts=()):
     """Return config inputs that are unavailable when their consumer would run."""
-    available_artifacts = set()
+    available_artifacts = set(initial_artifacts)
     gaps = []
     for module_index, module in enumerate(modules):
         module_name = module["name"]
@@ -5474,6 +5474,28 @@ def _select_execution_modules(modules, args):
     return selected
 
 
+def _validate_selected_module_dependencies(modules, args):
+    """Report scope gaps before starting IDA; permit explicitly seeded inputs."""
+    if args.module_filter is None and getattr(args, "skill", None) is None:
+        return
+    artifact_root = Path(getattr(args, "artifactdir", DEFAULT_ARTIFACTS_DIR)) / str(args.gamever)
+    gaps = []
+    for platform in args.platforms:
+        initial_artifacts = set()
+        for module in modules:
+            for skill in module.get("skills", []):
+                for path in _config_skill_platform_paths(skill, "expected_input", platform):
+                    seeded_path = Path(os.path.normpath(artifact_root / module["name"] / path))
+                    if seeded_path.is_file():
+                        initial_artifacts.add(_config_artifact_key(module["name"], path))
+        gaps.extend(find_module_skill_dependency_gaps(modules, platform, initial_artifacts))
+    if gaps:
+        raise ValueError(
+            "selected analysis scope has missing producer dependencies; include the producer modules "
+            "in -modules or seed their artifacts in -artifactdir before running IDA:\n" + "\n".join(gaps)
+        )
+
+
 def _resolve_old_artifact_dir(args, module_name):
     if not args.oldgamever:
         return None
@@ -5730,6 +5752,8 @@ def main():
         print("No executable modules remain; selected execution composes the inherited inventory only")
     try:
         modules = _select_execution_modules(modules, args)
+        if selected_manifest is None:
+            _validate_selected_module_dependencies(modules, args)
     except ValueError as exc:
         print(f"Error: {exc}")
         sys.exit(1)

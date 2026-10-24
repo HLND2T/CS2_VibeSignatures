@@ -85,18 +85,28 @@ class _IdaSession:
 
 class TestWeaponDataPreprocessor(unittest.IsolatedAsyncioTestCase):
     async def _run_case(
-        self, instructions, *, expected_va=None, expected_wrapper_va=None, signature_available=True, source_present=True
+        self,
+        instructions,
+        *,
+        expected_va=None,
+        expected_wrapper_va=None,
+        signature_available=True,
+        source_present=True,
+        platform="linux",
     ):
         for finder, source, source_va, output_name in (
             (f"find-{LEGACY_ANCHOR}", CREATE, 0x1000, LEGACY_ANCHOR),
             (f"find-{LOOKUP}-noinline", LEGACY_ANCHOR, 0x2000, LOOKUP),
+            (f"find-{LOOKUP}-inlined", CREATE, 0x1000, LOOKUP),
         ):
+            if platform == "windows" and finder.endswith("-noinline"):
+                continue
             with self.subTest(finder=finder), TemporaryDirectory() as temp:
                 module = load_module(Path("ida_preprocessor_scripts") / f"{finder}.py", finder.replace("-", "_"))
                 artifact_dir = Path(temp)
-                output = artifact_dir / f"{output_name}.linux.yaml"
+                output = artifact_dir / f"{output_name}.{platform}.yaml"
                 if source_present:
-                    (artifact_dir / f"{source}.linux.yaml").write_text(
+                    (artifact_dir / f"{source}.{platform}.yaml").write_text(
                         yaml.safe_dump({"func_name": source, "func_va": hex(source_va)}), encoding="utf-8"
                     )
                 session = _IdaSession(instructions)
@@ -119,7 +129,7 @@ class TestWeaponDataPreprocessor(unittest.IsolatedAsyncioTestCase):
                         # A unique old match can still refer to the internal table lookup.
                         old_yaml_map={LOOKUP: {"func_va": "0x3000", "func_sig": "85 D2 0F 84"}},
                         new_binary_dir=str(artifact_dir),
-                        platform="linux",
+                        platform=platform,
                         image_base=0,
                         llm_config={"model": "must-not-be-called"},
                     )
@@ -180,6 +190,29 @@ class TestWeaponDataPreprocessor(unittest.IsolatedAsyncioTestCase):
 
     async def test_missing_source_fails_without_writing(self):
         await self._run_case({}, source_present=False)
+
+    async def test_windows_lookup_uses_the_hash_callee_and_rejects_unrelated_create_calls(self):
+        instructions = {
+            0x1000: _instruction("mov", ("ecx", "1"), (0, 1), (1, 4)),
+            0x1005: _instruction("call", ("sub_StringLookup",), (0x2000,), (6,)),
+            0x1010: _instruction("call", ("sub_Unrelated",), (0x4000,), (6,)),
+            0x2000: _instruction("test", ("rdx", "rdx")),
+            0x2004: _instruction("mov", ("r8d", "31415926h"), (0, 0x31415926), (1, 4)),
+            0x2008: _instruction("mov", ("rcx", "r9"), (0, 0), (1, 1)),
+            0x200C: _instruction("call", ("sub_Hash",), (0x3000,), (6,)),
+            0x3000: _instruction("imul", ("eax", "5BD1E995h"), (0, 0x5BD1E995), (1, 4)),
+            0x4000: _instruction("test", ("rdx", "rdx")),
+        }
+        await self._run_case(instructions, expected_va=0x2000, platform="windows")
+
+    async def test_windows_rejects_seed_without_murmur_hash_callee(self):
+        instructions = {
+            0x1000: _instruction("mov", ("ecx", "1"), (0, 1), (1, 4)),
+            0x1005: _instruction("call", ("sub_Lookalike",), (0x2000,), (6,)),
+            0x2000: _instruction("test", ("rdx", "rdx")),
+            0x2004: _instruction("mov", ("r8d", "31415926h"), (0, 0x31415926), (1, 4)),
+        }
+        await self._run_case(instructions, platform="windows")
 
     async def test_signature_failure_does_not_write_a_partial_artifact(self):
         instructions = {
