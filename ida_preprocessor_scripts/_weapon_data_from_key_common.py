@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Resolve the Linux string-key weapon lookup without LLM-dependent chain depth."""
+"""Resolve the string-key weapon lookup without LLM-dependent chain depth."""
 
 from pathlib import Path
 
@@ -19,6 +19,7 @@ MAX_CALL_DEPTH = 2
 _LOOKUP_PY_EVAL = """import idaapi, idautils, idc, json
 source_va = __SOURCE_VA__
 include_source = __INCLUDE_SOURCE__
+is_windows = __IS_WINDOWS__
 source_func = idaapi.get_func(source_va)
 candidates = {}
 pending = []
@@ -48,7 +49,7 @@ while pending:
                         setup = idaapi.insn_t()
                         if idaapi.decode_insn(setup, previous) and len(setup.ops) >= 2:
                             if (setup.ops[0].type == idaapi.o_reg
-                                    and idc.print_operand(previous, 0).lower() == "edi"
+                                    and idc.print_operand(previous, 0).lower() == ("ecx" if is_windows else "edi")
                                     and setup.ops[1].type == idaapi.o_imm
                                     and int(setup.ops[1].value) == __WEAPON_DATA_TYPE__):
                                 candidates[target_va] = {
@@ -69,18 +70,30 @@ for candidate_va, evidence in candidates.items():
         mnem = idc.print_insn_mnem(head).lower()
         if mnem == "test":
             has_string_guard = has_string_guard or (
-                idc.print_operand(head, 0).lower() == "rsi"
-                and idc.print_operand(head, 1).lower() == "rsi"
+                idc.print_operand(head, 0).lower() == ("rdx" if is_windows else "rsi")
+                and idc.print_operand(head, 1).lower() == ("rdx" if is_windows else "rsi")
             )
         insn = idaapi.insn_t()
-        if mnem in ("xor", "imul") and idaapi.decode_insn(insn, head):
+        if mnem in ("mov", "xor", "imul") and idaapi.decode_insn(insn, head):
             for op in insn.ops:
                 if op.type != idaapi.o_imm:
                     continue
-                if mnem == "xor" and int(op.value) == __HASH_SEED__:
+                if mnem == ("mov" if is_windows else "xor") and int(op.value) == __HASH_SEED__:
                     has_hash_seed = True
                 if mnem == "imul" and int(op.value) == __HASH_MULTIPLIER__:
                     has_hash_multiplier = True
+        if is_windows and mnem == "call" and idaapi.decode_insn(insn, head):
+            if insn.ops[0].type in (idaapi.o_near, idaapi.o_far):
+                hash_func = idaapi.get_func(int(insn.ops[0].addr))
+                if hash_func and hash_func.start_ea == int(insn.ops[0].addr):
+                    for hash_head in idautils.Heads(hash_func.start_ea, hash_func.end_ea):
+                        if idc.print_insn_mnem(hash_head).lower() != "imul":
+                            continue
+                        hash_insn = idaapi.insn_t()
+                        if idaapi.decode_insn(hash_insn, hash_head):
+                            for op in hash_insn.ops:
+                                if op.type == idaapi.o_imm and int(op.value) == __HASH_MULTIPLIER__:
+                                    has_hash_multiplier = True
     if has_string_guard and has_hash_seed and has_hash_multiplier:
         matches.append({
             "func_va": hex(candidate_va),
@@ -91,10 +104,11 @@ result = json.dumps(matches)
 """
 
 
-def _build_lookup_py_eval(source_va, *, include_source):
+def _build_lookup_py_eval(source_va, *, include_source, platform="linux"):
     return (
         _LOOKUP_PY_EVAL.replace("__SOURCE_VA__", str(int(source_va)))
         .replace("__INCLUDE_SOURCE__", repr(bool(include_source)))
+        .replace("__IS_WINDOWS__", repr(platform == "windows"))
         .replace("__MAX_CALL_DEPTH__", str(MAX_CALL_DEPTH))
         .replace("__WEAPON_DATA_TYPE__", str(WEAPON_DATA_TYPE))
         .replace("__HASH_SEED__", str(MURMUR_HASH_SEED))
@@ -112,21 +126,24 @@ async def preprocess_weapon_data_lookup(
     artifact_stem,
     include_source=False,
     preserve_wrapper=False,
+    platform="linux",
     debug=False,
 ):
     """Keep legacy dependency keys while emitting the verified lookup's semantic name."""
-    outputs = [Path(path) for path in expected_outputs if Path(path).name == f"{artifact_stem}.linux.yaml"]
+    if platform not in ("windows", "linux"):
+        return False
+    outputs = [Path(path) for path in expected_outputs if Path(path).name == f"{artifact_stem}.{platform}.yaml"]
     if len(outputs) != 1:
         return False
     try:
-        source = yaml.safe_load((Path(new_binary_dir) / f"{source_stem}.linux.yaml").read_text(encoding="utf-8"))
+        source = yaml.safe_load((Path(new_binary_dir) / f"{source_stem}.{platform}.yaml").read_text(encoding="utf-8"))
         source_va = int(str(source["func_va"]), 0)
     except (OSError, ValueError, TypeError, KeyError, yaml.YAMLError):
         return False
 
     matches = await _call_py_eval_json(
         session,
-        _build_lookup_py_eval(source_va, include_source=include_source),
+        _build_lookup_py_eval(source_va, include_source=include_source, platform=platform),
         debug=debug,
         error_label="resolving string-key weapon data lookup",
     )

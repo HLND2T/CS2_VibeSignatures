@@ -101,6 +101,7 @@ UNIT_MODULES = frozenset(
         "test_generate_reference_yaml",
         "test_headless_force_push",
         "test_ida_analyze_bin",
+        "test_analysis_selection_dependencies",
         "test_ida_mcp_job_launcher",
         "test_ida_llm_decompile",
         "test_idb_cache",
@@ -151,6 +152,7 @@ UNIT_MODULES = frozenset(
         "test_trusted_yaml",
         "test_update_gamedata",
         "test_vtable_slot_anchor_common",
+        "test_vtable_entry_recovery",
         "test_warmup_idb",
         "test_weapon_data_preprocessor",
     }
