@@ -1,12 +1,9 @@
-import base64
 import importlib.util
 import io
-import json
 import os
 import subprocess
 import tempfile
 import unittest
-from contextlib import contextmanager
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 from unittest import mock as unittest_mock
@@ -31,20 +28,6 @@ def response(*, status=200, chunks=(), reason="OK", headers=None):
     result.iter_content.return_value = iter(chunks)
     result.__enter__.return_value = result
     result.__exit__.return_value = False
-    return result
-
-
-def binsync_summary(**overrides):
-    result = {
-        "targets": 2,
-        "remote_verified": 2,
-        "remote_created": 0,
-        "remote_restored": 0,
-        "remote_initialized": 0,
-        "sidecar_created": 2,
-        "sidecar_existing": 0,
-    }
-    result.update(overrides)
     return result
 
 
@@ -270,7 +253,7 @@ class TestInitGamebin(unittest.TestCase):
             self.assertEqual(b"existing", (target / "server.dll").read_bytes())
             self.assertEqual(b"linux", (target / "server.so").read_bytes())
 
-    def test_configured_binary_paths_preserves_platform_order_and_deduplicates_real_paths(self) -> None:
+    def test_iter_configured_binaries_preserves_platform_order_and_deduplicates_real_paths(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             module = root / "bin" / "14175" / "engine"
@@ -292,10 +275,10 @@ class TestInitGamebin(unittest.TestCase):
 
             self.assertEqual(
                 [windows.resolve(), linux.resolve()],
-                init_gamebin.configured_binary_paths(root, "14175", config),
+                [path for _, _, path in init_gamebin.iter_configured_binaries(root, "14175", config)],
             )
 
-    def test_configured_binary_paths_fails_when_a_declared_binary_is_missing(self) -> None:
+    def test_iter_configured_binaries_fails_when_a_declared_binary_is_missing(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             config = root / "config.yaml"
@@ -304,7 +287,26 @@ class TestInitGamebin(unittest.TestCase):
                 encoding="utf-8",
             )
             with self.assertRaisesRegex(init_gamebin.InitGamebinError, "missing after preparation"):
-                init_gamebin.configured_binary_paths(root, "14175", config)
+                [path for _, _, path in init_gamebin.iter_configured_binaries(root, "14175", config)]
+
+    def test_distinct_modules_may_use_the_same_binary_filename(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            config = root / "config.yaml"
+            config.write_text(
+                "modules:\n"
+                "  - name: first\n    path_windows: game/first/shared.dll\n"
+                "  - name: second\n    path_windows: game/second/shared.dll\n",
+                encoding="utf-8",
+            )
+            expected = [(root / "bin" / "14175" / module / "shared.dll").resolve() for module in ("first", "second")]
+            for binary in expected:
+                binary.parent.mkdir(parents=True)
+                binary.write_bytes(b"binary")
+            self.assertEqual(
+                expected,
+                [path for _, _, path in init_gamebin.iter_configured_binaries(root, "14175", config)],
+            )
 
     def test_iter_configured_binaries_can_enumerate_before_download(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -329,616 +331,6 @@ class TestInitGamebin(unittest.TestCase):
             )
             with self.assertRaisesRegex(init_gamebin.InitGamebinError, "missing after preparation"):
                 list(init_gamebin.iter_configured_binaries(root, "14175", config))
-
-    def test_expected_sidecar_uses_full_binary_filename_for_repo_path(self) -> None:
-        binary = Path("bin/14175/engine/engine2.dll")
-        repo_name, remote, repo_path, sidecar = init_gamebin.expected_sidecar(binary, "a" * 32, "14175", "HZDEV")
-        self.assertEqual("CS2_VibeSignatures_binsync_14175_engine2.dll", repo_name)
-        self.assertEqual("https://github.com/HLND2T/CS2_VibeSignatures_binsync_14175_engine2.dll", remote)
-        self.assertEqual(binary.parent / "engine2.dll.bsproj", repo_path)
-        self.assertEqual("engine2.dll.bsproj", sidecar["repo_path"])
-        self.assertEqual(False, sidecar["force_user"])
-        self.assertEqual(True, sidecar["auto_clone"])
-        self.assertEqual(True, sidecar["auto_sync_all"])
-
-    def test_sidecar_validation_is_semantic_but_schema_strict(self) -> None:
-        expected = {
-            "user": "HZDEV",
-            "remote": "https://github.com/HLND2T/repo",
-            "repo_path": "engine2.dll.bsproj",
-            "expected_md5": "a" * 32,
-            "force_user": False,
-            "auto_clone": True,
-            "auto_sync_all": True,
-        }
-        legacy = {field: value for field, value in expected.items() if field != "auto_sync_all"}
-        with tempfile.TemporaryDirectory() as temp_dir:
-            sidecar = Path(temp_dir) / "engine2.dll.binsync.json"
-            sidecar.write_text(json.dumps(dict(reversed(list(expected.items())))), encoding="utf-8")
-            self.assertTrue(init_gamebin.validate_sidecar(sidecar, expected))
-
-            sidecar.write_text(json.dumps(legacy), encoding="utf-8")
-            self.assertTrue(init_gamebin.validate_sidecar(sidecar, expected))
-
-            sidecar.write_text(json.dumps({**expected, "extra": True}), encoding="utf-8")
-            with self.assertRaisesRegex(init_gamebin.InitGamebinError, "conflicting schema"):
-                init_gamebin.validate_sidecar(sidecar, expected)
-
-            sidecar.write_text(json.dumps({**expected, "auto_clone": False}), encoding="utf-8")
-            with self.assertRaisesRegex(init_gamebin.InitGamebinError, "auto_clone"):
-                init_gamebin.validate_sidecar(sidecar, expected)
-
-            sidecar.write_text(json.dumps({**expected, "auto_sync_all": False}), encoding="utf-8")
-            with self.assertRaisesRegex(init_gamebin.InitGamebinError, "auto_sync_all"):
-                init_gamebin.validate_sidecar(sidecar, expected)
-
-    def test_write_sidecar_atomic_uses_canonical_json(self) -> None:
-        data = {
-            "user": "HZDEV",
-            "remote": "https://github.com/HLND2T/repo",
-            "repo_path": "engine2.dll.bsproj",
-            "expected_md5": "a" * 32,
-            "force_user": False,
-            "auto_clone": True,
-            "auto_sync_all": True,
-        }
-        with tempfile.TemporaryDirectory() as temp_dir:
-            path = Path(temp_dir) / "engine2.dll.binsync.json"
-            init_gamebin.write_sidecar_atomic(path, data)
-            self.assertEqual(json.dumps(data, indent=4) + "\n", path.read_text(encoding="utf-8"))
-
-            with self.assertRaisesRegex(init_gamebin.InitGamebinError, "refusing to overwrite"):
-                init_gamebin.write_sidecar_atomic(path, {**data, "user": "other"})
-            self.assertEqual(data, json.loads(path.read_text(encoding="utf-8")))
-
-    def test_normalize_github_remote_accepts_equivalent_urls(self) -> None:
-        expected = ("hlnd2t", "repo")
-        self.assertEqual(expected, init_gamebin.normalize_github_remote("https://github.com/HLND2T/repo"))
-        self.assertEqual(expected, init_gamebin.normalize_github_remote("https://github.com/HLND2T/repo.git"))
-        self.assertEqual(expected, init_gamebin.normalize_github_remote("git@github.com:HLND2T/repo.git"))
-        self.assertIsNone(init_gamebin.normalize_github_remote("https://example.com/HLND2T/repo"))
-
-    def test_minimal_binsync_repo_matches_root_commit_shape(self) -> None:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            repo = Path(temp_dir)
-            init_gamebin.initialize_minimal_binsync_repo(repo, "a" * 32, "repo", "HZDEV")
-            branches = git(repo, "for-each-ref", "--format=%(refname)", "refs/heads/binsync/").stdout.splitlines()
-            self.assertEqual(["refs/heads/binsync/HZDEV", "refs/heads/binsync/__root__"], sorted(branches))
-            self.assertEqual(
-                ".gitignore\nbinary_hash", git(repo, "ls-tree", "--name-only", "binsync/__root__").stdout.strip()
-            )
-            self.assertEqual("a" * 32, git(repo, "show", "binsync/__root__:binary_hash").stdout)
-            self.assertEqual(
-                [
-                    ".gitignore",
-                    "binary_hash",
-                    "comments.toml",
-                    "enums.toml",
-                    "global_vars.toml",
-                    "metadata.toml",
-                    "patches.toml",
-                    "segments.toml",
-                    "typedefs.toml",
-                ],
-                sorted(git(repo, "ls-tree", "--name-only", "binsync/HZDEV").stdout.splitlines()),
-            )
-            self.assertEqual(
-                'user = "HZDEV"\nversion = "5.15.4"',
-                git(repo, "show", "binsync/HZDEV:metadata.toml").stdout.strip(),
-            )
-            self.assertEqual(
-                ["Generic BS Commit", "Root commit"],
-                git(repo, "log", "--format=%s", "binsync/HZDEV").stdout.splitlines(),
-            )
-
-    def test_validate_local_repo_accepts_equivalent_origin_and_reports_lock(self) -> None:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            repo = Path(temp_dir)
-            init_gamebin.initialize_minimal_binsync_repo(repo, "a" * 32, "repo", "HZDEV")
-            git(repo, "remote", "add", "origin", "git@github.com:HLND2T/repo.git")
-            (repo / ".git" / "binsync.lock").write_text("", encoding="utf-8")
-            self.assertEqual((True, True), init_gamebin.validate_local_binsync_repo(repo, "a" * 32, "repo"))
-
-    def test_validate_local_repo_reads_raw_origin_despite_insteadof_rewrite(self) -> None:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            repo = Path(temp_dir)
-            init_gamebin.initialize_minimal_binsync_repo(repo, "a" * 32, "repo", "HZDEV")
-            git(repo, "remote", "add", "origin", "https://github.com/HLND2T/repo.git")
-            # A system-level insteadOf rewrite (the git cache proxy from issue
-            # #927) makes `git remote get-url` return the proxy URL; validation
-            # must read the raw stored canonical URL instead. A runner may
-            # already define its own proxy host, so assert a rewrite is active
-            # without pinning the host that wins the insteadOf match.
-            with patch.dict(
-                os.environ,
-                {
-                    "GIT_CONFIG_COUNT": "1",
-                    "GIT_CONFIG_KEY_0": "url.http://127.0.0.1:8080/.insteadOf",
-                    "GIT_CONFIG_VALUE_0": "https://github.com/",
-                },
-            ):
-                self.assertNotEqual(
-                    "https://github.com/HLND2T/repo.git",
-                    git(repo, "remote", "get-url", "origin").stdout.strip(),
-                )
-                self.assertEqual((True, False), init_gamebin.validate_local_binsync_repo(repo, "a" * 32, "repo"))
-
-    def test_validate_local_repo_reports_missing_origin(self) -> None:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            repo = Path(temp_dir)
-            init_gamebin.initialize_minimal_binsync_repo(repo, "a" * 32, "repo", "HZDEV")
-            with self.assertRaisesRegex(init_gamebin.InitGamebinError, "no origin remote"):
-                init_gamebin.validate_local_binsync_repo(repo, "a" * 32, "repo")
-
-    def test_validate_local_repo_rejects_hash_and_origin_conflicts(self) -> None:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            repo = Path(temp_dir)
-            init_gamebin.initialize_minimal_binsync_repo(repo, "a" * 32, "repo", "HZDEV")
-            git(repo, "remote", "add", "origin", "https://github.com/HLND2T/other")
-            with self.assertRaisesRegex(init_gamebin.InitGamebinError, "binary_hash mismatch"):
-                init_gamebin.validate_local_binsync_repo(repo, "b" * 32, "repo")
-            with self.assertRaisesRegex(init_gamebin.InitGamebinError, "origin conflicts"):
-                init_gamebin.validate_local_binsync_repo(repo, "a" * 32, "repo")
-
-    def test_push_local_binsync_history_pushes_every_local_binsync_branch(self) -> None:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            root = Path(temp_dir)
-            repo = root / "local"
-            remote = root / "remote.git"
-            repo.mkdir()
-            remote.mkdir()
-            init_gamebin.initialize_minimal_binsync_repo(repo, "a" * 32, "repo", "HZDEV")
-            git(repo, "branch", "binsync/Other")
-            git(remote, "init", "--bare")
-            git(repo, "remote", "add", "origin", str(remote))
-
-            init_gamebin.push_local_binsync_history(repo)
-
-            branches = git(remote, "for-each-ref", "--format=%(refname)", "refs/heads/binsync/").stdout.splitlines()
-            self.assertEqual(
-                [
-                    "refs/heads/binsync/HZDEV",
-                    "refs/heads/binsync/Other",
-                    "refs/heads/binsync/__root__",
-                ],
-                sorted(branches),
-            )
-
-    def test_gh_api_treats_only_explicit_http_404_as_missing(self) -> None:
-        missing = completed([], returncode=1, stderr="gh: Not Found (HTTP 404)")
-        with patch.object(init_gamebin, "run_command", return_value=missing):
-            self.assertIsNone(init_gamebin.gh_api(Path("repo"), "repos/HLND2T/missing", allow_404=True))
-
-        failed = completed([], returncode=1, stderr="gh: API rate limit exceeded (HTTP 403)")
-        with patch.object(init_gamebin, "run_command", return_value=failed):
-            with self.assertRaisesRegex(init_gamebin.InitGamebinError, "HTTP 403"):
-                init_gamebin.gh_api(Path("repo"), "repos/HLND2T/repo", allow_404=True)
-
-    def test_create_public_remote_uses_organization_rest_api(self) -> None:
-        root = Path("repo")
-        repo_name = "CS2_VibeSignatures_binsync_14175_engine2.dll"
-        with patch.object(init_gamebin, "run_command", return_value=completed([])) as run:
-            init_gamebin.create_public_remote(root, repo_name)
-        run.assert_called_once_with(
-            [
-                "gh",
-                "api",
-                "--method",
-                "POST",
-                "orgs/HLND2T/repos",
-                "-f",
-                f"name={repo_name}",
-                "-f",
-                "visibility=public",
-            ],
-            root,
-            capture=True,
-            label=f"creating public GitHub repository HLND2T/{repo_name}",
-        )
-
-    def test_inspect_remote_classifies_missing_empty_and_valid_without_real_gh(self) -> None:
-        root = Path("repo")
-        with patch.object(init_gamebin, "gh_api", return_value=None):
-            self.assertEqual("missing", init_gamebin.inspect_remote(root, "repo", "a" * 32).status)
-        with patch.object(init_gamebin, "gh_api", side_effect=[{"default_branch": None, "private": False}, []]):
-            self.assertEqual("empty", init_gamebin.inspect_remote(root, "repo", "a" * 32).status)
-        encoded = base64.b64encode(("a" * 32).encode()).decode()
-        with patch.object(
-            init_gamebin,
-            "gh_api",
-            side_effect=[
-                {"default_branch": "binsync/__root__", "private": False},
-                [{"name": "binsync/__root__"}],
-                {"encoding": "base64", "content": encoded},
-            ],
-        ):
-            self.assertEqual("valid", init_gamebin.inspect_remote(root, "repo", "a" * 32).status)
-
-    def test_inspect_remote_rejects_default_branch_and_hash_conflicts(self) -> None:
-        with patch.object(init_gamebin, "gh_api", return_value={"default_branch": None, "private": True}):
-            with self.assertRaisesRegex(init_gamebin.InitGamebinError, "not public"):
-                init_gamebin.inspect_remote(Path("repo"), "repo", "a" * 32)
-
-        with patch.object(
-            init_gamebin,
-            "gh_api",
-            side_effect=[{"default_branch": "main", "private": False}, [{"name": "main"}]],
-        ):
-            with self.assertRaisesRegex(init_gamebin.InitGamebinError, "default branch"):
-                init_gamebin.inspect_remote(Path("repo"), "repo", "a" * 32)
-
-        encoded = base64.b64encode(("b" * 32).encode()).decode()
-        with patch.object(
-            init_gamebin,
-            "gh_api",
-            side_effect=[
-                {"default_branch": "binsync/__root__", "private": False},
-                [{"name": "binsync/__root__"}],
-                {"encoding": "base64", "content": encoded},
-            ],
-        ):
-            with self.assertRaisesRegex(init_gamebin.InitGamebinError, "binary_hash mismatch"):
-                init_gamebin.inspect_remote(Path("repo"), "repo", "a" * 32)
-
-    def test_execute_plans_initializes_empty_remote_before_writing_sidecar(self) -> None:
-        binary = Path("bin/14175/engine/engine2.dll")
-        _, _, repo_path, sidecar_data = init_gamebin.expected_sidecar(binary, "a" * 32, "14175", "HZDEV")
-        plan = init_gamebin.BinSyncPlan(
-            binary_path=binary,
-            binary_md5="a" * 32,
-            repo_name="CS2_VibeSignatures_binsync_14175_engine2.dll",
-            remote_url=sidecar_data["remote"],
-            repo_path=repo_path,
-            sidecar_path=Path(f"{binary}.binsync.json"),
-            sidecar_data=sidecar_data,
-            sidecar_exists=False,
-            local_repo_exists=False,
-            local_repo_locked=False,
-            remote_state=init_gamebin.RemoteState("empty"),
-        )
-        events = []
-        remote_states = iter([init_gamebin.RemoteState("empty"), init_gamebin.RemoteState("valid")])
-        with (
-            patch.object(init_gamebin, "file_md5", return_value="a" * 32),
-            patch.object(
-                init_gamebin,
-                "inspect_remote",
-                side_effect=lambda *_: events.append("inspect") or next(remote_states),
-            ),
-            patch.object(
-                init_gamebin,
-                "initialize_minimal_binsync_remote",
-                side_effect=lambda *_: events.append("initialize"),
-            ),
-            patch.object(
-                init_gamebin,
-                "set_remote_default_branch",
-                side_effect=lambda *_: events.append("default"),
-            ),
-            patch.object(init_gamebin, "validate_sidecar", return_value=False),
-            patch.object(
-                init_gamebin,
-                "write_sidecar_atomic",
-                side_effect=lambda *_: events.append("sidecar"),
-            ),
-        ):
-            summary = init_gamebin.execute_binsync_plans(Path("repo"), [plan], "HZDEV")
-        self.assertEqual(["inspect", "initialize", "default", "inspect", "sidecar"], events)
-        self.assertEqual(1, summary["remote_initialized"])
-        self.assertEqual(1, summary["sidecar_created"])
-
-    def test_execute_plans_recreates_sidecar_for_valid_remote_without_local_repo(self) -> None:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            root = Path(temp_dir)
-            binary = root / "bin" / "14175" / "engine" / "engine2.dll"
-            binary.parent.mkdir(parents=True)
-            binary.write_bytes(b"binary")
-            binary_md5 = init_gamebin.file_md5(binary)
-            repo_name, remote_url, repo_path, sidecar_data = init_gamebin.expected_sidecar(
-                binary, binary_md5, "14175", "HZDEV"
-            )
-            sidecar_path = Path(f"{binary}.binsync.json")
-            plan = init_gamebin.BinSyncPlan(
-                binary_path=binary,
-                binary_md5=binary_md5,
-                repo_name=repo_name,
-                remote_url=remote_url,
-                repo_path=repo_path,
-                sidecar_path=sidecar_path,
-                sidecar_data=sidecar_data,
-                sidecar_exists=False,
-                local_repo_exists=False,
-                local_repo_locked=False,
-                remote_state=init_gamebin.RemoteState("valid"),
-            )
-
-            with patch.object(init_gamebin, "inspect_remote", return_value=init_gamebin.RemoteState("valid")):
-                summary = init_gamebin.execute_binsync_plans(root, [plan], "HZDEV")
-
-            self.assertEqual(1, summary["remote_verified"])
-            self.assertEqual(1, summary["sidecar_created"])
-            self.assertFalse(repo_path.exists())
-            self.assertEqual(sidecar_data, json.loads(sidecar_path.read_text(encoding="utf-8")))
-            self.assertTrue(sidecar_data["auto_clone"])
-
-    def test_execute_plans_restores_local_history_only_for_empty_remote(self) -> None:
-        binary = Path("bin/14175/engine/engine2.dll")
-        _, _, repo_path, sidecar_data = init_gamebin.expected_sidecar(binary, "a" * 32, "14175", "HZDEV")
-        plan = init_gamebin.BinSyncPlan(
-            binary_path=binary,
-            binary_md5="a" * 32,
-            repo_name="CS2_VibeSignatures_binsync_14175_engine2.dll",
-            remote_url=sidecar_data["remote"],
-            repo_path=repo_path,
-            sidecar_path=Path(f"{binary}.binsync.json"),
-            sidecar_data=sidecar_data,
-            sidecar_exists=True,
-            local_repo_exists=True,
-            local_repo_locked=False,
-            remote_state=init_gamebin.RemoteState("empty"),
-        )
-        with (
-            patch.object(init_gamebin, "file_md5", return_value="a" * 32),
-            patch.object(
-                init_gamebin,
-                "inspect_remote",
-                side_effect=[init_gamebin.RemoteState("empty"), init_gamebin.RemoteState("valid")],
-            ),
-            patch.object(init_gamebin, "validate_local_binsync_repo", return_value=(True, False)),
-            patch.object(init_gamebin, "validate_sidecar", return_value=True),
-            patch.object(init_gamebin, "push_local_binsync_history") as push,
-            patch.object(init_gamebin, "set_remote_default_branch"),
-            patch.object(init_gamebin, "write_sidecar_atomic") as write,
-        ):
-            summary = init_gamebin.execute_binsync_plans(Path("repo"), [plan], "HZDEV")
-        push.assert_called_once_with(repo_path)
-        write.assert_not_called()
-        self.assertEqual(1, summary["remote_restored"])
-        self.assertEqual(1, summary["sidecar_existing"])
-
-    def test_execute_plans_never_syncs_an_existing_valid_remote(self) -> None:
-        binary = Path("bin/14175/engine/engine2.dll")
-        _, _, repo_path, sidecar_data = init_gamebin.expected_sidecar(binary, "a" * 32, "14175", "HZDEV")
-        plan = init_gamebin.BinSyncPlan(
-            binary_path=binary,
-            binary_md5="a" * 32,
-            repo_name="CS2_VibeSignatures_binsync_14175_engine2.dll",
-            remote_url=sidecar_data["remote"],
-            repo_path=repo_path,
-            sidecar_path=Path(f"{binary}.binsync.json"),
-            sidecar_data=sidecar_data,
-            sidecar_exists=True,
-            local_repo_exists=True,
-            local_repo_locked=True,
-            remote_state=init_gamebin.RemoteState("valid"),
-        )
-        with (
-            patch.object(init_gamebin, "file_md5", return_value="a" * 32),
-            patch.object(init_gamebin, "inspect_remote", return_value=init_gamebin.RemoteState("valid")),
-            patch.object(init_gamebin, "validate_sidecar", return_value=True),
-            patch.object(init_gamebin, "push_local_binsync_history") as push,
-            patch.object(init_gamebin, "initialize_minimal_binsync_remote") as initialize,
-            patch.object(init_gamebin, "set_remote_default_branch") as set_default,
-        ):
-            summary = init_gamebin.execute_binsync_plans(Path("repo"), [plan], "HZDEV")
-        push.assert_not_called()
-        initialize.assert_not_called()
-        set_default.assert_not_called()
-        self.assertEqual(1, summary["remote_verified"])
-
-    def test_execute_plans_fails_on_missing_remote_instead_of_creating(self) -> None:
-        binary = Path("bin/14175/engine/engine2.dll")
-        _, _, repo_path, sidecar_data = init_gamebin.expected_sidecar(binary, "a" * 32, "14175", "HZDEV")
-        plan = init_gamebin.BinSyncPlan(
-            binary_path=binary,
-            binary_md5="a" * 32,
-            repo_name="CS2_VibeSignatures_binsync_14175_engine2.dll",
-            remote_url=sidecar_data["remote"],
-            repo_path=repo_path,
-            sidecar_path=Path(f"{binary}.binsync.json"),
-            sidecar_data=sidecar_data,
-            sidecar_exists=False,
-            local_repo_exists=False,
-            local_repo_locked=False,
-            remote_state=init_gamebin.RemoteState("missing"),
-        )
-        with (
-            patch.object(init_gamebin, "file_md5", return_value="a" * 32),
-            patch.object(init_gamebin, "inspect_remote", return_value=init_gamebin.RemoteState("missing")),
-            patch.object(init_gamebin, "create_public_remote") as create,
-            patch.object(init_gamebin, "initialize_minimal_binsync_remote") as initialize,
-            patch.object(init_gamebin, "set_remote_default_branch") as set_default,
-            patch.object(init_gamebin, "write_sidecar_atomic") as write,
-        ):
-            with self.assertRaisesRegex(init_gamebin.InitGamebinError, "does not exist"):
-                init_gamebin.execute_binsync_plans(Path("repo"), [plan], "HZDEV")
-        create.assert_not_called()
-        initialize.assert_not_called()
-        set_default.assert_not_called()
-        write.assert_not_called()
-
-    def test_execute_plans_creates_missing_remote_only_when_allowed(self) -> None:
-        binary = Path("bin/14175/engine/engine2.dll")
-        _, _, repo_path, sidecar_data = init_gamebin.expected_sidecar(binary, "a" * 32, "14175", "HZDEV")
-        plan = init_gamebin.BinSyncPlan(
-            binary_path=binary,
-            binary_md5="a" * 32,
-            repo_name="CS2_VibeSignatures_binsync_14175_engine2.dll",
-            remote_url=sidecar_data["remote"],
-            repo_path=repo_path,
-            sidecar_path=Path(f"{binary}.binsync.json"),
-            sidecar_data=sidecar_data,
-            sidecar_exists=False,
-            local_repo_exists=False,
-            local_repo_locked=False,
-            remote_state=init_gamebin.RemoteState("missing"),
-        )
-        events = []
-        remote_states = iter(
-            [
-                init_gamebin.RemoteState("missing"),
-                init_gamebin.RemoteState("empty"),
-                init_gamebin.RemoteState("valid"),
-            ]
-        )
-        with (
-            patch.object(init_gamebin, "file_md5", return_value="a" * 32),
-            patch.object(
-                init_gamebin,
-                "inspect_remote",
-                side_effect=lambda *_: events.append("inspect") or next(remote_states),
-            ),
-            patch.object(
-                init_gamebin,
-                "create_public_remote",
-                side_effect=lambda *_: events.append("create"),
-            ),
-            patch.object(
-                init_gamebin,
-                "initialize_minimal_binsync_remote",
-                side_effect=lambda *_: events.append("initialize"),
-            ),
-            patch.object(
-                init_gamebin,
-                "set_remote_default_branch",
-                side_effect=lambda *_: events.append("default"),
-            ),
-            patch.object(init_gamebin, "validate_sidecar", return_value=False),
-            patch.object(
-                init_gamebin,
-                "write_sidecar_atomic",
-                side_effect=lambda *_: events.append("sidecar"),
-            ),
-        ):
-            summary = init_gamebin.execute_binsync_plans(
-                Path("repo"),
-                [plan],
-                "HZDEV",
-                allow_remote_creation=True,
-            )
-        self.assertEqual(
-            ["inspect", "create", "inspect", "initialize", "default", "inspect", "sidecar"],
-            events,
-        )
-        self.assertEqual(1, summary["remote_created"])
-        self.assertEqual(1, summary["remote_initialized"])
-
-    @contextmanager
-    def _ensure_binsync_env(self, *, binaries, remote_states, events, lock_md5="a" * 32):
-        lock = MagicMock()
-        lock.document = {"binaries": {"engine": {"windows": {"md5": lock_md5}, "linux": {"md5": "b" * 32}}}}
-        states = iter(remote_states)
-        with (
-            patch.object(init_gamebin, "load_versions", return_value=["14180"]),
-            patch.object(init_gamebin, "select_version", return_value="14180"),
-            patch.object(init_gamebin, "resolve_analysis_config", return_value=Path("configs/14180.yaml")),
-            patch.object(init_gamebin, "load_source_binary_lock", return_value=lock),
-            patch.object(init_gamebin, "iter_configured_binaries", return_value=iter(binaries)),
-            patch.object(
-                init_gamebin,
-                "inspect_remote",
-                side_effect=lambda *_: events.append("inspect") or next(states),
-            ),
-            patch.object(init_gamebin, "create_public_remote", side_effect=lambda *_: events.append("create")),
-            patch.object(
-                init_gamebin,
-                "initialize_minimal_binsync_remote",
-                side_effect=lambda *_: events.append("initialize"),
-            ),
-            patch.object(init_gamebin, "set_remote_default_branch", side_effect=lambda *_: events.append("default")),
-        ):
-            yield
-
-    def test_ensure_binsync_remotes_creates_missing_and_skips_valid(self) -> None:
-        binaries = [
-            ("engine", "windows", Path("bin/14180/engine/engine2.dll")),
-            ("engine", "linux", Path("bin/14180/engine/libengine2.so")),
-        ]
-        events = []
-        states = [
-            init_gamebin.RemoteState("missing"),
-            init_gamebin.RemoteState("valid"),
-            init_gamebin.RemoteState("valid"),
-        ]
-        with self._ensure_binsync_env(binaries=binaries, remote_states=states, events=events):
-            result = init_gamebin.ensure_binsync_remotes(Path("repo"), "14180", user="release-automation")
-        self.assertEqual(
-            ["inspect", "create", "initialize", "default", "inspect", "inspect"],
-            events,
-        )
-        self.assertEqual(
-            {"targets": 2, "verified": 1, "created": 1, "initialized": 1, "planned": 0},
-            result["summary"],
-        )
-        self.assertEqual("release-automation", result["user"])
-        self.assertEqual([], result["planned"])
-
-    def test_ensure_binsync_remotes_dry_run_reports_without_writing(self) -> None:
-        binaries = [
-            ("engine", "windows", Path("bin/14180/engine/engine2.dll")),
-            ("engine", "linux", Path("bin/14180/engine/libengine2.so")),
-        ]
-        events = []
-        states = [init_gamebin.RemoteState("missing"), init_gamebin.RemoteState("empty")]
-        with self._ensure_binsync_env(binaries=binaries, remote_states=states, events=events):
-            result = init_gamebin.ensure_binsync_remotes(Path("repo"), "14180", user="release-automation", dry_run=True)
-        self.assertEqual(["inspect", "inspect"], events)
-        self.assertEqual(
-            {"targets": 2, "verified": 0, "created": 0, "initialized": 0, "planned": 2},
-            result["summary"],
-        )
-        self.assertEqual(
-            [
-                "HLND2T/CS2_VibeSignatures_binsync_14180_engine2.dll (missing)",
-                "HLND2T/CS2_VibeSignatures_binsync_14180_libengine2.so (empty)",
-            ],
-            result["planned"],
-        )
-
-    def test_ensure_binsync_remotes_rejects_lock_without_md5(self) -> None:
-        binaries = [("engine", "windows", Path("bin/14180/engine/engine2.dll"))]
-        events = []
-        with (
-            self._ensure_binsync_env(binaries=binaries, remote_states=[], events=events, lock_md5=""),
-            self.assertRaisesRegex(init_gamebin.InitGamebinError, "no windows md5"),
-        ):
-            init_gamebin.ensure_binsync_remotes(Path("repo"), "14180", user="release-automation")
-
-    def test_preflight_fails_when_remote_repository_is_missing(self) -> None:
-        root = Path("repo")
-        config = root / "configs" / "14168.yaml"
-        binary = Path("bin/14168/engine/engine2.dll")
-        with (
-            patch.object(init_gamebin, "binsync_user", return_value="HZDEV"),
-            patch.object(init_gamebin, "configured_binary_paths", return_value=[binary]),
-            patch.object(init_gamebin, "file_md5", return_value="a" * 32),
-            patch.object(init_gamebin, "validate_sidecar", return_value=False),
-            patch.object(init_gamebin, "validate_local_binsync_repo", return_value=(False, False)),
-            patch.object(init_gamebin, "inspect_remote", return_value=init_gamebin.RemoteState("missing")),
-        ):
-            with self.assertRaisesRegex(init_gamebin.InitGamebinError, "does not exist"):
-                init_gamebin.preflight_binsync(root, "14168", config)
-
-    def test_preflight_allows_missing_remote_only_when_creation_is_allowed(self) -> None:
-        root = Path("repo")
-        config = root / "configs" / "14168.yaml"
-        binary = Path("bin/14168/engine/engine2.dll")
-        with (
-            patch.object(init_gamebin, "configured_binary_paths", return_value=[binary]),
-            patch.object(init_gamebin, "file_md5", return_value="a" * 32),
-            patch.object(init_gamebin, "validate_sidecar", return_value=False),
-            patch.object(init_gamebin, "validate_local_binsync_repo", return_value=(False, False)),
-            patch.object(init_gamebin, "inspect_remote", return_value=init_gamebin.RemoteState("missing")),
-        ):
-            plans = init_gamebin.preflight_binsync(
-                root,
-                "14168",
-                config,
-                user="HZDEV",
-                allow_remote_creation=True,
-            )
-        self.assertEqual(1, len(plans))
-        self.assertEqual("missing", plans[0].remote_state.status)
 
     def test_depot_fallback_uses_workflow_commands_in_order(self) -> None:
         root = Path("repo")
@@ -965,11 +357,9 @@ class TestInitGamebin(unittest.TestCase):
             patch.object(init_gamebin, "check_binaries", side_effect=[True, True]),
             patch.object(init_gamebin, "download_release_asset") as download,
             patch.object(init_gamebin, "resolve_analysis_config", return_value=config),
-            patch.object(init_gamebin, "probe_binsync", return_value=(True, "")) as probe,
-            patch.object(init_gamebin, "prepare_binsync_projects", return_value=binsync_summary()) as binsync,
             patch.object(init_gamebin, "verify_source_binary_root") as verify,
         ):
-            result = init_gamebin.prepare(root, "14168", binsync_mode="enable")
+            result = init_gamebin.prepare(root, "14168")
         self.assertEqual("existing local binaries", result["source"])
         download.assert_not_called()
         verify.assert_called_once_with(
@@ -978,32 +368,6 @@ class TestInitGamebin(unittest.TestCase):
             binary_root=root / "bin" / "14168",
             label="initialized binary tree",
         )
-        probe.assert_called_once_with(root, config, "14168", require_remotes=True)
-        binsync.assert_called_once_with(root, "14168", config, allow_remote_creation=False)
-
-    def test_prepare_threads_remote_creation_permission_to_binsync(self) -> None:
-        root = Path("repo")
-        config = root / "configs" / "14168.yaml"
-        with (
-            patch.object(init_gamebin, "load_versions", return_value=["14168"]),
-            patch.object(init_gamebin, "check_binaries", side_effect=[True, True]),
-            patch.object(init_gamebin, "resolve_analysis_config", return_value=config),
-            patch.object(init_gamebin, "probe_binsync", return_value=(True, "")) as probe,
-            patch.object(init_gamebin, "prepare_binsync_projects", return_value=binsync_summary()) as binsync,
-            patch.object(init_gamebin, "verify_source_binary_root"),
-        ):
-            init_gamebin.prepare(
-                root,
-                "14168",
-                binsync_mode="enable",
-                allow_remote_creation=True,
-            )
-        probe.assert_called_once_with(root, config, "14168", require_remotes=False)
-        binsync.assert_called_once_with(root, "14168", config, allow_remote_creation=True)
-
-    def test_prepare_rejects_remote_creation_when_binsync_is_skipped(self) -> None:
-        with self.assertRaisesRegex(init_gamebin.InitGamebinError, "requires --binsync enable"):
-            init_gamebin.prepare(Path("repo"), "14168", allow_remote_creation=True)
 
     def test_prepare_404_uses_depot_fallback(self) -> None:
         root = Path("repo")
@@ -1014,45 +378,11 @@ class TestInitGamebin(unittest.TestCase):
             patch.object(init_gamebin, "download_release_asset", return_value=False),
             patch.object(init_gamebin, "run_depot_fallback") as fallback,
             patch.object(init_gamebin, "resolve_analysis_config", return_value=config),
-            patch.object(init_gamebin, "probe_binsync", return_value=(True, "")),
-            patch.object(init_gamebin, "prepare_binsync_projects", return_value=binsync_summary()),
-            patch.object(init_gamebin, "verify_source_binary_root"),
-        ):
-            result = init_gamebin.prepare(root, "14168", binsync_mode="enable")
-        self.assertEqual("Steam depot fallback", result["source"])
-        fallback.assert_called_once_with(root, "14168", config)
-
-    def test_prepare_default_skips_binsync_without_probing(self) -> None:
-        root = Path("repo")
-        config = root / "configs" / "14168.yaml"
-        with (
-            patch.object(init_gamebin, "load_versions", return_value=["14168"]),
-            patch.object(init_gamebin, "check_binaries", side_effect=[True, True]),
-            patch.object(init_gamebin, "resolve_analysis_config", return_value=config),
-            patch.object(init_gamebin, "probe_binsync") as probe,
-            patch.object(init_gamebin, "prepare_binsync_projects") as binsync,
             patch.object(init_gamebin, "verify_source_binary_root"),
         ):
             result = init_gamebin.prepare(root, "14168")
-        self.assertEqual("existing local binaries", result["source"])
-        self.assertIsNone(result["binsync"])
-        probe.assert_not_called()
-        binsync.assert_not_called()
-
-    def test_prepare_enable_fails_when_binsync_unavailable(self) -> None:
-        root = Path("repo")
-        config = root / "configs" / "14168.yaml"
-        with (
-            patch.object(init_gamebin, "load_versions", return_value=["14168"]),
-            patch.object(init_gamebin, "check_binaries", side_effect=[True, True]),
-            patch.object(init_gamebin, "resolve_analysis_config", return_value=config),
-            patch.object(init_gamebin, "probe_binsync", return_value=(False, "gh is not installed")),
-            patch.object(init_gamebin, "prepare_binsync_projects") as binsync,
-            patch.object(init_gamebin, "verify_source_binary_root"),
-        ):
-            with self.assertRaisesRegex(init_gamebin.InitGamebinError, "unavailable"):
-                init_gamebin.prepare(root, "14168", binsync_mode="enable")
-        binsync.assert_not_called()
+        self.assertEqual("Steam depot fallback", result["source"])
+        fallback.assert_called_once_with(root, "14168", config)
 
     def test_prepare_rejects_complete_binary_tree_that_differs_from_source_lock(self) -> None:
         root = Path("repo")
@@ -1071,13 +401,6 @@ class TestInitGamebin(unittest.TestCase):
             with self.assertRaisesRegex(init_gamebin.InitGamebinError, "source binary lock"):
                 init_gamebin.prepare(root, "14168")
         download.assert_not_called()
-
-    def test_probe_binsync_reports_missing_gh(self) -> None:
-        with patch.object(init_gamebin.shutil, "which", return_value=None):
-            self.assertEqual(
-                (False, "GitHub CLI (gh) is not installed or not on PATH"),
-                init_gamebin.probe_binsync(Path("repo")),
-            )
 
     def test_prepare_with_idb_merges_declared_warm_idb_archive(self) -> None:
         root = Path("repo")
@@ -1136,257 +459,13 @@ class TestInitGamebin(unittest.TestCase):
         self.assertFalse(ok)
         self.assertIn("no published Release", reason)
 
-    def test_probe_binsync_reports_unauthenticated_gh(self) -> None:
-        with patch.object(
-            init_gamebin,
-            "run_command",
-            return_value=completed([], returncode=1, stderr="not logged in"),
-        ):
-            available, reason = init_gamebin.probe_binsync(Path("repo"))
-        self.assertFalse(available)
-        self.assertIn("gh is not authenticated to github.com", reason)
-
-    def test_probe_binsync_reports_api_unreachable(self) -> None:
-        with patch.object(
-            init_gamebin,
-            "run_command",
-            side_effect=[
-                completed([], returncode=0),
-                completed([], returncode=1, stderr="Network error"),
-            ],
-        ):
-            available, reason = init_gamebin.probe_binsync(Path("repo"))
-        self.assertFalse(available)
-        self.assertIn("cannot reach the GitHub API", reason)
-
-    def test_probe_binsync_reports_org_access_denied(self) -> None:
-        with patch.object(
-            init_gamebin,
-            "run_command",
-            side_effect=[
-                completed([], returncode=0),
-                completed([], returncode=0, stdout="HZDEV"),
-                completed([], returncode=1, stderr="HTTP 404"),
-            ],
-        ):
-            available, reason = init_gamebin.probe_binsync(Path("repo"))
-        self.assertFalse(available)
-        self.assertIn("HLND2T organization", reason)
-
-    def test_probe_binsync_reports_org_login_mismatch(self) -> None:
-        with patch.object(
-            init_gamebin,
-            "run_command",
-            side_effect=[
-                completed([], returncode=0),
-                completed([], returncode=0, stdout="HZDEV"),
-                completed([], returncode=0, stdout="SomeOtherOrg"),
-            ],
-        ):
-            available, reason = init_gamebin.probe_binsync(Path("repo"))
-        self.assertFalse(available)
-        self.assertIn("HLND2T organization", reason)
-
-    def test_probe_binsync_reports_available(self) -> None:
-        with (
-            patch.object(
-                init_gamebin.shutil,
-                "which",
-                return_value="gh",
-            ),
-            patch.object(
-                init_gamebin,
-                "run_command",
-                return_value=completed([], returncode=0, stdout="HLND2T"),
-            ),
-        ):
-            self.assertEqual((True, ""), init_gamebin.probe_binsync(Path("repo")))
-
-    def _write_probe_config(self, root: Path) -> Path:
-        config = root / "config.yaml"
-        config.write_text(
-            "modules:\n"
-            "  - name: engine\n"
-            "    path_windows: game/bin/win64/engine2.dll\n"
-            "    path_linux: game/bin/linuxsteamrt64/libengine2.so\n",
-            encoding="utf-8",
-        )
-        return config
-
-    def test_probe_binsync_requires_every_configured_remote(self) -> None:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            root = Path(temp_dir)
-            config = self._write_probe_config(root)
-            queried = []
-
-            def fake_gh_api(_root, endpoint, **_kwargs):
-                queried.append(endpoint)
-                return {"private": False}
-
-            with (
-                patch.object(init_gamebin.shutil, "which", return_value="gh"),
-                patch.object(
-                    init_gamebin,
-                    "run_command",
-                    return_value=completed([], returncode=0, stdout="HLND2T"),
-                ),
-                patch.object(init_gamebin, "gh_api", side_effect=fake_gh_api),
-            ):
-                self.assertEqual((True, ""), init_gamebin.probe_binsync(root, config, "14175"))
-
-        self.assertEqual(
-            [
-                "repos/HLND2T/CS2_VibeSignatures_binsync_14175_engine2.dll",
-                "repos/HLND2T/CS2_VibeSignatures_binsync_14175_libengine2.so",
-            ],
-            queried,
-        )
-
-    def test_probe_binsync_reports_missing_remotes(self) -> None:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            root = Path(temp_dir)
-            config = self._write_probe_config(root)
-            with (
-                patch.object(init_gamebin.shutil, "which", return_value="gh"),
-                patch.object(
-                    init_gamebin,
-                    "run_command",
-                    return_value=completed([], returncode=0, stdout="HLND2T"),
-                ),
-                patch.object(init_gamebin, "gh_api", side_effect=[None, {"private": False}]),
-            ):
-                available, reason = init_gamebin.probe_binsync(root, config, "14175")
-
-        self.assertFalse(available)
-        self.assertIn("BinSync remote repositories are missing", reason)
-        self.assertIn("HLND2T/CS2_VibeSignatures_binsync_14175_engine2.dll", reason)
-        self.assertNotIn("libengine2.so", reason)
-
-    def test_probe_binsync_reports_non_public_remotes(self) -> None:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            root = Path(temp_dir)
-            config = self._write_probe_config(root)
-            with (
-                patch.object(init_gamebin.shutil, "which", return_value="gh"),
-                patch.object(
-                    init_gamebin,
-                    "run_command",
-                    return_value=completed([], returncode=0, stdout="HLND2T"),
-                ),
-                patch.object(
-                    init_gamebin,
-                    "gh_api",
-                    side_effect=[{"private": False}, {"private": True}],
-                ),
-            ):
-                available, reason = init_gamebin.probe_binsync(root, config, "14175")
-
-        self.assertFalse(available)
-        self.assertIn("BinSync remote repositories are not public", reason)
-        self.assertIn("HLND2T/CS2_VibeSignatures_binsync_14175_libengine2.so", reason)
-
-    def test_probe_binsync_can_skip_remote_checks_for_creation_flows(self) -> None:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            root = Path(temp_dir)
-            config = self._write_probe_config(root)
-            with (
-                patch.object(init_gamebin.shutil, "which", return_value="gh"),
-                patch.object(
-                    init_gamebin,
-                    "run_command",
-                    return_value=completed([], returncode=0, stdout="HLND2T"),
-                ),
-                patch.object(init_gamebin, "gh_api") as gh_api,
-            ):
-                self.assertEqual(
-                    (True, ""),
-                    init_gamebin.probe_binsync(root, config, "14175", require_remotes=False),
-                )
-        gh_api.assert_not_called()
-
-    def test_probe_binsync_reports_unqueryable_remote_without_raising(self) -> None:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            root = Path(temp_dir)
-            config = self._write_probe_config(root)
-            with (
-                patch.object(init_gamebin.shutil, "which", return_value="gh"),
-                patch.object(
-                    init_gamebin,
-                    "run_command",
-                    return_value=completed([], returncode=0, stdout="HLND2T"),
-                ),
-                patch.object(
-                    init_gamebin,
-                    "gh_api",
-                    side_effect=init_gamebin.InitGamebinError("gh api failed for repos/x: HTTP 500"),
-                ),
-            ):
-                available, reason = init_gamebin.probe_binsync(root, config, "14175")
-
-        self.assertFalse(available)
-        self.assertIn("cannot query BinSync remote HLND2T/CS2_VibeSignatures_binsync_14175_engine2.dll", reason)
-
-    def test_probe_binsync_reports_unresolvable_config_without_raising(self) -> None:
-        with (
-            patch.object(init_gamebin.shutil, "which", return_value="gh"),
-            patch.object(
-                init_gamebin,
-                "run_command",
-                return_value=completed([], returncode=0, stdout="HLND2T"),
-            ),
-            patch.object(
-                init_gamebin,
-                "resolve_analysis_config",
-                side_effect=init_gamebin.AnalysisConfigError("analysis config is missing"),
-            ),
-        ):
-            available, reason = init_gamebin.probe_binsync(Path("repo"), None, "14175")
-
-        self.assertFalse(available)
-        self.assertIn("analysis config is missing", reason)
-
-    def test_main_check_binsync_resolves_the_requested_gamever(self) -> None:
-        config = Path("repo") / "configs" / "14175.yaml"
-        output = io.StringIO()
-        with (
-            patch.object(init_gamebin, "repository_root", return_value=Path("repo")),
-            patch.object(init_gamebin, "load_versions", return_value=["14175"]),
-            patch.object(init_gamebin, "resolve_analysis_config", return_value=config) as resolve,
-            patch.object(init_gamebin, "probe_binsync", return_value=(True, "")) as probe,
-            patch("sys.stdout", output),
-        ):
-            self.assertEqual(0, init_gamebin.main(["check-binsync", "14175"]))
-        resolve.assert_called_once_with("14175", repo_root=Path("repo"))
-        probe.assert_called_once_with(Path("repo"), config, "14175")
-        self.assertIn("BinSync available", output.getvalue())
-
-    def test_main_check_binsync_reports_availability(self) -> None:
-        output = io.StringIO()
-        with (
-            patch.object(init_gamebin, "repository_root", return_value=Path("repo")),
-            patch.object(init_gamebin, "probe_binsync", return_value=(True, "")),
-            patch("sys.stdout", output),
-        ):
-            self.assertEqual(0, init_gamebin.main(["check-binsync"]))
-        self.assertIn("BinSync available", output.getvalue())
-
-        output = io.StringIO()
-        with (
-            patch.object(init_gamebin, "repository_root", return_value=Path("repo")),
-            patch.object(init_gamebin, "probe_binsync", return_value=(False, "gh is not installed")),
-            patch("sys.stdout", output),
-        ):
-            self.assertEqual(1, init_gamebin.main(["check-binsync"]))
-        self.assertIn("BinSync unavailable: gh is not installed", output.getvalue())
-
-    def test_main_reports_binsync_skipped(self) -> None:
+    def test_main_reports_skipped_idb_merge(self) -> None:
         result = {
             "gamever": "14169",
             "source": "existing local binaries",
             "copied": 0,
             "skipped": 0,
             "idb": None,
-            "binsync": None,
         }
         output = io.StringIO()
         with (
@@ -1395,7 +474,6 @@ class TestInitGamebin(unittest.TestCase):
             patch("sys.stdout", output),
         ):
             self.assertEqual(0, init_gamebin.main(["prepare", "14169"]))
-        self.assertIn("BinSync recovery: skipped", output.getvalue())
         self.assertIn("Warm IDB merge: skipped", output.getvalue())
 
     def test_main_reports_binary_preparation_only(self) -> None:
@@ -1405,7 +483,6 @@ class TestInitGamebin(unittest.TestCase):
             "copied": 3,
             "skipped": 0,
             "idb": (4, 0),
-            "binsync": binsync_summary(),
         }
         output = io.StringIO()
         with (
@@ -1415,42 +492,8 @@ class TestInitGamebin(unittest.TestCase):
         ):
             self.assertEqual(0, init_gamebin.main(["prepare", "14169"]))
         self.assertIn("Selected GAMEVER: 14169", output.getvalue())
-        self.assertIn("BinSync recovery: 2 targets", output.getvalue())
         self.assertIn("Warm IDB merge: 4 copied, 0 skipped", output.getvalue())
         self.assertNotIn("Symbol snapshot:", output.getvalue())
-
-    def test_main_passes_explicit_remote_creation_permission(self) -> None:
-        result = {
-            "gamever": "14169",
-            "source": "existing local binaries",
-            "copied": 0,
-            "skipped": 0,
-            "idb": None,
-            "binsync": binsync_summary(remote_created=2),
-        }
-        with (
-            patch.object(init_gamebin, "repository_root", return_value=Path("repo")),
-            patch.object(init_gamebin, "prepare", return_value=result) as prepare,
-        ):
-            self.assertEqual(
-                0,
-                init_gamebin.main(
-                    [
-                        "prepare",
-                        "14169",
-                        "--binsync",
-                        "enable",
-                        "--create-missing-binsync-remotes",
-                    ]
-                ),
-            )
-        prepare.assert_called_once_with(
-            Path("repo"),
-            "14169",
-            binsync_mode="enable",
-            allow_remote_creation=True,
-            with_idb=False,
-        )
 
 
 if __name__ == "__main__":

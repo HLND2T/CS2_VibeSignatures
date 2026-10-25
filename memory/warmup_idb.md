@@ -13,7 +13,7 @@ permalink: cs2-vibesignatures/warmup-idb
 - Reuse a matching immutable generation or force a complete warmup on cache miss.
 - Publish only configured binaries and required IDA database payload after inventory validation.
 - Restore exact generation IDs for consumers and fail closed on damage, identity drift, locks, or runtime mismatch.
-- Synchronize accepted-bin as an exact configured-binary positive allowlist while excluding YAML, IDA/BinSync mutable state, and undeclared side files.
+- Synchronize accepted-bin as an exact configured-binary positive allowlist while excluding YAML, mutable analysis state, and undeclared side files.
 - Serialize same-GAMEVER producers and prune stale incoming/aged generation directories conservatively.
 ## Involved Files & Symbols
 - `.github/workflows/warmup-idb.yml` - caller-only reusable producer with same-GAMEVER concurrency.
@@ -41,7 +41,7 @@ Source-owned artifact content is deliberately absent from cache identity and pay
 ## Notes
 - Cache identity binds configured binary path/size/hash plus IDA runtime, not artifact bytes. The producer verifies those bytes
   against the source lock before probe/publish and exports the lock digest to PR/Release consumers.
-- Accepted-bin restore/sync uses a positive configured-binary allowlist and excludes `*.yaml`/`*.yml`, IDA databases, BinSync repositories/sidecars, and undeclared files.
+- Accepted-bin restore/sync uses a positive configured-binary allowlist and excludes `*.yaml`/`*.yml`, IDA databases, legacy analysis state, and undeclared files.
 - The accepted-bin **read path is best-effort**: `restore_accepted_bin` reports a cache whose file set no longer matches the configured allowlist (a module was added or removed) as a miss (`cache-invalid`) instead of failing, because the only repair path (depot re-provision, then `sync`) runs after the read. Consumers that truly cannot continue without the cache keep failing closed via `--required`.
 - The removed release-staging/promote-bin path is historical only; warmup no longer feeds any YAML promotion gate.
 - READY is only an atomic convenience pointer; callers consume the returned immutable generation ID/cache key.

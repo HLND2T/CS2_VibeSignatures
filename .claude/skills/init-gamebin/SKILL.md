@@ -1,12 +1,12 @@
 ---
 name: init-gamebin
-description: Initialize this repository's disposable local game binaries and per-binary BinSync auto-recovery sidecars for an exact GAMEVER from download.yaml or its latest entry. Use only when explicitly asked to initialize gamebin/bin state for a CS2 game version.
+description: Initialize this repository's disposable local game binaries for an exact GAMEVER from download.yaml or its latest entry. Use only when explicitly asked to initialize gamebin/bin state for a CS2 game version.
 disable-model-invocation: true
 ---
 
 # Initialize Game Binaries
 
-Use the repository-root script as the only entry point for downloading, merging, depot fallback, and BinSync recovery setup.
+Use the repository-root script as the only entry point for downloading, merging, and depot fallback.
 Never overwrite an existing binary, substitute an unlisted version, or continue after a failed step. This skill handles
 only disposable binary/IDA state: never restore snapshot YAML into `bin/` or hydrate tracked `bin_artifacts`. Source-owned
 symbol truth is already versioned under `bin_artifacts/<GAMEVER>/`.
@@ -24,31 +24,10 @@ symbol truth is already versioned under `bin_artifacts/<GAMEVER>/`.
    Wait for an explicit version before continuing.
 3. Reject values absent from `download.yaml`; do not guess or silently use latest.
 
-## Decide BinSync
-
-BinSync recovery is opt-in. Decide whether to enable it before preparing binaries:
-
-1. Probe availability from the owning repository root with the selected GAMEVER:
-
-   ```powershell
-   uv run init_gamebin.py check-binsync <GAMEVER>
-   ```
-
-2. If the probe exits 1 (unavailable), tell the user BinSync initialization is skipped and why
-   (`BinSync unavailable: <reason>`), then proceed to preparation **without** enabling BinSync.
-   The reason covers either the environment (no `gh`, not authenticated, API/org unreachable) or this
-   GAMEVER's remotes: every configured `HLND2T/CS2_VibeSignatures_binsync_<GAMEVER>_<MODULE_FILENAME>`
-   must already exist and be public. Both cases mean skip; do not retry or create remotes.
-3. If the probe exits 0 (available), **ask** the user whether to enable BinSync and wait for an
-   explicit yes/no. Never enable BinSync without explicit consent, and never skip the probe.
-   - Yes → prepare with `--binsync enable`.
-   - No → prepare with `--binsync skip` (or omit the flag).
-
 ## Decide IDB Download
 
 A rebuilt Release also publishes `gamebin-with-idb-<GAMEVER>.7z`, its warm IDA databases. Downloading
-it skips the slow, resource-heavy local warmup. Decide before preparing binaries, and independently of
-BinSync:
+it skips the slow, resource-heavy local warmup. Decide before preparing binaries:
 
 1. Probe whether the selected GAMEVER publishes the archive:
 
@@ -69,47 +48,15 @@ archive; `--with-idb` also fails loudly for a GAMEVER whose Release declares non
 
 ## Prepare Binaries
 
-Run from the owning repository root with the BinSync and IDB decisions applied:
+Run from the owning repository root with the IDB download decision applied:
 
 ```powershell
-uv run init_gamebin.py prepare <GAMEVER-or-latest> --binsync <enable|skip> [--with-idb]
+uv run init_gamebin.py prepare <GAMEVER-or-latest> [--with-idb]
 ```
 
-Never pass `--create-missing-binsync-remotes` from this manual skill flow. That mutating option is reserved for the
-trusted `build-on-self-runner` workflow.
-
-Without `--binsync`, BinSync is skipped and never probed. `--binsync enable` probes first and **fails**
-(instead of skipping) when the environment cannot run BinSync. `--with-idb` downloads and
-non-overwritingly merges the warm IDA databases; it is orthogonal to BinSync and fails loudly when the
-selected Release publishes no such archive. The script checks existing binaries,
-downloads and non-overwritingly merges `gamebin-<GAMEVER>.7z` when needed, and uses
-the Steam depot fallback only for a missing Release asset. After every configured Windows and Linux binary exists, it:
-
-1. Resolves targets in first-seen config order, Windows before Linux, and deduplicates repeated real binary paths.
-2. Preflights every target before making BinSync changes: strict existing sidecars, matching local `.bsproj` repositories,
-   and GitHub remote/default-branch/`binary_hash` state.
-3. Uses `gh` to read public repositories without requiring `HLND2T` organization permissions. Only an explicit HTTP 404
-   is treated as missing; every other API failure stops the command.
-4. Requires the `HLND2T/CS2_VibeSignatures_binsync_<GAMEVER>_<MODULE_FILENAME>` repository to already exist during this
-   manual skill flow; the `check-binsync <GAMEVER>` probe above already rejects a GAMEVER with any missing or non-public
-   remote, so a remote that disappears in between still stops the command with a clear reason. Only the trusted build
-   workflow passes the explicit repository-creation option.
-5. Restores a previously empty remote from every local `binsync/*` branch when a valid unlocked
-   `<MODULE_FILENAME>.bsproj` exists. Otherwise it creates the standard BinSync `Root commit`, `binsync/__root__`, and
-   `binsync/<OS_USER>` branches. It sets the default branch only for a previously empty repository.
-6. Writes `<MODULE_FILENAME>.binsync.json` only after the remote validates successfully. The sidecar uses the current OS
-   user as a fallback, the canonical HTTPS remote, explicit `<MODULE_FILENAME>.bsproj`, the binary MD5,
-   `force_user: false`, `auto_clone: true`, and `auto_sync_all: true`.
-
-The script never reads or writes `BinSyncDLConfig.toml`, never clones missing `.bsproj` repositories into `bin/`, and
-never fetches or pushes an already-valid remote/local pair. IDA's BinSync auto-recovery performs the later clone.
-
-Existing sidecars must contain the six required fields and match semantically. They may also include `auto_sync_all`,
-which must be `true` when present; unknown extra fields remain a conflict. Existing local repositories must
-have the expected `origin`, `binsync/__root__`, and `binary_hash`. Existing non-empty remotes must already use
-`binsync/__root__` as their default branch and expose the matching `binary_hash`. Stop on any conflict; never overwrite,
-move, delete, repair, or change the default branch of existing state. A local `binsync.lock` is allowed for read-only
-validation, but it blocks restoring a missing or empty remote from that local repository.
+`--with-idb` downloads, verifies, and merges the published warm IDA databases without overwriting existing files.
+The script prepares missing binaries from the verified Release archive or Steam depot fallback, then checks the
+complete configured binary tree against its source-owned binary lock.
 
 If the command fails, stop immediately and report its exact error as:
 
@@ -153,6 +100,6 @@ opt-in.
      Do not silently continue after a failed warmup.
    - No → skip warmup and finish.
 
-Report the selected GAMEVER, binary preparation result, BinSync summary, warm IDB merge (if any), and optional warmup
+Report the selected GAMEVER, binary preparation result, warm IDB merge (if any), and optional warmup
 result. State that symbol truth remains under tracked `bin_artifacts/`; the merged `.i64` databases are disposable
 workspace state, not source truth. Do not offer snapshot restoration or IDB renaming.

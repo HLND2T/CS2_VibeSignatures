@@ -12,7 +12,6 @@
 6. [idalib](https://docs.hex-rays.com/user-guide/idalib), required by `ida_analyze_bin.py`
 7. Clang/LLVM, with `clang++` available in `PATH` for local tests. [llvm-msvc](https://github.com/backengineering/llvm-msvc) is recommended on Windows.
 8. [GitHub CLI](https://cli.github.com/)
-9. [binsync](https://github.com/HLND2T/binsync) (optional, always use the HLND2T fork, you can clone it and ask claude/codex to install from source)
 
 Install the Python dependencies after cloning the repository:
 

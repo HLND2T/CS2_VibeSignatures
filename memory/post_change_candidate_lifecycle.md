@@ -13,7 +13,7 @@ permalink: cs2-vibesignatures/post-change-candidate-lifecycle
  Binding-job internals are recorded in [[source-artifact-required]].
 - `pr-self-runner.yml`: restore exact warm IDB state, force selected producer groups in an isolated artifact root, verify execution evidence and bytes under the anchor drift contract, and derive candidate/gamedata/C++ evidence.
 - `bootstrap-new-gamever-artifacts.yml`: produce an empty-root full artifact candidate and let the protected hosted publisher fast-forward only the matching bump branch.
-- `build-on-self-runner.yml`: after merge, independently rebuild the complete GAMEVER and produce credential-free Release/BinSync candidates.
+- `build-on-self-runner.yml`: after merge, independently rebuild the complete GAMEVER and produce credential-free Release candidates.
 ## Involved Files & Symbols
 - `.claude/skills/create-pr/SKILL.md` - source-owned PR delivery contract.
 - `trusted_pr_context.py`, `trusted_artifact_pr.py`, `source_artifact_policy.yaml` - trusted planning and isolation contract.
@@ -45,15 +45,10 @@ source + computed artifact closure -> PR head
 - Neither source publisher can satisfy the required check; the artifact-bearing head must pass normal validation.
 - The trusted plan selects one complete prior source-owned GAMEVER, or explicit `null` for no baseline; bootstrap passes
   that identity explicitly and binds it into the force-all report, candidate manifest, and hosted verification.
-- Release/BinSync candidates bind `binary_lock_sha256`; hosted verification reloads the lock from the immutable source SHA
+- Release candidates bind `binary_lock_sha256`; hosted verification reloads the lock from the immutable source SHA
   and rejects self-hosted binary inventory forgery.
 - Release gamedata generation is offline and source-owned: generator baselines live under each module's `templates/`,
   mutable `DOWNLOAD_SOURCES` are rejected by candidate builds, and the hosted Release verifier fresh-rebuilds from the
   verified snapshot before comparing every output hash.
-- BinSync candidate schema v5 binds the source-owned binary lock and separates hosted-recomputed source selection from per-repository lowering evidence. The
-  local exporter consumes the same raw-RVA projection builder; bundle verification checks every selected function/global
-  against the user-tip TOML tree. Windows lift bias and complete IDA name/comment semantics remain binary/runtime evidence,
-  not Git source truth.
-
 - [fact] Audit-chain verification (2026-09-06, required by the full-analysis performance handoff §13): `build-on-self-runner.yml` entry points are `workflow_call` / `workflow_dispatch` / `repository_dispatch`; its only in-repo caller is `tag-bump-after-merge.yml`, which triggers the release fresh-full rebuild (publication_mode=publish) solely when a `bump-download/*` branch PR merges. Ordinary main merges therefore trigger **no** post-merge fresh-full audit; the reproducibility backstops are the pre-release fresh-full (`release_artifact_rebuild`, unchanged hard gate), bump-merge audits, and manual/event dispatch. With the base-inherited-selected strategy this bounds the accepted continuous-inheritance risk: a planner misjudgement surfaces at the latest next bump audit or before release, not at every merge.
 - [fact] Base-inherited-selected bridge (2026-09-06, plan schema 4 / preparation schema 3): PR full validation keeps `mode=full` routing but gains `execution_strategy`. Selected runs materialize only the inherit whitelist from exact base Git blobs into the actual root (`prepare_isolated_rebuild`), execute the planner's closure manifest, and verify the full composed inventory against the merge tree (exact set + per-file size/SHA-256 + expected-blob recheck) plus base-blob re-derivation for inherited bytes. Default remains `fresh-full-v1` until the policy flip after Phase-D real-runner comparison; see [[source-artifact-required]] and the handoff §17 in `docs/plans/full-analysis-performance-handoff.md`.

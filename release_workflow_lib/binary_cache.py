@@ -16,9 +16,9 @@ from release_workflow_lib.hashing import normalized_relative_path, reject_repars
 
 GAMEVER_RE = re.compile(r"^[0-9]{4,10}[a-z]?$")
 IDA_DATABASE_SUFFIXES = (".i64", ".idb", ".id0", ".id1", ".id2", ".nam", ".til")
-BINSYNC_REPO_SUFFIX = ".bsproj"
-BINSYNC_SIDECAR_SUFFIX = ".binsync.json"
-DISPOSABLE_ANALYSIS_SUFFIXES = (*IDA_DATABASE_SUFFIXES, BINSYNC_REPO_SUFFIX, BINSYNC_SIDECAR_SUFFIX)
+# Recognize retired state solely to keep it out of disposable binary caches.
+LEGACY_ANALYSIS_SUFFIXES = (".bsproj", ".binsync.json")
+DISPOSABLE_ANALYSIS_SUFFIXES = (*IDA_DATABASE_SUFFIXES, *LEGACY_ANALYSIS_SUFFIXES)
 BINARY_CACHE_LOCK_ROOT = ("binary-cache", "locks")
 
 

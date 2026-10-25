@@ -14,7 +14,7 @@ permalink: cs2-vibesignatures/ida-analyze-bin
 - Run preprocessors and Agent fallbacks against the active artifact module directory; the legacy `new_binary_dir` ABI parameter carries this artifact path.
 - Canonicalize every produced semantic payload through the central Source2 finalizer.
 - Enforce selected-group execution/winner evidence for isolated PR/Release rebuilds.
-- Keep binary hashing, loader, IDA database, and BinSync operations on the binary root; apply `-rename` only after validated producer execution.
+- Keep binary hashing, loader, and IDA database operations on the binary root; apply `-rename` only after validated producer execution.
 ## Involved Files & Symbols
 - `ida_analyze_bin.py` - `parse_args`
 - `ida_analyze_bin.py` - `resolve_oldgamever`
@@ -46,7 +46,7 @@ Normal local authoring writes tracked `bin_artifacts`; trusted PR/Release valida
 ## Notes
 - `-force_all` disables existing-output skip for selected groups and requires execution evidence.
 - `-oldgamever=none` disables old-artifact reuse; auto-resolution enumerates prior versions under the old artifact root, not private binary YAML.
-- `-rename` operates on the active validated artifact root and release-local IDB/BinSync state; it never republishes Git truth.
+- `-rename` operates on the active validated artifact root and release-local IDB state; it never republishes Git truth.
 - PR/Release callers use `-require_warm_idb`, checkout-external actual roots, and assert tracked expected artifacts remain unchanged.
 - `bin/` is never a per-symbol correctness input.
 ## CLI Arguments

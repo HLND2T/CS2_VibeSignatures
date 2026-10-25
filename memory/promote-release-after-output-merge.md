@@ -37,7 +37,6 @@ merged output PR -> verify accepted Git + staged bin -> archive gamedata/<GAMEVE
 
 ## Notes
 - Historical responsibilities, paths, and recovery markers below are not active operating instructions.
-- Current BinSync publication is fast-forward-only and isolated from the main-repository Release publisher.
 - Current Release assets are immutable and derived from `source SHA + binary identity + bin_artifacts`; same-version clobber is forbidden.
 - See [[build-on-self-runner]] and [[project_overview]].
 ## Callers

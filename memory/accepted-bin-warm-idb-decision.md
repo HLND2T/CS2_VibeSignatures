@@ -15,7 +15,7 @@ tags:
 Updated for the source-owned artifacts cutover. Historical release-staging/promote-bin conclusions are superseded; the retained decision is only that a binary-only accepted cache remains useful.
 
 ## Decision
-Keep `.ci-cache/store/bin/<GAMEVER>` as a disposable, exact configured-binary cache distinct from warm IDB generations. It may contain only configured binaries and explicitly allowlisted side files; per-symbol YAML, snapshots, gamedata, manifests, IDA databases, and BinSync working state are forbidden. The cache is never source or Release truth.
+Keep `.ci-cache/store/bin/<GAMEVER>` as a disposable, exact configured-binary cache distinct from warm IDB generations. It may contain only configured binaries and explicitly allowlisted side files; per-symbol YAML, snapshots, gamedata, manifests, IDA databases, and legacy analysis state are forbidden. The cache is never source or Release truth.
 ## Context / trigger
 PR and Release workers need exact binaries while warm IDB generations remain prunable performance state. Source-owned per-symbol history now lives in Git under `bin_artifacts`, so accepted-bin no longer serves an oldgamever YAML baseline or promotion target.
 ## Analysis (useful conclusions)
@@ -36,7 +36,7 @@ Superseded: active Release candidates are transient Actions Artifacts after fres
 ### Moving `promote` to GitHub-hosted runners (boundary)
 Superseded: hosted verifier and protected publishers now consume exact candidates. The self-hosted builder has no publication credential; accepted-bin maintenance remains local cache work, not a release promotion gate.
 ### Why state lives on the local runner (for future reference)
-Current persisted state is limited to recoverable binary/IDB caches and cleanup receipts. Durable publication state lives in Git source truth, remote BinSync refs, and immutable GitHub Releases.
+Current persisted state is limited to recoverable binary/IDB caches and cleanup receipts. Durable publication state lives in Git source truth and immutable GitHub Releases.
 ## Constraints
 - Binaries are immutable per GAMEVER and all cache reuse is exact-hash verified against `binary_locks/<GAMEVER>.json`.
 - accepted-bin cleanup is recoverable and receipt-backed; legacy YAML is ignored before cleanup and rejected afterward.

@@ -20,23 +20,11 @@ on:
       artifact_digest:
         required: true
         type: string
-      # Empty for a rebuild-free (tracked) release, which exports no BinSync
-      # candidate; both must be empty or both must be set.
-      binsync_candidate_digest:
-        required: false
-        type: string
-        default: ''
-      binsync_target_state_digest:
-        required: false
-        type: string
-        default: ''
     outputs:
       manifest_digest:
         value: ${{ jobs.verify.outputs.manifest_digest }}
       bundle_digest:
         value: ${{ jobs.verify.outputs.bundle_digest }}
-      binsync_target_state_digest:
-        value: ${{ jobs.verify.outputs.binsync_target_state_digest }}
 permissions:
   actions: read
   contents: read
@@ -46,7 +34,6 @@ jobs:
     outputs:
       manifest_digest: ${{ steps.verify-bundle.outputs.manifest_digest }}
       bundle_digest: ${{ steps.verify-bundle.outputs.bundle_digest }}
-      binsync_target_state_digest: ${{ steps.verify-bundle.outputs.binsync_target_state_digest }}
       cpp_artifact_id: ${{ steps.upload-cpp-inputs.outputs.artifact-id }}
       cpp_artifact_digest: ${{ steps.upload-cpp-inputs.outputs.artifact-digest }}
     steps:
@@ -119,52 +106,31 @@ jobs:
               $checkedOutSha -ne $sourceGitlink) {
             throw "Release C++ SDK does not match the immutable source gitlink."
           }
+      - name: Checkout trusted verification tools
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: .ci-tools
+          persist-credentials: false
       - name: Verify Release bundle, archives, and source identities
         id: verify-bundle
         shell: pwsh
         run: |
-          $candidateDigest = "${{ inputs.binsync_candidate_digest }}"
-          $targetStateDigest = "${{ inputs.binsync_target_state_digest }}"
-          $expectsBinsync = -not [string]::IsNullOrWhiteSpace($candidateDigest)
-          if ($expectsBinsync -ne (-not [string]::IsNullOrWhiteSpace($targetStateDigest))) {
-            throw "BinSync candidate and target-state digests must be supplied together."
-          }
-          $binsyncArgs = if ($expectsBinsync) {
-            @('--binsync-candidate-digest', $candidateDigest, '--binsync-target-state-digest', $targetStateDigest)
-          } else {
-            @()
-          }
-          $json = & uv run python release_bundle.py verify `
+          $json = & uv run --project .ci-tools python .ci-tools/release_bundle.py verify `
             --repo-root "${{ github.workspace }}" `
             --bundle-root "${{ runner.temp }}/release-bundle" `
             --source-sha "${{ inputs.source_sha }}" `
             --gamever "${{ inputs.gamever }}" `
             --release-version "${{ inputs.release_version }}" `
             --build-id "${{ inputs.build_id }}" `
-            --actions-artifact-name "${{ inputs.artifact_name }}" `
-            @binsyncArgs
+            --actions-artifact-name "${{ inputs.artifact_name }}"
           if ($LASTEXITCODE -ne 0) { throw "Hosted Release bundle verification failed." }
           $document = ($json -join "`n") | ConvertFrom-Json
           foreach ($field in @('manifest_sha256', 'bundle_inventory_sha256')) {
             if ($document.$field -notmatch '^(sha256:)?[0-9a-f]{64}$') { throw "Hosted verifier output $field is invalid." }
           }
-          # The verified manifest decides: a rebuild-free bundle must report no
-          # BinSync target state, and a rebuilt one must report a real digest.
-          if ($expectsBinsync) {
-            if ($document.binsync_target_state_digest -notmatch '^(sha256:)?[0-9a-f]{64}$') {
-              throw "Hosted verifier output binsync_target_state_digest is invalid."
-            }
-          } elseif (-not [string]::IsNullOrWhiteSpace([string]$document.binsync_target_state_digest)) {
-            throw "Hosted verifier reported a BinSync target state for a bundle that publishes none."
-          }
           "manifest_digest=$($document.manifest_sha256)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "bundle_digest=$($document.bundle_inventory_sha256)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "binsync_target_state_digest=$($document.binsync_target_state_digest)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
-      - uses: actions/checkout@v5
-        with:
-          ref: ${{ github.workflow_sha }}
-          path: .ci-tools
-          persist-credentials: false
       - name: Export exact verified snapshot for both hosted ABIs
         shell: bash
         env:

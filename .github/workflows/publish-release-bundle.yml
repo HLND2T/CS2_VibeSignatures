@@ -24,26 +24,12 @@ on:
       artifact_digest:
         required: true
         type: string
-      # Empty for a rebuild-free (tracked) release, which exports no BinSync
-      # candidate; all three must be empty or all three must be set.
-      binsync_candidate_digest:
-        required: false
-        type: string
-        default: ''
-      binsync_target_state_digest:
-        required: false
-        type: string
-        default: ''
       verified_manifest_digest:
         required: true
         type: string
       verified_bundle_digest:
         required: true
         type: string
-      verified_binsync_target_state_digest:
-        required: false
-        type: string
-        default: ''
 permissions:
   actions: read
   contents: write
@@ -129,6 +115,12 @@ jobs:
               $checkedOutSha -ne $sourceGitlink) {
             throw "Release C++ SDK does not match the immutable source gitlink."
           }
+      - name: Checkout trusted publication tools
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: .ci-tools
+          persist-credentials: false
       - name: Publish tag, exact assets, and immutable Release
         id: publish-release
         env:
@@ -138,25 +130,7 @@ jobs:
           # release_publish.py runs the full bundle verification itself and binds
           # the result to the hosted verifier digests before any write, so this
           # step does not re-verify the bundle separately.
-          $binsyncDigests = @(
-            "${{ inputs.binsync_candidate_digest }}",
-            "${{ inputs.binsync_target_state_digest }}",
-            "${{ inputs.verified_binsync_target_state_digest }}"
-          )
-          $suppliedBinsync = @($binsyncDigests | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
-          if ($suppliedBinsync.Count -notin @(0, 3)) {
-            throw "BinSync publication digests must be supplied together or not at all."
-          }
-          $binsyncArgs = if ($suppliedBinsync.Count -eq 3) {
-            @(
-              '--binsync-candidate-digest', $binsyncDigests[0],
-              '--binsync-target-state-digest', $binsyncDigests[1],
-              '--verified-binsync-target-state-digest', $binsyncDigests[2]
-            )
-          } else {
-            @()
-          }
-          $json = & uv run python release_publish.py `
+          $json = & uv run --project .ci-tools python .ci-tools/release_publish.py `
             --publication-mode "${{ inputs.publication_mode }}" `
             --repo-root "${{ github.workspace }}" `
             --bundle-root "${{ runner.temp }}/release-bundle" `
@@ -166,8 +140,7 @@ jobs:
             --build-id "${{ inputs.build_id }}" `
             --actions-artifact-name "${{ inputs.artifact_name }}" `
             --verified-manifest-digest "${{ inputs.verified_manifest_digest }}" `
-            --verified-bundle-digest "${{ inputs.verified_bundle_digest }}" `
-            @binsyncArgs
+            --verified-bundle-digest "${{ inputs.verified_bundle_digest }}"
           if ($LASTEXITCODE -ne 0) { throw "Immutable protected Release publication failed." }
           $document = ($json -join "`n") | ConvertFrom-Json
           if ($document.status -notin @('published', 'republished', 'already-published') -or $document.release_id -notmatch '^[1-9][0-9]*$') {

@@ -35,15 +35,15 @@ from release_workflow_lib.sdk import SourceSdkError, source_sdk
 PREPARATION_SCHEMA_VERSION = 2
 TRACKED_BINDING_SCHEMA_VERSION = 1
 TRACKED_BINDING_MODE = "tracked"
-# Version of the contract that binds the BinSync and warm IDB evidence to the
+# Version of the contract that binds the IDA runtime and warm IDB evidence to the
 # source binding mode. Both producer paths record it in the binding document so
 # a consumer without a source checkout can tell which rule the manifest obeys;
 # manifests published before the rule exist carry no such key.
-BINSYNC_EVIDENCE_RULE_VERSION = 1
+IDA_EVIDENCE_RULE_VERSION = 1
 # Version of the contract that adds the optional warm IDB archive to the public
-# asset allowlist for rebuilt releases. It sits above the BinSync evidence rule
+# asset allowlist for rebuilt releases. It sits above the IDA evidence rule
 # so a manifest that declares it is gated on both rules, while a manifest still
-# carrying version 1 is gated on the BinSync evidence rule alone.
+# carrying version 1 is gated on the IDA evidence rule alone.
 IDB_ARCHIVE_RULE_VERSION = 2
 # Current producer rule version: what both producer paths write into the binding
 # document. Must stay the maximum of the rule versions above.

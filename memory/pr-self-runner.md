@@ -40,7 +40,7 @@ trusted prospective-tree plan
 - Binary-only `.ci-cache/store/bin/<GAMEVER>`, immutable warm IDB generation, IDA/LLM secrets scoped to the analysis worker.
 ## Notes
 - `bin_artifacts` is expected Git truth; `bin/` and persisted workspaces must not supply YAML correctness input.
-- Checkout uses `persist-credentials: false`; the worker has no source-branch, BinSync, tag, or Release publication credential.
+- Checkout uses `persist-credentials: false`; the worker has no source-branch, tag, or Release publication credential.
 - Merge Queue membership must be resolved through trusted GitHub metadata before any self-hosted invocation.
 - [fact] Cost structure (measured 2026-09-05, run 33973053680): the force-all producer step takes ~1h58m of the ~2h07m validate job. The driver `_execute_analysis` (`ida_analyze_bin.py:5070`) is fully serial — 13 modules x 2 platforms = 26 sequential IDA/MCP sessions, ~2348 skill executions at ~3s average each — even though `ExecutionPlan` already builds stage/job dependency edges that a parallel scheduler could honor. The same cost repeats at PR time and again at merge-queue revalidation (`max-parallel: 1`).
 

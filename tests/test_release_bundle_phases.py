@@ -18,7 +18,7 @@ class TestReleaseBundlePhases(unittest.TestCase):
         fixture = bundle_tests.ReleaseBundleTests()
         with tempfile.TemporaryDirectory() as temporary:
             temp = Path(temporary)
-            repo, preparation, _binsync, inputs = fixture._fixture(temp)
+            repo, preparation, _verification_path, inputs = fixture._fixture(temp)
             prepared_root = temp / "prepared"
             identity = {"source_sha": preparation["source_sha"], "sdk_sha": preparation["sdk_gitlink_sha"]}
             with (
@@ -50,7 +50,6 @@ class TestReleaseBundlePhases(unittest.TestCase):
                     metadata=inputs["metadata"],
                     gamedata_candidate_root=inputs["gamedata_candidate"],
                     gamedata_session=temp / "unused-session.json",
-                    binsync_candidate_root=inputs["binsync_root"],
                     ida_runtime_identity="IDA 9.2",
                     warm_idb_generation="generation-1",
                     warm_idb_cache_key="cache-key-1",

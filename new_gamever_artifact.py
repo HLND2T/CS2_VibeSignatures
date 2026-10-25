@@ -21,7 +21,7 @@ from gamesymbol_snapshot_lib.paths import is_reparse_point
 from trusted_artifact_pr import load_trusted_artifact_plan, validate_trusted_artifact_plan
 
 
-BOOTSTRAP_CANDIDATE_SCHEMA_VERSION = 3
+BOOTSTRAP_CANDIDATE_SCHEMA_VERSION = 4
 ALLOWED_REPOSITORY = "HLND2T/CS2_VibeSignatures"
 GAMEVER_RE = re.compile(r"^[0-9]{4,10}[a-z]?$|^[1-9][0-9]*$")
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
@@ -111,28 +111,19 @@ def _load_gate_evidence(value: dict | str | Path) -> dict:
             raise NewGameverArtifactError(f"unable to load bootstrap gate evidence: {exc}") from exc
     expected_keys = {
         "schema_version",
-        "binsync_mode",
-        "remote_refs_before_sha256",
-        "remote_refs_after_sha256",
         "snapshot_sha256",
         "gamedata_sha256",
         "cpp_validation_sha256",
     }
-    if not isinstance(value, dict) or set(value) != expected_keys or value.get("schema_version") != 2:
+    if not isinstance(value, dict) or set(value) != expected_keys or value.get("schema_version") != 3:
         raise NewGameverArtifactError("bootstrap gate evidence schema is invalid")
-    if value.get("binsync_mode") != "local-only":
-        raise NewGameverArtifactError("bootstrap BinSync evidence must be local-only")
     digest_fields = (
-        "remote_refs_before_sha256",
-        "remote_refs_after_sha256",
         "snapshot_sha256",
         "gamedata_sha256",
         "cpp_validation_sha256",
     )
     if any(not DIGEST_RE.fullmatch(str(value.get(field, ""))) for field in digest_fields):
         raise NewGameverArtifactError("bootstrap gate evidence contains an invalid digest")
-    if value["remote_refs_before_sha256"] != value["remote_refs_after_sha256"]:
-        raise NewGameverArtifactError("bootstrap build changed remote BinSync refs")
     return value
 
 

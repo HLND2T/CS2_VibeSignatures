@@ -44,4 +44,4 @@ For a new GAMEVER, the initial PR may enter `bootstrap_required`. The protected 
 
 ## After the skill finishes
 
-Record the branch, source commit SHA, PR URL, final committed paths, and verification results. Snapshot, metadata, gamedata, archives, manifests, BinSync changes, and Pages inputs are reconstructed later by the immutable Release pipeline; they are never published back to the source PR.
+Record the branch, source commit SHA, PR URL, final committed paths, and verification results. Snapshot, metadata, gamedata, archives, manifests, and Pages inputs are reconstructed later by the immutable Release pipeline; they are never published back to the source PR.

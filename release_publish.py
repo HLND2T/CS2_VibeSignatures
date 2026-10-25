@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Publish an immutable GitHub Release after hosted and BinSync verification."""
+"""Publish an immutable GitHub Release after hosted bundle verification."""
 
 from __future__ import annotations
 
@@ -13,7 +13,6 @@ import sys
 import tempfile
 from pathlib import Path, PurePosixPath
 
-from binsync_candidate import _remote_heads
 from release_bundle import ReleaseBundleError, verify_release_bundle
 from release_workflow_lib.errors import ReleaseWorkflowError
 from release_workflow_lib.hashing import canonical_json_bytes, load_json_object, sha256_file
@@ -209,7 +208,6 @@ def _republish(repository, tag, source_sha, title, notes, expected_assets, bundl
             raise ReleasePublishError("Republish draft assets remain incomplete")
         if _tag_target(repository, tag) != source_sha:
             raise ReleasePublishError("Release tag changed during republish")
-        _verify_binsync_targets(manifest)
         stage = "publish"
         _publish_release(repository, release_id)
         stage = "published-verification"
@@ -426,19 +424,23 @@ def _publish_release(repository: str, release_id: int) -> None:
 
 
 def _notes(manifest: dict) -> str:
-    binsync = manifest["binsync"]
-    binsync_state = (
-        "not published (rebuild-free source-owned release)"
-        if binsync is None
-        else f"`{binsync['target_state_digest']}`"
-    )
+    # Reproduce immutable historical notes for idempotent schema-2 publication.
+    historical_notes = ""
+    if manifest.get("schema_version") == 2:
+        legacy = manifest["binsync"]
+        state = (
+            "not published (rebuild-free source-owned release)"
+            if legacy is None
+            else f"`{legacy['target_state_digest']}`"
+        )
+        historical_notes = f"- BinSync target state: {state}\n"
     return (
         f"Source-owned CS2 release `{manifest['release_version']}`.\n\n"
         f"- Source SHA: `{manifest['source_sha']}`\n"
         f"- GAMEVER: `{manifest['game_version']}`\n"
         f"- Build ID: `{manifest['build_id']}`\n"
         f"- Artifact inventory: `{manifest['artifact_inventory_sha256']}`\n"
-        f"- BinSync target state: {binsync_state}\n"
+        f"{historical_notes}"
     )
 
 
@@ -469,21 +471,6 @@ def _expected_assets(bundle_root: Path, manifest_path: Path, manifest: dict) -> 
         if path.name != item["name"] or path.stat().st_size != item["size"] or sha256_file(path) != item["sha256"]:
             raise ReleasePublishError(f"Release asset input mismatch: {item['path']}")
     return records
-
-
-def _verify_binsync_targets(manifest: dict) -> None:
-    # A rebuild-free release exports no BinSync candidate, so there is no
-    # intended remote state to hold the publication against.
-    if manifest["binsync"] is None:
-        return
-    for repository in manifest["binsync"]["repositories"]:
-        remote = f"https://github.com/{repository['owner']}/{repository['name']}"
-        heads = _remote_heads(remote)
-        mismatches = [item["ref"] for item in repository["refs"] if heads.get(item["ref"]) != item["commit"]]
-        if mismatches:
-            raise ReleasePublishError(
-                f"BinSync remote target state is incomplete for {repository['repository_id']}: {', '.join(mismatches)}"
-            )
 
 
 def _validate_release_identity(release: dict, *, tag: str, source_sha: str, title: str, notes: str) -> None:
@@ -537,11 +524,8 @@ def publish_release(
     expected_release_version: str | None = None,
     expected_build_id: str | None = None,
     expected_actions_artifact_name: str | None = None,
-    expected_binsync_candidate_digest: str | None = None,
-    expected_binsync_target_state_digest: str | None = None,
     expected_manifest_digest: str | None = None,
     expected_bundle_digest: str | None = None,
-    expected_verified_binsync_target_state_digest: str | None = None,
 ) -> dict:
     """Create/recover one draft and publish only exact immutable Release bytes."""
     if publication_mode not in PUBLICATION_MODES:
@@ -559,8 +543,6 @@ def publish_release(
             expected_release_version=expected_release_version,
             expected_build_id=expected_build_id,
             expected_actions_artifact_name=expected_actions_artifact_name,
-            expected_binsync_candidate_digest=expected_binsync_candidate_digest,
-            expected_binsync_target_state_digest=expected_binsync_target_state_digest,
         )
         manifest_path = next(bundle_root.glob("release-manifest-*.json"))
         manifest = load_json_object(manifest_path)
@@ -570,11 +552,6 @@ def publish_release(
     for label, expected, actual in (
         ("manifest digest", expected_manifest_digest, verified["manifest_sha256"]),
         ("bundle digest", expected_bundle_digest, verified["bundle_inventory_sha256"]),
-        (
-            "verified BinSync target-state digest",
-            expected_verified_binsync_target_state_digest,
-            verified["binsync_target_state_digest"],
-        ),
     ):
         if expected is not None and expected != actual:
             raise ReleasePublishError(f"Release {label} differs from the hosted verifier output")
@@ -586,7 +563,6 @@ def publish_release(
     title = _release_title(tag)
     notes = _notes(manifest)
     expected_assets = _expected_assets(bundle_root, manifest_path, manifest)
-    _verify_binsync_targets(manifest)
 
     if publication_mode == "republish":
         return _republish(
@@ -622,7 +598,6 @@ def publish_release(
     assets = _verify_remote_assets(repository, tag, release, expected_assets)
     if set(assets) != {item["name"] for item in expected_assets}:
         raise ReleasePublishError("draft GitHub Release assets remain incomplete")
-    _verify_binsync_targets(manifest)
     _publish_release(repository, release["id"])
     published = _release_state(repository, tag)
     if published is None or published.get("draft") is not False:
@@ -644,11 +619,8 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--release-version")
     parser.add_argument("--build-id")
     parser.add_argument("--actions-artifact-name")
-    parser.add_argument("--binsync-candidate-digest")
-    parser.add_argument("--binsync-target-state-digest")
     parser.add_argument("--verified-manifest-digest")
     parser.add_argument("--verified-bundle-digest")
-    parser.add_argument("--verified-binsync-target-state-digest")
     return parser
 
 
@@ -672,11 +644,8 @@ def main(argv=None) -> int:
             expected_release_version=args.release_version,
             expected_build_id=args.build_id,
             expected_actions_artifact_name=args.actions_artifact_name,
-            expected_binsync_candidate_digest=args.binsync_candidate_digest,
-            expected_binsync_target_state_digest=args.binsync_target_state_digest,
             expected_manifest_digest=args.verified_manifest_digest,
             expected_bundle_digest=args.verified_bundle_digest,
-            expected_verified_binsync_target_state_digest=args.verified_binsync_target_state_digest,
         )
     except (ReleasePublishError, OSError) as exc:
         print(f"Release publish error: {exc}", file=sys.stderr)

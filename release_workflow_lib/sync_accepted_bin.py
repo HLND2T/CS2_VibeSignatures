@@ -8,7 +8,7 @@ warmed), the actual binaries the run consumed are transactionally, idempotently
 mirrored into ``<persisted-root>/bin/<GAMEVER>`` so the accepted tree always
 reflects the warmup input.
 
-The accepted tree is binary-only: YAML, IDA databases, and BinSync state are
+The accepted tree is binary-only: YAML, IDA databases, and legacy analysis state are
 excluded. A dedicated per-version binary-cache lock makes direct invocations safe.
 
 Source and accepted trees must contain exactly the configured binaries. Their
@@ -85,7 +85,7 @@ def _swap_verified_bin(
     to target. Returns whether an existing target was moved aside.
 
     Unlike promote_bin (whose staged source is already clean), the warmup source
-    tree can contain IDA and BinSync recovery state, so verification here must be
+    tree can contain mutable analysis state, so verification here must be
     against the filtered inventory, not the full tree.
     """
     if backup.exists():
@@ -118,7 +118,7 @@ def sync_accepted_bin(*, repo_root: Path, persisted_root: Path, gamever: str) ->
     """Mirror ``repo_root/bin/<GAMEVER>`` into accepted bin for ``gamever``.
 
     The source is the gamever directory the caller actually consumed. Recoverable
-    IDA and BinSync state is excluded so mutable analysis state never leaks into
+    Mutable analysis state is excluded so mutable analysis state never leaks into
     the accepted tree. Returns a summary with ``synced`` true when the accepted
     tree changed; ``hash`` is the exact configured source inventory digest.
     """
