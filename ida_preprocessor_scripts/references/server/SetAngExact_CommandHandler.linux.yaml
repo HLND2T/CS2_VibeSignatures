@@ -1,0 +1,245 @@
+func_name: SetAngExact_CommandHandler
+func_va: '0x189f0a0'
+disasm_code: |-
+  .text:000000000189F0A0                 lea     rax, qword_2A06CF0
+  .text:000000000189F0A7                 mov     rax, [rax+8]
+  .text:000000000189F0AB                 cmp     byte ptr [rax+58h], 0
+  .text:000000000189F0AF                 jnz     short loc_189F0B8
+  .text:000000000189F0B1                 retn
+  .text:000000000189F0B8                 push    rbp
+  .text:000000000189F0B9                 mov     rbp, rsp
+  .text:000000000189F0BC                 push    r13
+  .text:000000000189F0BE                 push    r12
+  .text:000000000189F0C0                 push    rbx
+  .text:000000000189F0C1                 mov     rbx, rsi
+  .text:000000000189F0C4                 sub     rsp, 58h
+  .text:000000000189F0C8                 call    sub_180FE40
+  .text:000000000189F0CD                 mov     r12, rax
+  .text:000000000189F0D0                 test    rax, rax
+  .text:000000000189F0D3                 jz      loc_189F17D
+  .text:000000000189F0D9                 cmp     dword ptr [rbx+438h], 2
+  .text:000000000189F0E0                 jle     loc_189F238
+  .text:000000000189F0E6                 mov     rdi, rax
+  .text:000000000189F0E9                 call    sub_D52D80
+  .text:000000000189F0EE                 cmp     dword ptr [rbx+438h], 1
+  .text:000000000189F0F5                 lea     rdi, haystack
+  .text:000000000189F0FC                 movss   xmm1, dword ptr [rax+8]
+  .text:000000000189F101                 movd    r13d, xmm1
+  .text:000000000189F106                 jle     short loc_189F113
+  .text:000000000189F108                 mov     rax, [rbx+440h]
+  .text:000000000189F10F                 ; _QWORD
+  .text:000000000189F10F                 mov     rdi, [rax+8]; _QWORD
+  .text:000000000189F113                 call    _V_atofloat32
+  .text:000000000189F118                 cmp     dword ptr [rbx+438h], 2
+  .text:000000000189F11F                 lea     rdi, haystack
+  .text:000000000189F126                 movss   dword ptr [rbp-70h], xmm0
+  .text:000000000189F12B                 jle     short loc_189F138
+  .text:000000000189F12D                 mov     rax, [rbx+440h]
+  .text:000000000189F134                 ; _QWORD
+  .text:000000000189F134                 mov     rdi, [rax+10h]; _QWORD
+  .text:000000000189F138                 call    _V_atofloat32
+  .text:000000000189F13D                 mov     eax, [rbx+438h]
+  .text:000000000189F143                 movss   dword ptr [rbp-6Ch], xmm0
+  .text:000000000189F148                 cmp     eax, 4
+  .text:000000000189F14B                 jz      loc_189F270
+  .text:000000000189F151                 mov     [rbp-68h], r13d
+  .text:000000000189F155                 cmp     eax, 4
+  .text:000000000189F158                 jg      short loc_189F190
+  .text:000000000189F15A                 mov     rax, [r12]
+  .text:000000000189F15E                 lea     rbx, [rbp-70h]
+  .text:000000000189F162                 xor     esi, esi
+  .text:000000000189F164                 mov     rdi, r12
+  .text:000000000189F167                 xor     ecx, ecx
+  .text:000000000189F169                 mov     rdx, rbx
+  .text:000000000189F16C                 call    qword ptr [rax+520h]
+  .text:000000000189F172                 mov     rsi, rbx
+  .text:000000000189F175                 mov     rdi, r12
+  .text:000000000189F178                 call    CBasePlayerPawn_SnapViewAngles
+  .text:000000000189F17D                 lea     rsp, [rbp-18h]
+  .text:000000000189F181                 pop     rbx
+  .text:000000000189F182                 pop     r12
+  .text:000000000189F184                 pop     r13
+  .text:000000000189F186                 pop     rbp
+  .text:000000000189F187                 retn
+  .text:000000000189F190                 mov     rax, [rbx+440h]
+  .text:000000000189F197                 ; _QWORD
+  .text:000000000189F197                 mov     rdi, [rax+20h]; _QWORD
+  .text:000000000189F19B                 call    _V_atoi
+  .text:000000000189F1A0                 mov     ebx, eax
+  .text:000000000189F1A2                 test    eax, eax
+  .text:000000000189F1A4                 jle     short loc_189F15A
+  .text:000000000189F1A6                 lea     r13, [rbp-60h]
+  .text:000000000189F1AA                 xor     edx, edx
+  .text:000000000189F1AC                 xor     esi, esi
+  .text:000000000189F1AE                 mov     rdi, r13
+  .text:000000000189F1B1                 call    sub_124FF90
+  .text:000000000189F1B6                 lea     rax, off_26615D0
+  .text:000000000189F1BD                 or      dword ptr [rbp-50h], 2
+  .text:000000000189F1C1                 mov     [rbp-60h], rax
+  .text:000000000189F1C5                 mov     rax, [rbp-40h]
+  .text:000000000189F1C9                 test    rax, rax
+  .text:000000000189F1CC                 jz      loc_189F290
+  .text:000000000189F1D2                 mov     rdx, [rbp-70h]
+  .text:000000000189F1D6                 lea     rdi, [r12+0F78h]
+  .text:000000000189F1DE                 movss   xmm0, dword ptr [rbp-68h]
+  .text:000000000189F1E3                 or      dword ptr [rax+10h], 7
+  .text:000000000189F1E7                 movss   dword ptr [rax+20h], xmm0
+  .text:000000000189F1EC                 mov     [rax+18h], rdx
+  .text:000000000189F1F0                 lea     rax, off_27A9AA8
+  .text:000000000189F1F7                 mov     rax, [rax]
+  .text:000000000189F1FA                 add     ebx, [rax+44h]
+  .text:000000000189F1FD                 call    sub_B0F770
+  .text:000000000189F202                 mov     rsi, rax
+  .text:000000000189F205                 test    rax, rax
+  .text:000000000189F208                 jz      short loc_189F20D
+  .text:000000000189F20A                 mov     rsi, [rax]
+  .text:000000000189F20D                 mov     rdi, r13
+  .text:000000000189F210                 xor     ecx, ecx
+  .text:000000000189F212                 mov     edx, ebx
+  .text:000000000189F214                 call    sub_188B090
+  .text:000000000189F219                 lea     rax, off_2661530
+  .text:000000000189F220                 mov     rdi, r13
+  .text:000000000189F223                 mov     [rbp-60h], rax
+  .text:000000000189F227                 call    sub_1274AE0
+  .text:000000000189F22C                 jmp     loc_189F17D
+  .text:000000000189F238                 sub     rsp, 8
+  .text:000000000189F23C                 mov     rdi, rax
+  .text:000000000189F23F                 xor     r9d, r9d
+  .text:000000000189F242                 push    0
+  .text:000000000189F244                 lea     rdx, aUsageSetangExa; "Usage:  setang_exact pitch yaw <roll op"...
+  .text:000000000189F24B                 xor     r8d, r8d
+  .text:000000000189F24E                 xor     ecx, ecx
+  .text:000000000189F250                 mov     esi, 2
+  .text:000000000189F255                 call    ClientPrint
+  .text:000000000189F25A                 pop     rax
+  .text:000000000189F25B                 pop     rdx
+  .text:000000000189F25C                 lea     rsp, [rbp-18h]
+  .text:000000000189F260                 pop     rbx
+  .text:000000000189F261                 pop     r12
+  .text:000000000189F263                 pop     r13
+  .text:000000000189F265                 pop     rbp
+  .text:000000000189F266                 retn
+  .text:000000000189F270                 mov     rax, [rbx+440h]
+  .text:000000000189F277                 ; _QWORD
+  .text:000000000189F277                 mov     rdi, [rax+18h]; _QWORD
+  .text:000000000189F27B                 call    _V_atofloat32
+  .text:000000000189F280                 mov     eax, [rbx+438h]
+  .text:000000000189F286                 movd    r13d, xmm0
+  .text:000000000189F28B                 jmp     loc_189F151
+  .text:000000000189F290                 mov     rax, [rbp-58h]
+  .text:000000000189F294                 mov     rdi, rax
+  .text:000000000189F297                 and     rdi, 0FFFFFFFFFFFFFFFCh
+  .text:000000000189F29B                 test    al, 1
+  .text:000000000189F29D                 jnz     short loc_189F2AD
+  .text:000000000189F29F                 call    sub_124EB20
+  .text:000000000189F2A4                 mov     [rbp-40h], rax
+  .text:000000000189F2A8                 jmp     loc_189F1D2
+  .text:000000000189F2AD                 mov     rdi, [rdi]
+  .text:000000000189F2B0                 jmp     short loc_189F29F
+procedure: |-
+  __int64 __fastcall SetAngExact_CommandHandler(__m128i a1, __int64 a2, __int64 a3)
+  {
+    __int64 result; // rax
+    __int64 v4; // r12
+    const bool *v5; // rdi
+    int v6; // r13d
+    double v7; // xmm0_8
+    bool v8; // cc
+    const bool *v9; // rdi
+    double v10; // xmm0_8
+    int v11; // eax
+    int v12; // ebx
+    __int64 v13; // rax
+    __int64 v14; // rdx
+    int v15; // xmm0_4
+    unsigned int v16; // ebx
+    _QWORD *v17; // rax
+    _QWORD *v18; // rsi
+    _QWORD *v19; // rdi
+    __int64 v20; // [rsp-88h] [rbp-88h]
+    __int64 v21; // [rsp-78h] [rbp-78h] BYREF
+    int v22; // [rsp-70h] [rbp-70h]
+    __int64 (__fastcall **v23)(); // [rsp-68h] [rbp-68h] BYREF
+    __int64 v24; // [rsp-60h] [rbp-60h]
+    int v25; // [rsp-58h] [rbp-58h]
+    __int64 v26; // [rsp-48h] [rbp-48h]
+
+    result = qword_2A06CF8;
+    if ( *(_BYTE *)(qword_2A06CF8 + 88) )
+    {
+      result = sub_180FE40();
+      v4 = result;
+      if ( result )
+      {
+        if ( *(int *)(a3 + 1080) <= 2 )
+        {
+          ClientPrint(
+            result,
+            2u,
+            (__int64)"Usage:  setang_exact pitch yaw <roll optional> <prediction sync ticks optional>\n",
+            0,
+            0,
+            0,
+            0);
+          return v20;
+        }
+        else
+        {
+          v5 = &haystack;
+          v6 = _mm_cvtsi128_si32((__m128i)*(unsigned int *)(sub_D52D80(result) + 8));
+          if ( *(int *)(a3 + 1080) > 1 )
+            v5 = *(const bool **)(*(_QWORD *)(a3 + 1088) + 8LL);
+          v7 = V_atofloat32(v5);
+          v8 = *(_DWORD *)(a3 + 1080) <= 2;
+          v9 = &haystack;
+          LODWORD(v21) = LODWORD(v7);
+          if ( !v8 )
+            v9 = *(const bool **)(*(_QWORD *)(a3 + 1088) + 16LL);
+          v10 = V_atofloat32(v9);
+          v11 = *(_DWORD *)(a3 + 1080);
+          HIDWORD(v21) = LODWORD(v10);
+          if ( v11 == 4 )
+          {
+            *(double *)a1.m128i_i64 = V_atofloat32(*(_QWORD *)(*(_QWORD *)(a3 + 1088) + 24LL));
+            v11 = *(_DWORD *)(a3 + 1080);
+            v6 = _mm_cvtsi128_si32(a1);
+          }
+          v22 = v6;
+          if ( v11 <= 4 || (v12 = V_atoi(*(_QWORD *)(*(_QWORD *)(a3 + 1088) + 32LL)), v12 <= 0) )
+          {
+            (*(void (__fastcall **)(__int64, _QWORD, __int64 *, _QWORD))(*(_QWORD *)v4 + 1312LL))(v4, 0, &v21, 0);
+            return CBasePlayerPawn_SnapViewAngles(v4, &v21);
+          }
+          else
+          {
+            sub_124FF90(&v23, 0, 0);
+            v25 |= 2u;
+            v23 = &off_26615D0;
+            v13 = v26;
+            if ( !v26 )
+            {
+              v19 = (_QWORD *)(v24 & 0xFFFFFFFFFFFFFFFCLL);
+              if ( (v24 & 1) != 0 )
+                v19 = (_QWORD *)*v19;
+              v13 = sub_124EB20(v19);
+              v26 = v13;
+            }
+            v14 = v21;
+            v15 = v22;
+            *(_DWORD *)(v13 + 16) |= 7u;
+            *(_DWORD *)(v13 + 32) = v15;
+            *(_QWORD *)(v13 + 24) = v14;
+            v16 = *((_DWORD *)off_27A9AA8 + 17) + v12;
+            v17 = (_QWORD *)sub_B0F770(v4 + 3960, 0);
+            v18 = v17;
+            if ( v17 )
+              v18 = (_QWORD *)*v17;
+            sub_188B090(&v23, v18, v16, 0);
+            v23 = &off_2661530;
+            return sub_1274AE0(&v23);
+          }
+        }
+      }
+    }
+    return result;
+  }
