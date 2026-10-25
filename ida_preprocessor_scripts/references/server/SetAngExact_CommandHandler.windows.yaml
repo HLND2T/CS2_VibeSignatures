@@ -1,0 +1,227 @@
+func_name: SetAngExact_CommandHandler
+func_va: '0x180d25990'
+disasm_code: |-
+  .text:0000000180D25990                 push    rbx
+  .text:0000000180D25992                 sub     rsp, 0A0h
+  .text:0000000180D25999                 mov     rax, cs:qword_1821BD748
+  .text:0000000180D259A0                 mov     rbx, rdx
+  .text:0000000180D259A3                 cmp     byte ptr [rax+58h], 0
+  .text:0000000180D259A7                 jz      loc_180D25BBE
+  .text:0000000180D259AD                 mov     [rsp+0A8h+arg_10], rdi
+  .text:0000000180D259B5                 call    sub_180CC1C30
+  .text:0000000180D259BA                 mov     rdi, rax
+  .text:0000000180D259BD                 test    rax, rax
+  .text:0000000180D259C0                 jz      loc_180D25BB6
+  .text:0000000180D259C6                 cmp     dword ptr [rbx+438h], 3
+  .text:0000000180D259CD                 mov     rcx, rax
+  .text:0000000180D259D0                 jge     short loc_180D25A08
+  .text:0000000180D259D2                 xor     eax, eax
+  .text:0000000180D259D4                 lea     r8, aUsageSetangExa; "Usage:  setang_exact pitch yaw <roll op"...
+  .text:0000000180D259DB                 mov     [rsp+0A8h+var_78], rax
+  .text:0000000180D259E0                 xor     r9d, r9d
+  .text:0000000180D259E3                 mov     [rsp+0A8h+var_80], rax
+  .text:0000000180D259E8                 mov     edx, 2
+  .text:0000000180D259ED                 mov     [rsp+0A8h+var_88], rax
+  .text:0000000180D259F2                 call    ClientPrint
+  .text:0000000180D259F7                 mov     rdi, [rsp+0A8h+arg_10]
+  .text:0000000180D259FF                 add     rsp, 0A0h
+  .text:0000000180D25A06                 pop     rbx
+  .text:0000000180D25A07                 retn
+  .text:0000000180D25A08                 mov     [rsp+0A8h+arg_0], rbp
+  .text:0000000180D25A10                 mov     [rsp+0A8h+arg_8], rsi
+  .text:0000000180D25A18                 call    sub_1803DD2B0
+  .text:0000000180D25A1D                 cmp     dword ptr [rbx+438h], 1
+  .text:0000000180D25A24                 lea     rsi, byte_181781193
+  .text:0000000180D25A2B                 mov     ebp, [rax+8]
+  .text:0000000180D25A2E                 jle     short loc_180D25A3D
+  .text:0000000180D25A30                 mov     rax, [rbx+440h]
+  .text:0000000180D25A37                 mov     rcx, [rax+8]
+  .text:0000000180D25A3B                 jmp     short loc_180D25A40
+  .text:0000000180D25A3D                 mov     rcx, rsi
+  .text:0000000180D25A40                 call    cs:V_atofloat32
+  .text:0000000180D25A46                 cmp     dword ptr [rbx+438h], 2
+  .text:0000000180D25A4D                 movss   [rsp+0A8h+var_68], xmm0
+  .text:0000000180D25A53                 jle     short loc_180D25A60
+  .text:0000000180D25A55                 mov     rax, [rbx+440h]
+  .text:0000000180D25A5C                 mov     rsi, [rax+10h]
+  .text:0000000180D25A60                 mov     rcx, rsi
+  .text:0000000180D25A63                 call    cs:V_atofloat32
+  .text:0000000180D25A69                 cmp     dword ptr [rbx+438h], 4
+  .text:0000000180D25A70                 mov     rsi, [rsp+0A8h+arg_8]
+  .text:0000000180D25A78                 movss   [rsp+0A8h+var_64], xmm0
+  .text:0000000180D25A7E                 jnz     short loc_180D25A99
+  .text:0000000180D25A80                 mov     rax, [rbx+440h]
+  .text:0000000180D25A87                 mov     rcx, [rax+18h]
+  .text:0000000180D25A8B                 call    cs:V_atofloat32
+  .text:0000000180D25A91                 movss   [rsp+0A8h+var_60], xmm0
+  .text:0000000180D25A97                 jmp     short loc_180D25A9D
+  .text:0000000180D25A99                 mov     [rsp+0A8h+var_60], ebp
+  .text:0000000180D25A9D                 cmp     dword ptr [rbx+438h], 5
+  .text:0000000180D25AA4                 mov     rbp, [rsp+0A8h+arg_0]
+  .text:0000000180D25AAC                 jl      loc_180D25B93
+  .text:0000000180D25AB2                 mov     rax, [rbx+440h]
+  .text:0000000180D25AB9                 mov     rcx, [rax+20h]
+  .text:0000000180D25ABD                 call    cs:V_atoi
+  .text:0000000180D25AC3                 mov     ebx, eax
+  .text:0000000180D25AC5                 test    eax, eax
+  .text:0000000180D25AC7                 jle     loc_180D25B93
+  .text:0000000180D25ACD                 xor     r8d, r8d
+  .text:0000000180D25AD0                 lea     rcx, [rsp+0A8h+var_48]
+  .text:0000000180D25AD5                 xor     edx, edx
+  .text:0000000180D25AD7                 call    sub_18082D8B0
+  .text:0000000180D25ADC                 or      [rsp+0A8h+var_38], 2
+  .text:0000000180D25AE1                 lea     rax, ??_7CPredictionEvent_Teleport_t@@6B@; const CPredictionEvent_Teleport_t::`vftable'
+  .text:0000000180D25AE8                 mov     [rsp+0A8h+var_48], rax
+  .text:0000000180D25AED                 mov     rax, [rsp+0A8h+var_28]
+  .text:0000000180D25AF5                 test    rax, rax
+  .text:0000000180D25AF8                 jnz     short loc_180D25B25
+  .text:0000000180D25AFA                 test    byte ptr [rsp+0A8h+var_40], 1
+  .text:0000000180D25AFF                 jz      short loc_180D25B0F
+  .text:0000000180D25B01                 mov     rax, [rsp+0A8h+var_40]
+  .text:0000000180D25B06                 and     rax, 0FFFFFFFFFFFFFFFCh
+  .text:0000000180D25B0A                 mov     rcx, [rax]
+  .text:0000000180D25B0D                 jmp     short loc_180D25B18
+  .text:0000000180D25B0F                 mov     rcx, [rsp+0A8h+var_40]
+  .text:0000000180D25B14                 and     rcx, 0FFFFFFFFFFFFFFFCh
+  .text:0000000180D25B18                 call    sub_1808297F0
+  .text:0000000180D25B1D                 mov     [rsp+0A8h+var_28], rax
+  .text:0000000180D25B25                 movss   xmm0, [rsp+0A8h+var_68]
+  .text:0000000180D25B2B                 mov     rcx, rdi
+  .text:0000000180D25B2E                 or      dword ptr [rax+10h], 1
+  .text:0000000180D25B32                 movss   dword ptr [rax+18h], xmm0
+  .text:0000000180D25B37                 movss   xmm1, [rsp+0A8h+var_64]
+  .text:0000000180D25B3D                 or      dword ptr [rax+10h], 2
+  .text:0000000180D25B41                 movss   dword ptr [rax+1Ch], xmm1
+  .text:0000000180D25B46                 movss   xmm0, [rsp+0A8h+var_60]
+  .text:0000000180D25B4C                 or      dword ptr [rax+10h], 4
+  .text:0000000180D25B50                 movss   dword ptr [rax+20h], xmm0
+  .text:0000000180D25B55                 call    sub_1801C7A40
+  .text:0000000180D25B5A                 mov     rcx, cs:off_181E368E0
+  .text:0000000180D25B61                 xor     r9d, r9d
+  .text:0000000180D25B64                 mov     rdx, rax
+  .text:0000000180D25B67                 mov     r8d, [rcx+44h]
+  .text:0000000180D25B6B                 lea     rcx, [rsp+0A8h+var_48]
+  .text:0000000180D25B70                 add     r8d, ebx
+  .text:0000000180D25B73                 call    sub_180CE14F0
+  .text:0000000180D25B78                 lea     rcx, [rsp+0A8h+var_48]
+  .text:0000000180D25B7D                 call    sub_18082DE30
+  .text:0000000180D25B82                 mov     rdi, [rsp+0A8h+arg_10]
+  .text:0000000180D25B8A                 add     rsp, 0A0h
+  .text:0000000180D25B91                 pop     rbx
+  .text:0000000180D25B92                 retn
+  .text:0000000180D25B93                 mov     rax, [rdi]
+  .text:0000000180D25B96                 lea     r8, [rsp+0A8h+var_68]
+  .text:0000000180D25B9B                 xor     r9d, r9d
+  .text:0000000180D25B9E                 xor     edx, edx
+  .text:0000000180D25BA0                 mov     rcx, rdi
+  .text:0000000180D25BA3                 call    qword ptr [rax+528h]
+  .text:0000000180D25BA9                 lea     rdx, [rsp+0A8h+var_68]
+  .text:0000000180D25BAE                 mov     rcx, rdi
+  .text:0000000180D25BB1                 call    CBasePlayerPawn_SnapViewAngles
+  .text:0000000180D25BB6                 mov     rdi, [rsp+0A8h+arg_10]
+  .text:0000000180D25BBE                 add     rsp, 0A0h
+  .text:0000000180D25BC5                 pop     rbx
+  .text:0000000180D25BC6                 retn
+procedure: |-
+  __int64 __fastcall SetAngExact_CommandHandler(__int64 a1, __int64 a2)
+  {
+    __int64 result; // rax
+    __int64 v4; // rdi
+    char *v5; // rsi
+    float v6; // ebp
+    char *v7; // rcx
+    float v8; // xmm0_4
+    bool v9; // cc
+    float v10; // xmm0_4
+    bool v11; // zf
+    int v12; // ebx
+    _DWORD *v13; // rax
+    unsigned __int64 v14; // rcx
+    float v15; // xmm0_4
+    float v16; // xmm1_4
+    float v17; // xmm0_4
+    __int64 v18; // rax
+    float v19; // [rsp+40h] [rbp-68h] BYREF
+    float v20; // [rsp+44h] [rbp-64h]
+    float v21; // [rsp+48h] [rbp-60h]
+    void **v22; // [rsp+60h] [rbp-48h] BYREF
+    __int64 v23; // [rsp+68h] [rbp-40h]
+    int v24; // [rsp+70h] [rbp-38h]
+    _DWORD *v25; // [rsp+80h] [rbp-28h]
+
+    result = qword_1821BD748;
+    if ( *(_BYTE *)(qword_1821BD748 + 88) )
+    {
+      result = sub_180CC1C30();
+      v4 = result;
+      if ( result )
+      {
+        if ( *(int *)(a2 + 1080) >= 3 )
+        {
+          v5 = byte_181781193;
+          v6 = *(float *)(sub_1803DD2B0(result) + 8);
+          if ( *(int *)(a2 + 1080) <= 1 )
+            v7 = byte_181781193;
+          else
+            v7 = *(char **)(*(_QWORD *)(a2 + 1088) + 8LL);
+          v8 = V_atofloat32(v7);
+          v9 = *(_DWORD *)(a2 + 1080) <= 2;
+          v19 = v8;
+          if ( !v9 )
+            v5 = *(char **)(*(_QWORD *)(a2 + 1088) + 16LL);
+          v10 = V_atofloat32(v5);
+          v11 = *(_DWORD *)(a2 + 1080) == 4;
+          v20 = v10;
+          if ( v11 )
+            v21 = V_atofloat32(*(_QWORD *)(*(_QWORD *)(a2 + 1088) + 24LL));
+          else
+            v21 = v6;
+          if ( *(int *)(a2 + 1080) < 5 || (v12 = V_atoi(*(_QWORD *)(*(_QWORD *)(a2 + 1088) + 32LL)), v12 <= 0) )
+          {
+            (*(void (__fastcall **)(__int64, _QWORD, float *, _QWORD))(*(_QWORD *)v4 + 1320LL))(v4, 0, &v19, 0);
+            return CBasePlayerPawn_SnapViewAngles(v4, &v19);
+          }
+          else
+          {
+            sub_18082D8B0(&v22, 0, 0);
+            v24 |= 2u;
+            v22 = &CPredictionEvent_Teleport_t::`vftable';
+            v13 = v25;
+            if ( !v25 )
+            {
+              if ( (v23 & 1) != 0 )
+                v14 = *(_QWORD *)(v23 & 0xFFFFFFFFFFFFFFFCuLL);
+              else
+                v14 = v23 & 0xFFFFFFFFFFFFFFFCuLL;
+              v13 = (_DWORD *)sub_1808297F0(v14);
+              v25 = v13;
+            }
+            v15 = v19;
+            v13[4] |= 1u;
+            *((float *)v13 + 6) = v15;
+            v16 = v20;
+            v13[4] |= 2u;
+            *((float *)v13 + 7) = v16;
+            v17 = v21;
+            v13[4] |= 4u;
+            *((float *)v13 + 8) = v17;
+            v18 = sub_1801C7A40(v4);
+            sub_180CE14F0(&v22, v18, (unsigned int)(v12 + *((_DWORD *)off_181E368E0 + 17)), 0);
+            return sub_18082DE30(&v22);
+          }
+        }
+        else
+        {
+          return ClientPrint(
+                   result,
+                   2,
+                   (int)"Usage:  setang_exact pitch yaw <roll optional> <prediction sync ticks optional>\n",
+                   0,
+                   0,
+                   0,
+                   0);
+        }
+      }
+    }
+    return result;
+  }

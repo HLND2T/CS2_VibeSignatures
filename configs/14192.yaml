@@ -7894,11 +7894,29 @@ modules:
       - name: find-FilterWorkshopCommands
         expected_output:
           - FilterWorkshopCommands.{platform}.yaml
+        # IsCommandWhitelisted is inlined in 14192; no standalone detour target exists.
       - name: find-ICommandLine_HasParmUnrestricted
         expected_output:
           - ICommandLine_HasParmUnrestricted.{platform}.yaml
         expected_input:
           - FilterWorkshopCommands.{platform}.yaml
+      - name: find-SetAngExact_CommandHandler
+        expected_output:
+          - SetAngExact_CommandHandler.{platform}.yaml
+      - name: find-CBasePlayerPawn_SnapViewAngles
+        expected_output:
+          - CBasePlayerPawn_SnapViewAngles.{platform}.yaml
+        expected_input:
+          - SetAngExact_CommandHandler.{platform}.yaml
+      - name: find-CEnvBeam_BeamUpdateVars
+        expected_output:
+          - CEnvBeam_BeamUpdateVars.{platform}.yaml
+      - name: find-CBeam_SetAbsStartPos-AND-CBeam_SetAbsEndPos
+        expected_output:
+          - CBeam_SetAbsStartPos.{platform}.yaml
+          - CBeam_SetAbsEndPos.{platform}.yaml
+        expected_input:
+          - CEnvBeam_BeamUpdateVars.{platform}.yaml
       - name: find-CSource2Server_vtable
         expected_output:
           - CSource2Server_vtable.{platform}.yaml
@@ -11385,6 +11403,26 @@ modules:
         alias: [ICommandLine::ParmValue_Float]
       - name: FilterWorkshopCommands
         category: func
+      - name: SetAngExact_CommandHandler
+        category: func
+      - name: CBasePlayerPawn_SnapViewAngles
+        category: func
+        alias:
+          - CBasePlayerPawn::SnapViewAngles
+      - name: CEnvBeam_BeamUpdateVars
+        category: func
+        alias:
+          - CEnvBeam::BeamUpdateVars
+      - name: CBeam_SetAbsStartPos
+        category: func
+        alias:
+          - CBeam::SetAbsStartPos
+          - SetBeamOrigin
+      - name: CBeam_SetAbsEndPos
+        category: func
+        alias:
+          - CBeam::SetAbsEndPos
+          - SetBeamEndPos
       - name: ICommandLine_HasParmUnrestricted
         category: vfunc
         alias:
@@ -16175,6 +16213,18 @@ modules:
         category: vfunc
         alias:
           - CSchemaType::SpewDescription
+  - name: worldrenderer
+    path_windows: game/bin/win64/worldrenderer.dll
+    path_linux: game/bin/linuxsteamrt64/libworldrenderer.so
+    skills:
+      - name: find-CWorldRendererMgr_CreateWorld_Internal
+        expected_output:
+          - CWorldRendererMgr_CreateWorld_Internal.{platform}.yaml
+    symbols:
+      - name: CWorldRendererMgr_CreateWorld_Internal
+        category: func
+        alias:
+          - CWorldRendererMgr::CreateWorld_Internal
 cpp_tests:
   - name: CEntityInstance_MSVC
     symbol: CEntityInstance
