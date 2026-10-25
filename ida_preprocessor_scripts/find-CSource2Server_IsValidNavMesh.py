@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Locate the server nav-mesh availability query used by CounterStrikeSharp.
 
-CSS calls this CSource2Server vfunc ``CCSNavArea_IsValidNavMesh``. Find its
-boolean null check of g_pNavMesh inside the server vtable, without fixing a
-vtable index or borrowing the padding bytes from an upstream signature.
+CSS calls CSource2Server::GetNavMeshData ``CCSNavArea_IsValidNavMesh``. Find
+its boolean null check of g_pNavMesh inside the server vtable. Preserve the
+artifact key while emitting the SDK method name for ABI reference validation.
 """
 
 import os
@@ -14,6 +14,10 @@ from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = ["CSource2Server_IsValidNavMesh"]
 FUNC_VTABLE_RELATIONS = [("CSource2Server_IsValidNavMesh", "CSource2Server_vtable")]
+
+OUTPUT_NAME_MAP = {
+    "CSource2Server_IsValidNavMesh": "CSource2Server_GetNavMeshData",
+}
 
 GENERATE_YAML_DESIRED_FIELDS = [
     (
@@ -81,5 +85,6 @@ async def preprocess_skill(
         func_xrefs=func_xrefs,
         func_vtable_relations=FUNC_VTABLE_RELATIONS,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
+        output_name_map=OUTPUT_NAME_MAP,
         debug=debug,
     )
