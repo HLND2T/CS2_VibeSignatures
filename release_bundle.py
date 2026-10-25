@@ -16,7 +16,6 @@ from pathlib import Path, PurePosixPath
 
 from binary_lock import BinaryLockError, load_binary_lock_from_revision
 from bin_artifact_contract import ArtifactContractError, build_game_artifact_inventory
-from binsync_candidate import BinSyncCandidateError, verify_candidate as verify_binsync_candidate
 from ci_cpp_validation import export_inputs, validate_evidence, validate_inputs
 from gamedata_candidate import (
     GamedataCandidateError,
@@ -36,7 +35,7 @@ from gamesymbol_snapshot_lib.config import SnapshotConfigError, load_contract
 from gamesymbol_snapshot_lib.errors import SnapshotMismatchError
 from gamesymbol_snapshot_lib.operations import collect_actual_files, load_snapshot_for_contract
 from release_artifact_rebuild import (
-    BINSYNC_EVIDENCE_RULE_VERSION,
+    IDA_EVIDENCE_RULE_VERSION,
     IDB_ARCHIVE_RULE_VERSION,
     TRACKED_BINDING_MODE,
     ReleaseArtifactRebuildError,
@@ -60,7 +59,8 @@ from release_workflow_lib.hashing import (
 from release_workflow_lib.sevenzip import listed_archive_files
 from release_workflow_lib.sdk import SourceSdk, SourceSdkError, source_sdk
 
-BUNDLE_SCHEMA_VERSION = 2
+BUNDLE_SCHEMA_VERSION = 3
+SUPPORTED_MANIFEST_SCHEMA_VERSIONS = (2, BUNDLE_SCHEMA_VERSION)
 CPP_SDK_REF = "source-gitlink"
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
@@ -337,23 +337,6 @@ def _producer_contract(repo_root: Path, source_sha: str) -> dict:
     return {"files": files, "digest": _digest("source2-producer-contract:v1", files)}
 
 
-def _binsync_target_state(manifest: dict) -> dict:
-    repositories = [
-        {
-            "repository_id": repository["repository_id"],
-            "owner": repository["owner"],
-            "name": repository["name"],
-            "refs": [{"ref": item["ref"], "commit": item["candidate_commit"]} for item in repository["refs"]],
-        }
-        for repository in manifest["repositories"]
-    ]
-    return {
-        "candidate_publication_digest": manifest["publication_digest"],
-        "repositories": repositories,
-        "target_state_digest": _digest("binsync-intended-remote-state:v1", repositories),
-    }
-
-
 def _validate_snapshot(snapshot: Path, contract) -> dict:
     try:
         document, _raw = load_snapshot_for_contract(snapshot, contract, require_canonical=True)
@@ -379,7 +362,6 @@ def build_release_bundle(
     gamedata_candidate_root: str | Path,
     gamedata_session: str | Path,
     cpp_validation_log: str | Path | None,
-    binsync_candidate_root: str | Path | None,
     ida_runtime_identity: str | None,
     warm_idb_generation: str | None,
     warm_idb_cache_key: str | None,
@@ -402,19 +384,14 @@ def build_release_bundle(
         raise ReleaseBundleError(
             "Release bundle requires exactly one of rebuild verification or tracked artifact binding"
         )
-    # A tracked binding publishes without running IDA at all: nothing is analyzed,
-    # so there is no warm IDB generation to name and no BinSync candidate to export.
-    # Binding both directions keeps a rebuilt release from silently dropping that
-    # evidence just by omitting the arguments.
-    ida_bound_inputs = (binsync_candidate_root, ida_runtime_identity, warm_idb_generation, warm_idb_cache_key)
+    # Only rebuilt releases may claim IDA runtime and warm IDB evidence.
+    ida_bound_inputs = (ida_runtime_identity, warm_idb_generation, warm_idb_cache_key)
     if tracked_binding is not None:
         if any(value not in (None, "") for value in ida_bound_inputs):
-            raise ReleaseBundleError(
-                "Tracked source-owned releases must omit the BinSync candidate and warm IDB identity"
-            )
-        binsync_candidate_root = ida_runtime_identity = warm_idb_generation = warm_idb_cache_key = None
+            raise ReleaseBundleError("Tracked source-owned releases must omit warm IDB identity")
+        ida_runtime_identity = warm_idb_generation = warm_idb_cache_key = None
     elif any(value in (None, "") for value in ida_bound_inputs):
-        raise ReleaseBundleError("Rebuilt releases require the BinSync candidate and warm IDB identity")
+        raise ReleaseBundleError("Rebuilt releases require warm IDB identity")
     try:
         preparation_document = load_release_rebuild_preparation(preparation)
         binding = (
@@ -485,28 +462,6 @@ def build_release_bundle(
         cpp_validation_log = Path(cpp_validation_log).resolve()
         if not cpp_validation_log.is_file() or cpp_validation_log.stat().st_size == 0:
             raise ReleaseBundleError("C++ validation evidence is missing")
-
-    binsync_manifest = None
-    if binsync_candidate_root is not None:
-        binsync_candidate_root = Path(binsync_candidate_root).resolve()
-        try:
-            binsync_verified = verify_binsync_candidate(
-                candidate_root=binsync_candidate_root,
-                repo_root=repo_root,
-                expected_source_sha=source_sha,
-                expected_game_version=game_version,
-                expected_release_version=release_version,
-                expected_build_id=build_id,
-                expected_ida_runtime_identity=ida_runtime_identity,
-                expected_actions_artifact_name=load_json_object(binsync_candidate_root / "manifest.json")[
-                    "actions_artifact_name"
-                ],
-            )
-            binsync_manifest = load_json_object(binsync_candidate_root / "manifest.json")
-        except (BinSyncCandidateError, ReleaseWorkflowError) as exc:
-            raise ReleaseBundleError(str(exc)) from exc
-        if binsync_verified["publication_digest"] != binsync_manifest["publication_digest"]:
-            raise ReleaseBundleError("BinSync candidate verification digest mismatch")
 
     if (
         cpp_sdk_ref != CPP_SDK_REF
@@ -613,7 +568,6 @@ def build_release_bundle(
             "manifest_sha256": gamedata_evidence["gamedata_manifest_sha256"],
             "generator_contract_sha256": gamedata_evidence["generator_contract_sha256"],
         },
-        "binsync": None if binsync_manifest is None else _binsync_target_state(binsync_manifest),
         "archives": {
             f"archives/gamedata-{game_version}.7z": {
                 "files": gamedata_archive_inventory,
@@ -811,11 +765,13 @@ def validate_release_manifest(manifest: dict) -> None:
         "metadata",
         "gamedata",
         "cpp_validation_sha256",
-        "binsync",
         "archives",
         "public_assets",
     }
-    if set(manifest) != required or manifest.get("schema_version") != BUNDLE_SCHEMA_VERSION:
+    schema_version = manifest.get("schema_version")
+    if schema_version == 2:
+        required.add("binsync")
+    if set(manifest) != required or schema_version not in SUPPORTED_MANIFEST_SCHEMA_VERSIONS:
         raise ReleaseBundleError("Release manifest has unexpected fields or schema")
     if manifest.get("repository") != ALLOWED_REPOSITORY:
         raise ReleaseBundleError("Release manifest repository is not allowlisted")
@@ -874,26 +830,34 @@ def validate_release_manifest(manifest: dict) -> None:
     binding_rule_version = _declared_binding_rule_version(full_rebuild)
     if binding_rule_version is None:
         raise ReleaseBundleError("Release source binding rule version is invalid")
-    binsync = manifest.get("binsync")
+    legacy_publication = manifest.get("binsync")
     ida_identity = tuple(
         manifest.get(field) for field in ("ida_runtime_identity", "warm_idb_generation", "warm_idb_cache_key")
     )
     # A manifest published before the binding rule existed carries no rule version.
     # It is exempt from this evidence binding only, because the producer that built
     # it never had the choice this rule constrains; every other check still applies.
-    if binding_rule_version >= BINSYNC_EVIDENCE_RULE_VERSION:
+    if schema_version == BUNDLE_SCHEMA_VERSION and binding_rule_version < IDB_ARCHIVE_RULE_VERSION:
+        raise ReleaseBundleError("Release source binding rule version is invalid for the current schema")
+    if binding_rule_version >= IDA_EVIDENCE_RULE_VERSION:
         if binding_mode == TRACKED_BINDING_MODE:
-            # Nothing was analyzed, so claiming a BinSync candidate or a warm IDB
-            # generation here would assert evidence this release never produced.
-            if binsync is not None or any(value is not None for value in ida_identity):
-                raise ReleaseBundleError("Tracked source-owned releases must not claim BinSync or warm IDB identity")
+            if any(value is not None for value in ida_identity):
+                raise ReleaseBundleError("Tracked source-owned releases must not claim warm IDB identity")
+            if schema_version == 2 and legacy_publication is not None:
+                raise ReleaseBundleError("Historical tracked releases must not claim legacy publication identity")
         else:
-            if not isinstance(binsync, dict) or not DIGEST_RE.fullmatch(
-                str(binsync.get("candidate_publication_digest", ""))
-            ):
-                raise ReleaseBundleError("Release BinSync candidate identity is invalid")
             if any(not isinstance(value, str) or not value for value in ida_identity):
                 raise ReleaseBundleError("Release IDA runtime or warm IDB identity is invalid")
+            if schema_version == 2 and (
+                not isinstance(legacy_publication, dict)
+                or not DIGEST_RE.fullmatch(str(legacy_publication.get("candidate_publication_digest", "")))
+            ):
+                raise ReleaseBundleError("Historical Release publication identity is invalid")
+    if legacy_publication is not None and (
+        not isinstance(legacy_publication, dict)
+        or not DIGEST_RE.fullmatch(str(legacy_publication.get("target_state_digest", "")))
+    ):
+        raise ReleaseBundleError("Historical Release publication state is invalid")
     game_version = manifest.get("game_version")
     expected_public_paths = {
         f"gamesymbols/{game_version}.yaml",
@@ -1043,8 +1007,6 @@ def verify_release_bundle(
     expected_release_version: str | None = None,
     expected_build_id: str | None = None,
     expected_actions_artifact_name: str | None = None,
-    expected_binsync_candidate_digest: str | None = None,
-    expected_binsync_target_state_digest: str | None = None,
 ) -> dict:
     bundle_root = Path(bundle_root).resolve()
     repo_root = Path(repo_root).resolve()
@@ -1076,22 +1038,6 @@ def verify_release_bundle(
     for label, (expected, actual) in expected_values.items():
         if expected is not None and expected != actual:
             raise ReleaseBundleError(f"Release bundle {label} mismatch: expected {expected}, got {actual}")
-    binsync = manifest["binsync"]
-    if binsync is None:
-        if expected_binsync_candidate_digest is not None or expected_binsync_target_state_digest is not None:
-            raise ReleaseBundleError("Release bundle publishes no BinSync candidate but BinSync digests were expected")
-    else:
-        if (
-            expected_binsync_candidate_digest is not None
-            and binsync["candidate_publication_digest"] != expected_binsync_candidate_digest
-        ):
-            raise ReleaseBundleError("Release bundle BinSync candidate digest mismatch")
-        if (
-            expected_binsync_target_state_digest is not None
-            and binsync["target_state_digest"] != expected_binsync_target_state_digest
-        ):
-            raise ReleaseBundleError("Release bundle BinSync target-state digest mismatch")
-
     game_version = manifest["game_version"]
     public_assets = manifest["public_assets"]
     if not isinstance(public_assets, list) or len({item.get("name") for item in public_assets}) != len(public_assets):
@@ -1157,11 +1103,6 @@ def verify_release_bundle(
     idb_files = manifest["archives"].get(idb_key, {}).get("files", [])
     if idb_files:
         _verify_idb_archive_inventory(game_version, _binary_records(manifest["binary_inventory"]), idb_files)
-    if binsync is not None and (
-        _digest("binsync-intended-remote-state:v1", binsync["repositories"]) != binsync["target_state_digest"]
-    ):
-        raise ReleaseBundleError("Release BinSync target-state digest mismatch")
-
     checksum_records = [
         *public_assets,
         {
@@ -1186,7 +1127,6 @@ def verify_release_bundle(
         "build_id": manifest["build_id"],
         "manifest_sha256": sha256_file(manifest_path),
         "bundle_inventory_sha256": inventory_sha256(file_inventory(bundle_root)),
-        "binsync_target_state_digest": None if binsync is None else binsync["target_state_digest"],
     }
 
 
@@ -1208,9 +1148,7 @@ def _add_producer_arguments(build: argparse.ArgumentParser, *, require_cpp: bool
     build.add_argument("--gamedata-session", required=True)
     if require_cpp:
         build.add_argument("--cpp-validation-log", required=True)
-    # Omitted together by the tracked (rebuild-free) path, which runs no IDA
-    # analysis and therefore exports no BinSync candidate; required otherwise.
-    build.add_argument("--binsync-candidate-root")
+    # Rebuilt releases require these together; tracked releases omit them.
     build.add_argument("--ida-runtime-identity")
     build.add_argument("--warm-idb-generation")
     build.add_argument("--warm-idb-cache-key")
@@ -1237,8 +1175,6 @@ def _parser() -> argparse.ArgumentParser:
     verify.add_argument("--release-version")
     verify.add_argument("--build-id")
     verify.add_argument("--actions-artifact-name")
-    verify.add_argument("--binsync-candidate-digest")
-    verify.add_argument("--binsync-target-state-digest")
     return parser
 
 
@@ -1262,7 +1198,6 @@ def main(argv=None) -> int:
                 gamedata_candidate_root=args.gamedata_candidate_root,
                 gamedata_session=args.gamedata_session,
                 **cpp_args,
-                binsync_candidate_root=args.binsync_candidate_root,
                 ida_runtime_identity=args.ida_runtime_identity,
                 warm_idb_generation=args.warm_idb_generation,
                 warm_idb_cache_key=args.warm_idb_cache_key,
@@ -1286,8 +1221,6 @@ def main(argv=None) -> int:
                 expected_release_version=args.release_version,
                 expected_build_id=args.build_id,
                 expected_actions_artifact_name=args.actions_artifact_name,
-                expected_binsync_candidate_digest=args.binsync_candidate_digest,
-                expected_binsync_target_state_digest=args.binsync_target_state_digest,
             )
     except (ReleaseBundleError, OSError, ValueError) as exc:
         print(f"Release bundle error: {exc}", file=sys.stderr)

@@ -192,10 +192,7 @@ class NewGameverArtifactTests(unittest.TestCase):
         manifest_path = root.parent / "candidate-manifest.json"
         execution_report = self._execution_report(root, plan, artifact_root)
         gates = {
-            "schema_version": 2,
-            "binsync_mode": "local-only",
-            "remote_refs_before_sha256": "sha256:" + "1" * 64,
-            "remote_refs_after_sha256": "sha256:" + "1" * 64,
+            "schema_version": 3,
             "snapshot_sha256": "sha256:" + "2" * 64,
             "gamedata_sha256": "sha256:" + "3" * 64,
             "cpp_validation_sha256": "sha256:" + "4" * 64,
@@ -420,7 +417,7 @@ class NewGameverArtifactTests(unittest.TestCase):
         ):
             reuse._archive(metadata, "candidate")
 
-    def test_hosted_verifier_rejects_remote_head_drift_and_manifest_tamper(self) -> None:
+    def test_hosted_verifier_rejects_gate_digest_and_manifest_tamper(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / "repo"
             root.mkdir()
@@ -433,9 +430,17 @@ class NewGameverArtifactTests(unittest.TestCase):
                 nga.load_bootstrap_candidate(manifest_path)
 
             drifted_gates = dict(manifest["gates"])
-            drifted_gates["remote_refs_after_sha256"] = "sha256:" + "9" * 64
-            with self.assertRaisesRegex(nga.NewGameverArtifactError, "changed remote BinSync refs"):
+            drifted_gates["snapshot_sha256"] = "invalid"
+            with self.assertRaisesRegex(nga.NewGameverArtifactError, "invalid digest"):
                 nga._load_gate_evidence(drifted_gates)
+
+            retired_gates = {**manifest["gates"], "schema_version": 2}
+            with self.assertRaisesRegex(nga.NewGameverArtifactError, "gate evidence schema is invalid"):
+                nga._load_gate_evidence(retired_gates)
+            retired_candidate = {**manifest, "schema_version": 3}
+            manifest_path.write_bytes(nga._canonical_json_bytes(retired_candidate))
+            with self.assertRaisesRegex(nga.NewGameverArtifactError, "candidate manifest schema is invalid"):
+                nga.load_bootstrap_candidate(manifest_path)
 
             clean_manifest = root.parent / "clean-manifest.json"
             nga.build_bootstrap_candidate(
@@ -518,10 +523,7 @@ class NewGameverArtifactTests(unittest.TestCase):
             execution["execution_sha256"] = f"sha256:{hashlib.sha256(digest_input).hexdigest()}"
             execution_path.write_bytes(nga._canonical_json_bytes(execution))
             gates = {
-                "schema_version": 2,
-                "binsync_mode": "local-only",
-                "remote_refs_before_sha256": "sha256:" + "1" * 64,
-                "remote_refs_after_sha256": "sha256:" + "1" * 64,
+                "schema_version": 3,
                 "snapshot_sha256": "sha256:" + "2" * 64,
                 "gamedata_sha256": "sha256:" + "3" * 64,
                 "cpp_validation_sha256": "sha256:" + "4" * 64,

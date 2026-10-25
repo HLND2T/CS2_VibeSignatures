@@ -75,6 +75,7 @@ def _release_fixture(
     asset_id_start: int,
     *,
     tracked_legacy: bool = False,
+    schema_version: int = 2,
 ) -> tuple[dict, dict[int, bytes], bytes]:
     snapshot = f"snapshot-{game_version}\n".encode()
     metadata = f"metadata-{game_version}\n".encode()
@@ -132,7 +133,7 @@ def _release_fixture(
         ]
     full_rebuild["verification_sha256"] = _release_rebuild_digest(binding_label, full_rebuild)
     manifest = {
-        "schema_version": 2,
+        "schema_version": schema_version,
         "repository": pri.ALLOWED_REPOSITORY,
         "release_version": game_version,
         "game_version": game_version,
@@ -198,6 +199,8 @@ def _release_fixture(
         },
         "public_assets": public_assets,
     }
+    if schema_version == 3:
+        del manifest["binsync"]
     manifest_name = f"release-manifest-{game_version}.json"
     checksum_name = f"SHA256SUMS-{game_version}.txt"
     manifest_bytes = canonical_json_bytes(manifest)
@@ -276,7 +279,7 @@ class PagesReleaseInputTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             first, first_blobs, first_gamedata = _release_fixture(101, "14177", SOURCE_A, 1000)
-            second, second_blobs, second_gamedata = _release_fixture(102, "14178", SOURCE_B, 2000)
+            second, second_blobs, second_gamedata = _release_fixture(102, "14178", SOURCE_B, 2000, schema_version=3)
             legacy = {
                 "id": 99,
                 "tag_name": "14176",

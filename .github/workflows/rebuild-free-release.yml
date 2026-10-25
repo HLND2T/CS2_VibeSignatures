@@ -29,9 +29,7 @@ permissions:
   pull-requests: read
 # No workflow-level concurrency here: build-on-self-runner.yml already owns the
 # per-GAMEVER release group, and declaring it in both deadlocks the caller.
-# No BinSync remote provisioning either: source_artifact_mode=tracked never
-# exports, verifies, or publishes a BinSync candidate, so it neither reads nor
-# writes any BinSync remote.
+# The tracked source binding runs no IDA analysis.
 jobs:
   release:
     permissions:

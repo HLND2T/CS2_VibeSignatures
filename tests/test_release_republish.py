@@ -34,7 +34,7 @@ class RepublishTests(unittest.TestCase):
     def test_tag_conflict_stops_before_asset_changes(self):
         self._exercise_failure("tag")
 
-    def test_binsync_verification_failure_leaves_draft(self):
+    def test_asset_verification_failure_leaves_draft(self):
         self._exercise_failure("verification")
 
     def test_publish_response_failure_restores_draft(self):
@@ -91,15 +91,13 @@ class RepublishTests(unittest.TestCase):
                 interrupt("tag")
                 tag[0] = new_sha
 
-            def verify_binsync(manifest):
-                if state["draft"] and "obsolete.zip" not in remote:
-                    interrupt("verification")
-
             def publish(*args):
                 state["draft"] = False
                 interrupt("publish")
 
             def download(repository, release_tag, name, destination):
+                if state["draft"] and "obsolete.zip" not in remote:
+                    interrupt("verification")
                 path = destination / name
                 path.write_bytes(remote[name])
                 return path
@@ -115,7 +113,6 @@ class RepublishTests(unittest.TestCase):
             with (
                 patch.dict("os.environ", {"GH_TOKEN": "token"}),
                 patch.object(publisher, "verify_release_bundle", return_value=verified),
-                patch.object(publisher, "_verify_binsync_targets", side_effect=verify_binsync),
                 patch.object(publisher, "_tag_target", side_effect=lambda *a: tag[0]),
                 patch.object(publisher, "_release_state", side_effect=read),
                 patch.object(publisher, "_release_by_id", side_effect=read),
@@ -269,7 +266,6 @@ class RepublishTests(unittest.TestCase):
             with (
                 patch.dict("os.environ", {"GH_TOKEN": "token"}),
                 patch.object(publisher, "verify_release_bundle", return_value=verified),
-                patch.object(publisher, "_verify_binsync_targets"),
                 patch.object(publisher, "_tag_target", return_value=manifest["source_sha"]),
                 patch.object(publisher, "_release_state", side_effect=read),
                 patch.object(publisher, "_release_by_id", side_effect=read),

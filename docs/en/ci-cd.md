@@ -31,11 +31,11 @@ byte-exact gate, because there the signature is the only truth. Every accepted d
 other difference still fails closed.
 
 Because a rebuild may legitimately differ from the checkout, it is reproducibility evidence only: the snapshot, gamedata,
-BinSync projection, and archives a Release publishes are all derived from the committed `bin_artifacts` tree.
+and archives a Release publishes are all derived from the committed `bin_artifacts` tree.
 
 ## Warm IDB and accepted binaries
 
-PR and Release analysis call `warmup-idb.yml`. It binds configured binary hashes and the IDA runtime to an immutable cache generation. Accepted-bin materialization is an exact configured-binary cache: YAML, IDA databases, BinSync state, and undeclared side files are rejected. These caches are performance layers, never symbol truth.
+PR and Release analysis call `warmup-idb.yml`. It binds configured binary hashes and the IDA runtime to an immutable cache generation. Accepted-bin materialization is an exact configured-binary cache: YAML, IDA databases, legacy analysis state, and undeclared side files are rejected. These caches are performance layers, never symbol truth.
 
 Persistence uses the pinned portable `hzqst/actions-cache` restore/save fork with the bucket
 `actions-cache-cs2-vibesignatures`. The `win64` environment supplies `S3_ENDPOINT_URL`,
@@ -89,30 +89,17 @@ Worker limit failures invalidate partial IDBs. This selects by the host OS, not 
 After a version source commit reaches the default branch:
 
 1. Source preflight proves the configured GAMEVER has a complete tracked artifact tree.
-2. A hosted job creates and initializes any missing per-module BinSync remotes for the GAMEVER from the tracked binary lock, pinned to the same immutable source SHA and run outside the self-hosted read proxy: a new GAMEVER has no remotes yet, and the builder only clones them.
-3. A self-hosted builder performs fresh `-force_all -rename`, verifies the rebuilt artifacts against the tracked tree under the [anchor drift contract](#anchor-drift-contract), and creates credential-free BinSync and Release candidates from the committed `bin_artifacts`.
-4. Hosted jobs independently verify candidate bundles, archive allowlists, manifests, checksums, C++ evidence, and BinSync target-state identity.
-5. The protected BinSync publisher performs fast-forward-only ref updates.
-6. The protected Release publisher creates/reuses the source tag, uploads exact immutable assets, publishes once, and dispatches Pages.
-7. Pages hydrates only published Release assets, verifies manifest/SHA256SUMS/archive inventories, builds all released versions, and verifies CDN bytes.
-
-BinSync commit identity is configured with the GitHub Environment **variables** `BINSYNC_GIT_USER_NAME` and
-`BINSYNC_GIT_USER_EMAIL` (not secrets). Set them in `win64` for Release candidate export and new-GAMEVER bootstrap,
-and in `binsync-remotes` for the initial commits made by the hosted remote provisioning job. Repository-level
-variables can supply shared values; environment-level values override them. Unset or empty values use
-`github-actions[bot]` and `github-actions[bot]@users.noreply.github.com`. Local commands accept the same environment
-variables. Initialization and candidate preparation write `user.name` and `user.email` with `git config --local` in
-each `.bsproj`, including existing and newly cloned repositories, so later BinSync commits do not depend on runner
-global Git configuration. Invalid identities and configuration write failures stop preparation before export with
-the affected repository in the diagnostic. The BinSync branch user (`release-automation` / `bootstrap-validation`)
-is configured separately and does not determine Git author identity.
+2. A self-hosted builder performs fresh `-force_all -rename`, verifies the rebuilt artifacts under the [anchor drift contract](#anchor-drift-contract), and creates credential-free Release candidates from committed `bin_artifacts`.
+3. Hosted jobs independently verify bundles, archive allowlists, manifests, checksums, and C++ evidence.
+4. The protected Release publisher creates/reuses the source tag, uploads exact immutable assets, publishes once, and dispatches Pages.
+5. Pages hydrates published assets, verifies manifest/SHA256SUMS/archive inventories, builds all released versions, and verifies CDN bytes.
 
 The self-hosted builder uses `release_bundle.py prepare` to verify local candidate sessions and construct portable
 assets without a publication manifest or C++ success claim. `cpp-validation.yml` tests the same snapshot/configuration
 and exact source SDK gitlink on hosted Windows and Ubuntu. Its aggregate requires both results and combines logs in
 Windows/Linux order. Hosted `release_bundle.py finalize` validates the prepared inventory and evidence identities,
 records the combined log hash in the existing `cpp_validation_sha256`, writes final manifest/checksums and verifies
-the bundle. The existing `build` CLI and final Release schema remain compatible. Independent Release verification
+the bundle. New bundles use manifest schema 3; readers also accept published schema-2 manifests without rewriting their bytes. Independent Release verification
 also repeats both hosted ABI tests.
 
 PR/full-bridge validation and new-GAMEVER bootstrap use the same hosted gate. Bootstrap creates its canonical candidate
@@ -130,7 +117,7 @@ The trigger CLI's `--workflow full-rebuild` dispatches `build-on-self-runner.yml
 artifacts serve as references or old-signatures sources; verification rejects execution evidence with a prior GAMEVER
 or a non-isolated old-artifact root. The standard `release` path retains automatic prior-version reuse. Both paths
 use source-controlled preprocessor references, verify against the target GAMEVER's committed artifacts, and publish
-from that committed tree under the same anchor drift contract. Warm IDB and BinSync handling is the same for both.
+from that committed tree under the same anchor drift contract. Warm IDB handling is the same for both.
 
 A rebuilt Release publishes `gamebin-with-idb-<GAMEVER>.7z` alongside `gamebin-<GAMEVER>.7z`: the warm IDA database
 (`<binary>.i64`) of every configured binary, taken from the exact generation the build analyzed against. `init_gamebin.py
@@ -139,25 +126,18 @@ merges it so the slow local warmup can be skipped. The archive is derived from t
 archive, so it never depends on whatever database happens to exist on disk.
 
 The manual rebuild-free path (`rebuild-free-release.yml`, `source_artifact_mode: tracked`) publishes the tracked
-`bin_artifacts/<GAMEVER>` tree instead of rebuilding it. It analyzes nothing, so it runs no IDA at all: `warmup-idb.yml`,
-the BinSync candidate export, and both BinSync verification and publication are skipped whole, and no BinSync remote is
-read or written. Binaries are provisioned and lock-verified by the build job's own `init_gamebin.py prepare`. Its Release
-manifest records `binsync`, `ida_runtime_identity`, `warm_idb_generation`, and `warm_idb_cache_key` as `null`, and
-`release_bundle.py` binds that to the source binding mode both ways: a tracked binding may not claim that evidence, and a
-rebuilt binding may not omit it. The binding applies only to manifests that declare `full_rebuild.binding_rule_version`;
-a manifest published before the rule existed declares none and is waived from that single rule, so the older tracked
-releases that still name BinSync and a warm IDB keep hydrating while every other manifest check still applies to them.
-The same versioned gating adds the warm IDB archive to the allowlist: a rebuilt manifest at rule version 2 must ship it
-and a tracked one must not, while a version-1 manifest keeps the original four public assets. The IDB archive rule is a
-later, independent rule, so a version-1 manifest is still held to the BinSync evidence rule. The Pages hydration
-receipt records the binding rule version of every Release it stages. BinSync symbols are therefore
-never published for a rebuild-free release, and neither is a warm IDB archive.
+`bin_artifacts/<GAMEVER>` tree without running IDA or warmup. The build provisions and lock-verifies binaries through
+`init_gamebin.py prepare`. Its manifest records null IDA runtime and warm IDB identities and declares no IDB archive.
+Rebuilt releases require these identities and the exact configured IDB archive. Historical schema-2 manifests retain
+their versioned evidence rules; Pages preserves their original checksums and records each binding rule version.
+New schema-3 manifests omit retired publication fields. Bootstrap gate evidence uses schema 3 and candidate schema 4;
+older temporary bootstrap candidates must be rebuilt.
 
 `republish` requires an existing mutable Release and its direct commit tag. It preserves the Release ID and tag URL,
 converts the Release to a draft, moves the tag with an explicit old-SHA lease, updates metadata and reconciles assets,
-then verifies exact bytes and BinSync targets before publishing and dispatching Pages. Asset IDs may change. Missing
+then verifies exact bytes before publishing and dispatching Pages. Asset IDs may change. Missing
 targets must use `publish`; GitHub `immutable: true` Releases are rejected. Full source/bundle verification still applies.
-The target is checked before BinSync publication and checked again by the Release publisher. Moving the tag orphans the
+The target is checked before publication and checked again by the Release publisher. Moving the tag orphans the
 draft, so the metadata update rebinds the real tag name before any tag-addressed asset work, and a rerun repairs an
 orphaned draft left behind by an interrupted republish. Both checks need push access, because GitHub only lists draft
 Releases to tokens that have it.

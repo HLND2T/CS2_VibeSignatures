@@ -44,4 +44,4 @@ full validation 会绑定 exact prospective merge tree，在 checkout-external r
 
 ## 完成后
 
-记录 branch、source commit SHA、PR URL、最终提交 paths 与 verification results。Snapshot、metadata、gamedata、archives、manifests、BinSync changes 和 Pages inputs 会在后续 immutable Release pipeline 中重建，绝不会发布回 source PR。
+记录 branch、source commit SHA、PR URL、最终提交 paths 与 verification results。Snapshot、metadata、gamedata、archives、manifests 和 Pages inputs 会在后续 immutable Release pipeline 中重建，绝不会发布回 source PR。

@@ -36,7 +36,7 @@ detached head, missing remote, moving head, or ambiguous affected GAMEVER/produc
   ancestor SDK. Keep a gitlink change only when the user confirms it as intentional.
 - Stop on a conflict in trusted planner/policy/required-workflow/publisher code unless the intended trust-root change is
   independently specified and reviewable; do not let the PR choose its own validation boundary.
-- Do not run a publisher, create Release outputs, push BinSync, or use publication credentials.
+- Do not run a publisher, create Release outputs, or use publication credentials.
 - After push, report checks once and stop. Never merge or enable auto-merge.
 
 ## Step 1 — Capture the immutable PR state

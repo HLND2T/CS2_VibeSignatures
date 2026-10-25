@@ -49,8 +49,6 @@ jobs:
       prepared_artifact_digest: ${{ steps.upload.outputs.artifact-digest }}
     env:
       GAMEVER: ${{ inputs.gamever }}
-      BINSYNC_GIT_USER_NAME: ${{ vars.BINSYNC_GIT_USER_NAME }}
-      BINSYNC_GIT_USER_EMAIL: ${{ vars.BINSYNC_GIT_USER_EMAIL }}
       PRIOR_GAMEVER: ${{ inputs.prior_gamever }}
       MERGE_SHA: ${{ inputs.merge_sha }}
       PR_NUMBER: ${{ inputs.pull_request_number }}
@@ -201,8 +199,8 @@ jobs:
         uses: ./.cache-tools/.github/actions/ci-command
         with:
           command: idb-restore
-      - name: Full empty-root bootstrap with rename and local-init BinSync prepare
-        id: binsync-local
+      - name: Full empty-root bootstrap analysis with rename
+        id: bootstrap-analysis
         uses: ./.cache-tools/.github/actions/ci-command
         with:
           command: bootstrap-analyze
@@ -214,8 +212,6 @@ jobs:
       - name: Package prepared bootstrap materials
         id: package
         env:
-          CI_REFS_BEFORE: ${{ steps.binsync-local.outputs.remote_refs_before }}
-          CI_REFS_AFTER: ${{ steps.binsync-local.outputs.remote_refs_after }}
           CI_SNAPSHOT_DIGEST: ${{ steps.gates.outputs.snapshot }}
           CI_GAMEDATA_DIGEST: ${{ steps.gates.outputs.gamedata }}
         uses: ./.cache-tools/.github/actions/ci-command
@@ -232,7 +228,7 @@ jobs:
           retention-days: 7
       - name: Upload failed bootstrap diagnostics
         if: >-
-          failure() && (steps.binsync-local.outcome == 'failure' || steps.gates.outcome == 'failure' ||
+          failure() && (steps.bootstrap-analysis.outcome == 'failure' || steps.gates.outcome == 'failure' ||
           steps.package.outcome == 'failure' || steps.upload.outcome == 'failure')
         continue-on-error: true
         uses: actions/upload-artifact@v4

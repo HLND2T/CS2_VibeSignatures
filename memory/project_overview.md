@@ -12,14 +12,14 @@ CS2_VibeSignatures automates CS2 signature/offset analysis with `bin_artifacts/<
 - Download/copy disposable binaries and run deterministic, LLM-assisted, and Agent-assisted analysis.
 - Finalize canonical per-symbol bytes and validate the formal producer-group inventory.
 - Rebuild affected/downstream closure for source PRs against exact prospective merge trees.
-- Run fresh full Release rebuilds, C++ validation, hosted candidate verification, protected BinSync publication, immutable Release publication, and Pages deployment.
+- Run fresh full Release rebuilds, C++ validation, hosted candidate verification, immutable Release publication, and Pages deployment.
 ## Involved Files & Symbols
 - `ida_analyze_bin.py`, `ida_analyze_util.py` - dual-root analysis and central artifact finalization.
 - `bin_artifact_contract.py` - tracked inventory, ownership, path, and canonical-byte contract.
 - `trusted_pr_context.py`, `trusted_artifact_pr.py` - base-owned context and prospective-tree plan.
 - `.github/workflows/source-artifact-required.yml`, `.github/workflows/pr-self-runner.yml` - trusted PR/merge-queue validation.
-- `.github/workflows/build-on-self-runner.yml`, `release_bundle.py`, `binsync_candidate.py` - Release candidates.
-- `binsync_publish.py`, `release_publish.py`, `pages_release_input.py` - protected publication and Pages input.
+- `.github/workflows/build-on-self-runner.yml`, `release_bundle.py` - Release candidates.
+- `release_publish.py`, `pages_release_input.py` - protected publication and Pages input.
 ## Architecture
 ```text
 source/config/reference + computed bin_artifacts closure
@@ -27,15 +27,15 @@ source/config/reference + computed bin_artifacts closure
   -> checkout-external affected-group rebuild
   -> exact Git blob comparison
   -> Merge Queue
-  -> fresh full Release rebuild + local-only BinSync prepare
+  -> fresh full Release rebuild
   -> hosted verification
-  -> protected BinSync and immutable Release publishers
+  -> protected immutable Release publisher
   -> Pages from published Release
 ```
 ## Dependencies
 - uv, IDA/idalib, ida-pro-mcp, Clang/LLVM, DepotDownloader, GitHub Actions.
 - `configs/`, `download.yaml`, `bin_artifacts/`, `gamedata-generators/`, `s2sdk`.
-- Protected Merge Queue/required-workflow trust root and separate bootstrap/BinSync/Release environments.
+- Protected Merge Queue/required-workflow trust root and separate bootstrap/Release environments.
 ## Notes
 - `bin/`, accepted-bin, and warm IDB are disposable binary/cache layers and must contain no artifact truth.
 - PRs never track `gamesymbols/`, `gamedata/`, or `release-manifests/`.

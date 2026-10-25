@@ -176,7 +176,7 @@ def accepted_stage():
 
 
 def init_binaries():
-    tool("init_gamebin.py", "prepare", env("GAMEVER"), "--binsync", "skip")
+    tool("init_gamebin.py", "prepare", env("GAMEVER"))
 
 
 def host_tool(name):
@@ -196,18 +196,6 @@ def host_tool(name):
 
 def resolve_ida(*, consumer=False):
     python = host_tool("python")
-    if consumer:
-        from push_binsync_symbols import probe_capability
-
-        # Probe the exporter's actual imports in the selected host interpreter,
-        # before version discovery or publishing a usable consumer environment.
-        try:
-            supported, detail = probe_capability(python)
-        except OSError as exc:
-            raise ValueError(f"Cannot probe IDA consumer dependencies using {python}: {exc}") from exc
-        if not supported:
-            detail = detail or "import probe failed without diagnostics"
-            raise ValueError(f"IDA consumer dependency probe failed for {python}:\n{detail}")
     version = command([python, "warmup_idb_worker.py", "--print-ida-version"], capture=True)
     if not version:
         raise ValueError("IDA did not report its runtime version")
@@ -609,36 +597,6 @@ def release_bind():
     )
 
 
-def release_binsync():
-    root = temporary("release-binsync-candidate", env("BUILD_ID"))
-    name = f"binsync-candidate-{env('SOURCE_SHA')}-{env('GAMEVER')}"
-    tool(
-        "push_binsync_symbols.py",
-        env("GAMEVER"),
-        "--prepare-only",
-        "--candidate-dir",
-        root,
-        "--artifactdir",
-        env("RELEASE_ARTIFACT_ROOT"),
-        "--preparation",
-        env("RELEASE_REBUILD_PREPARATION"),
-        "--release-version",
-        env("GAMEVER"),
-        "--build-id",
-        env("BUILD_ID"),
-        "--ida-runtime-identity",
-        env("IDA_VERSION"),
-        "--actions-artifact-name",
-        name,
-        "--binsync-user",
-        "release-automation",
-        "--python",
-        env("IDA_PYTHON"),
-    )
-    emit({"BINSYNC_CANDIDATE_ROOT": str(root)}, environment=True)
-    emit({"artifact_name": name})
-
-
 def release_candidates():
     root = temporary("release-candidates", env("BUILD_ID"))
     root.mkdir(parents=True, exist_ok=True)
@@ -724,8 +682,6 @@ def release_bundle_prepare():
     )
     if not tracked:
         args += [
-            "--binsync-candidate-root",
-            env("BINSYNC_CANDIDATE_ROOT"),
             "--ida-runtime-identity",
             env("IDA_VERSION"),
             "--warm-idb-generation",
@@ -771,7 +727,7 @@ def release_bundle_prepare():
 
 def cleanup():
     temp = Path(env("RUNNER_TEMP")).resolve()
-    for name in ("CANDIDATE_ROOT", "BINSYNC_CANDIDATE_ROOT", "RELEASE_BUNDLE_ROOT"):
+    for name in ("CANDIDATE_ROOT", "RELEASE_BUNDLE_ROOT"):
         value = os.environ.get(name)
         if not value:
             continue
@@ -785,7 +741,6 @@ def cleanup():
 
 def bootstrap_analyze():
     actual = temporary("new-gamever-bin-artifacts", run_key())
-    candidate = temporary("bootstrap-binsync-local-only", run_key())
     report = temporary(f"new-gamever-force-all-execution-{run_key()}.json")
     actual.mkdir(parents=True, exist_ok=False)
     emit({"ACTUAL_ARTIFACT_ROOT": str(actual), "EXECUTION_REPORT": str(report)}, environment=True)
@@ -809,28 +764,6 @@ def bootstrap_analyze():
         report,
         "-rename",
         "-debug",
-    )
-    tool(
-        "push_binsync_symbols.py",
-        env("GAMEVER"),
-        "--prepare-only",
-        "--no-publication-candidate",
-        "--bootstrap-local-init",
-        "--candidate-dir",
-        candidate,
-        "--artifactdir",
-        actual,
-        "--binsync-user",
-        "bootstrap-validation",
-        "--python",
-        env("IDA_PYTHON"),
-    )
-    evidence = json.loads((candidate / "local-evidence.json").read_text(encoding="utf-8"))
-    emit(
-        {
-            "remote_refs_before": evidence["remote_refs_before_sha256"],
-            "remote_refs_after": evidence["remote_refs_after_sha256"],
-        }
     )
 
 
@@ -900,10 +833,7 @@ def bootstrap_package():
     write_canonical_json(
         root / "prepared-gates.json",
         {
-            "schema_version": 2,
-            "binsync_mode": "local-only",
-            "remote_refs_before_sha256": env("CI_REFS_BEFORE"),
-            "remote_refs_after_sha256": env("CI_REFS_AFTER"),
+            "schema_version": 3,
             "snapshot_sha256": env("CI_SNAPSHOT_DIGEST"),
             "gamedata_sha256": env("CI_GAMEDATA_DIGEST"),
             "gamedata_files": file_inventory(root / "gamedata"),
@@ -1150,7 +1080,6 @@ COMMANDS = {
     "release-analyze": release_analyze,
     "release-verify": release_verify,
     "release-bind": release_bind,
-    "release-binsync": release_binsync,
     "release-candidates": release_candidates,
     "select-sdk": select_sdk,
     "release-bundle-prepare": release_bundle_prepare,

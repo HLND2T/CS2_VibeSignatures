@@ -18,7 +18,7 @@ tags:
 - Load locks from immutable Git blobs at a bound source SHA.
 - Measure configured local binaries and reject any size/hash drift from the source lock.
 - Gate accepted-bin sync/restore and warm-IDB publication; propagate the digest to PR and Release consumers.
-- Supply the complete nested binary inventory and lock digest to Release and BinSync candidates.
+- Supply the complete nested binary inventory and lock digest to Release candidates.
 - Support the one-shot historical snapshot migration and deterministic audit check.
 
 ## Involved Files & Symbols
@@ -26,7 +26,7 @@ tags:
 - `binary_locks/<GAMEVER>.json` - source-owned per-version locks.
 - `source_binary_lock_bootstrap.py` - historical snapshot migration/check tool.
 - `release_artifact_rebuild.py` - pre/post-analysis local binary verification.
-- `release_bundle.py`, `binsync_candidate.py` - hosted source-lock recomputation and candidate inventory comparison.
+- `release_bundle.py` - hosted source-lock recomputation and candidate inventory comparison.
 
 ## Architecture
 ```text
@@ -36,7 +36,7 @@ source SHA: config + download.yaml + binary lock
   -> candidate binary_lock_sha256 + full inventory
   -> hosted lock reload from immutable Git blob
   -> exact inventory comparison
-  -> archive/BinSync publication gates
+  -> archive publication gates
 ```
 
 ## Dependencies
@@ -56,5 +56,4 @@ source SHA: config + download.yaml + binary lock
 ## Callers
 - Release rebuild preparation and verification.
 - Accepted-bin restore/sync, warm-IDB production, trusted PR workers, and Release source preflight.
-- BinSync candidate build and hosted verification.
 - Release bundle build, hosted verification, and Pages schema consumers.

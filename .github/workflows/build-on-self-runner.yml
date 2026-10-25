@@ -143,8 +143,8 @@ jobs:
           "publication_mode=$publicationMode" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "binary_lock_sha256=$($preflight.binary_lock_sha256)" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
   warmup-idb:
-    # The tracked (rebuild-free) path runs no IDA analysis and exports no BinSync
-    # candidate, so nothing downstream ever opens an IDB. Binaries are provisioned
+    # The tracked (rebuild-free) path runs no IDA analysis or IDB consumer.
+    # Binaries are provisioned
     # and lock-verified by the build job's own init_gamebin.py prepare instead.
     needs: preflight
     if: inputs.source_artifact_mode != 'tracked'
@@ -153,67 +153,19 @@ jobs:
       gamever: ${{ needs.preflight.outputs.gamever }}
       source_sha: ${{ needs.preflight.outputs.source_sha }}
     secrets: inherit
-  ensure-binsync-remotes:
-    # A GAMEVER's canonical BinSync remotes are created out of band and the build
-    # job only ever clones them; nothing else provisions a brand-new GAMEVER, so a
-    # missing remote surfaces as a 502 from the self-hosted HZVM:8080 read proxy
-    # when the build clones it. The tracked path exports no BinSync candidate at
-    # all, so it needs no remotes. Provisioning is pinned to the immutable source
-    # SHA because a remote's binary_hash must match the lock the build validates.
-    needs: preflight
-    if: >-
-      ${{ github.repository == 'HLND2T/CS2_VibeSignatures'
-      && inputs.source_artifact_mode != 'tracked' }}
-    runs-on: ubuntu-latest
-    environment: binsync-remotes
-    steps:
-      - name: Checkout immutable source for trusted provisioning
-        uses: actions/checkout@v5
-        with:
-          ref: ${{ needs.preflight.outputs.source_sha }}
-          fetch-depth: 1
-          persist-credentials: false
-      - uses: astral-sh/setup-uv@v9.0.0
-      - name: Create and initialize missing BinSync remotes
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ secrets.HLND2T_GH_TOKEN }}
-          BINSYNC_GIT_USER_NAME: ${{ vars.BINSYNC_GIT_USER_NAME }}
-          BINSYNC_GIT_USER_EMAIL: ${{ vars.BINSYNC_GIT_USER_EMAIL }}
-        run: |
-          if ([string]::IsNullOrWhiteSpace($env:GH_TOKEN)) {
-            throw "HLND2T_GH_TOKEN is not configured for the binsync-remotes environment."
-          }
-          $orgLogin = gh api orgs/HLND2T --jq .login
-          if ($LASTEXITCODE -ne 0) {
-            throw "HLND2T_GH_TOKEN could not authenticate to the HLND2T organization."
-          }
-          if ($orgLogin.Trim() -ne "HLND2T") {
-            throw "HLND2T_GH_TOKEN authenticated to an unexpected organization: '$($orgLogin.Trim())' (expected HLND2T)."
-          }
-          gh auth setup-git
-          if ($LASTEXITCODE -ne 0) { throw "gh auth setup-git failed." }
-          uv run init_gamebin.py ensure-binsync-remotes "${{ needs.preflight.outputs.gamever }}" --user release-automation
-          if ($LASTEXITCODE -ne 0) { throw "BinSync remote provisioning failed." }
   build:
-    needs: [preflight, warmup-idb, ensure-binsync-remotes]
+    needs: [preflight, warmup-idb]
     if: >-
       ${{ !cancelled() && needs.preflight.result == 'success'
-      && (needs.warmup-idb.result == 'success' || needs.warmup-idb.result == 'skipped')
-      && (needs.ensure-binsync-remotes.result == 'success' || needs.ensure-binsync-remotes.result == 'skipped') }}
+      && (needs.warmup-idb.result == 'success' || needs.warmup-idb.result == 'skipped') }}
     environment: win64
     runs-on: [self-hosted, cross-platform]
     outputs:
-      binsync_artifact_name: ${{ steps.binsync-prepare.outputs.artifact_name }}
-      binsync_artifact_digest: ${{ steps.upload-binsync-candidate.outputs.artifact-digest }}
-      ida_runtime_identity: ${{ steps.resolve-consumer-ida.outputs.ida_runtime_identity }}
       prepared_artifact_id: ${{ steps.upload-release-bundle.outputs.artifact-id }}
       prepared_artifact_digest: ${{ steps.upload-release-bundle.outputs.artifact-digest }}
     env:
       GAMEVER: ${{ needs.preflight.outputs.gamever }}
       SOURCE_SHA: ${{ needs.preflight.outputs.source_sha }}
-      BINSYNC_GIT_USER_NAME: ${{ vars.BINSYNC_GIT_USER_NAME }}
-      BINSYNC_GIT_USER_EMAIL: ${{ vars.BINSYNC_GIT_USER_EMAIL }}
       IDB_CACHE_GENERATION: ${{ needs.warmup-idb.outputs.generation }}
       IDB_CACHE_KEY: ${{ needs.warmup-idb.outputs.cache_key }}
       IDB_CACHE_LEASE_ID: ${{ needs.warmup-idb.outputs.lease_id }}
@@ -360,7 +312,7 @@ jobs:
         uses: ./.cache-tools/.github/actions/ci-command
         with:
           command: repo-tests
-      - name: Initialize binaries without remote BinSync access
+      - name: Initialize verified binaries
         id: init-binaries
         # A cache miss falls back to downloading the published Release, whose tag
         # lookup and assets share api.github.com's 60/hour anonymous quota per IP.
@@ -442,12 +394,6 @@ jobs:
         uses: ./.cache-tools/.github/actions/ci-command
         with:
           command: release-bind
-      - name: Prepare local-only BinSync candidate without remote writes
-        id: binsync-prepare
-        if: inputs.source_artifact_mode != 'tracked'
-        uses: ./.cache-tools/.github/actions/ci-command
-        with:
-          command: release-binsync
       - name: Build immutable symbol and gamedata candidates
         id: build-candidates
         uses: ./.cache-tools/.github/actions/ci-command
@@ -463,17 +409,6 @@ jobs:
         uses: ./.cache-tools/.github/actions/ci-command
         with:
           command: release-bundle-prepare
-      - name: Upload credential-free internal BinSync candidate
-        id: upload-binsync-candidate
-        if: inputs.source_artifact_mode != 'tracked'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ steps.binsync-prepare.outputs.artifact_name }}
-          path: ${{ env.BINSYNC_CANDIDATE_ROOT }}
-          if-no-files-found: error
-          compression-level: 0
-          retention-days: 30
-          overwrite: true
       - name: Upload prepared Release assets
         id: upload-release-bundle
         uses: actions/upload-artifact@v4
@@ -493,23 +428,10 @@ jobs:
         uses: ./.cache-tools/.github/actions/ci-command
         with:
           command: cleanup
-  verify-binsync:
-    needs: [preflight, build]
-    if: inputs.source_artifact_mode != 'tracked'
-    uses: ./.github/workflows/verify-binsync-candidate.yml
-    with:
-      source_sha: ${{ needs.preflight.outputs.source_sha }}
-      gamever: ${{ needs.preflight.outputs.gamever }}
-      release_version: ${{ needs.preflight.outputs.gamever }}
-      build_id: ${{ needs.preflight.outputs.source_sha }}
-      ida_runtime_identity: ${{ needs.build.outputs.ida_runtime_identity }}
-      artifact_name: ${{ needs.build.outputs.binsync_artifact_name }}
-      artifact_digest: ${{ needs.build.outputs.binsync_artifact_digest }}
   verify-release:
-    needs: [preflight, build, verify-binsync, finalize-release]
+    needs: [preflight, build, finalize-release]
     if: >-
-      ${{ !cancelled() && needs.build.result == 'success' && needs.finalize-release.result == 'success'
-      && (needs.verify-binsync.result == 'success' || needs.verify-binsync.result == 'skipped') }}
+      ${{ !cancelled() && needs.build.result == 'success' && needs.finalize-release.result == 'success' }}
     uses: ./.github/workflows/verify-release-bundle.yml
     with:
       source_sha: ${{ needs.preflight.outputs.source_sha }}
@@ -518,8 +440,6 @@ jobs:
       build_id: ${{ needs.preflight.outputs.source_sha }}
       artifact_name: ${{ needs.finalize-release.outputs.release_artifact_name }}
       artifact_digest: ${{ needs.finalize-release.outputs.release_artifact_digest }}
-      binsync_candidate_digest: ${{ needs.verify-binsync.outputs.publication_digest }}
-      binsync_target_state_digest: ${{ needs.verify-binsync.outputs.target_state_digest }}
   check-publication-target:
     needs: [preflight, verify-release]
     if: needs.preflight.outputs.publication_mode != 'verify-only'
@@ -532,10 +452,10 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: ${{ needs.preflight.outputs.source_sha }}
+          ref: ${{ github.workflow_sha }}
           persist-credentials: false
       - uses: astral-sh/setup-uv@v9.0.0
-      - name: Check Release target before publishing BinSync
+      - name: Check immutable Release publication target
         env:
           GH_TOKEN: ${{ github.token }}
           PUBLICATION_MODE: ${{ needs.preflight.outputs.publication_mode }}
@@ -546,28 +466,11 @@ jobs:
           uv run python release_publish.py --check-target-only
           --repository "$GITHUB_REPOSITORY" --release-version "$RELEASE_VERSION"
           --source-sha "$SOURCE_SHA" --publication-mode "$PUBLICATION_MODE"
-  publish-binsync:
-    needs: [preflight, build, verify-binsync, verify-release, check-publication-target]
-    if: needs.preflight.outputs.publication_mode != 'verify-only'
-    uses: ./.github/workflows/publish-binsync-candidate.yml
-    with:
-      source_sha: ${{ needs.preflight.outputs.source_sha }}
-      gamever: ${{ needs.preflight.outputs.gamever }}
-      release_version: ${{ needs.preflight.outputs.gamever }}
-      build_id: ${{ needs.preflight.outputs.source_sha }}
-      ida_runtime_identity: ${{ needs.build.outputs.ida_runtime_identity }}
-      artifact_name: ${{ needs.build.outputs.binsync_artifact_name }}
-      artifact_digest: ${{ needs.build.outputs.binsync_artifact_digest }}
-    secrets: inherit
   publish-release:
-    needs: [preflight, build, verify-binsync, verify-release, publish-binsync, finalize-release]
-    # verify-binsync/publish-binsync are skipped whole for a tracked binding, so
-    # this gate accepts "skipped" but never "failure" for either of them.
+    needs: [preflight, build, verify-release, check-publication-target, finalize-release]
     if: >-
       ${{ !cancelled() && needs.preflight.outputs.publication_mode != 'verify-only'
-      && needs.verify-release.result == 'success'
-      && (needs.verify-binsync.result == 'success' || needs.verify-binsync.result == 'skipped')
-      && (needs.publish-binsync.result == 'success' || needs.publish-binsync.result == 'skipped') }}
+      && needs.verify-release.result == 'success' && needs.check-publication-target.result == 'success' }}
     permissions:
       actions: read
       contents: write
@@ -580,17 +483,13 @@ jobs:
       build_id: ${{ needs.preflight.outputs.source_sha }}
       artifact_name: ${{ needs.finalize-release.outputs.release_artifact_name }}
       artifact_digest: ${{ needs.finalize-release.outputs.release_artifact_digest }}
-      binsync_candidate_digest: ${{ needs.verify-binsync.outputs.publication_digest }}
-      binsync_target_state_digest: ${{ needs.verify-binsync.outputs.target_state_digest }}
       verified_manifest_digest: ${{ needs.verify-release.outputs.manifest_digest }}
       verified_bundle_digest: ${{ needs.verify-release.outputs.bundle_digest }}
-      verified_binsync_target_state_digest: ${{ needs.verify-release.outputs.binsync_target_state_digest }}
   verify-only-complete:
-    needs: [preflight, build, verify-binsync, verify-release]
+    needs: [preflight, build, verify-release]
     if: >-
       ${{ !cancelled() && needs.preflight.outputs.publication_mode == 'verify-only'
-      && needs.verify-release.result == 'success'
-      && (needs.verify-binsync.result == 'success' || needs.verify-binsync.result == 'skipped') }}
+      && needs.verify-release.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -606,8 +505,7 @@ jobs:
             echo '- Release bundle digest: `${{ needs.verify-release.outputs.bundle_digest }}`'
             echo '- Release manifest digest: `${{ needs.verify-release.outputs.manifest_digest }}`'
             echo '- Source artifact mode: `${{ inputs.source_artifact_mode || 'rebuild' }}`'
-            echo '- BinSync candidate digest: `${{ needs.verify-binsync.outputs.publication_digest || 'not exported (rebuild-free)' }}`'
-            echo '- No BinSync refs, tags, Releases, or Release assets were published.'
+            echo '- No tags, Releases, or Release assets were published.'
           } >> "$GITHUB_STEP_SUMMARY"
   cpp-validation:
     if: ${{ !cancelled() && needs.preflight.result == 'success' && needs.build.result == 'success' }}
