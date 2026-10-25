@@ -175,6 +175,10 @@ jobs:
           command: accepted-restore
       - name: Initialize configured binaries without mutable analysis state
         id: init-binaries
+        # A cache miss falls back to downloading the published Release, whose tag
+        # lookup and assets share api.github.com's 60/hour anonymous quota per IP.
+        env:
+          GH_TOKEN: ${{ github.token }}
         uses: ./.cache-tools/.github/actions/ci-command
         with:
           command: init-binaries
