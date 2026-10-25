@@ -10433,6 +10433,12 @@ modules:
           - g_pNavMesh.{platform}.yaml
         expected_input:
           - CCSBotManager_AddBot.{platform}.yaml
+      - name: find-CSource2Server_IsValidNavMesh
+        expected_output:
+          - CSource2Server_IsValidNavMesh.{platform}.yaml
+        expected_input:
+          - CSource2Server_vtable.{platform}.yaml
+          - g_pNavMesh.{platform}.yaml
       - name: find-CCSBotManager_AddBot_BotNavIgnore
         expected_output:
           - CCSBotManager_AddBot_BotNavIgnore.{platform}.yaml
@@ -12853,6 +12859,7 @@ modules:
         category: vfunc
         alias:
           - CBaseEntity::NetworkStateChanged
+          - SetStateChanged
       - name: CBaseEntity_FullEdictChanged
         category: vfunc
         alias:
@@ -14129,6 +14136,11 @@ modules:
         category: gv
       - name: g_pNavMesh
         category: gv
+      - name: CSource2Server_IsValidNavMesh
+        category: vfunc
+        alias:
+          - CSource2Server::IsValidNavMesh
+          - CCSNavArea_IsValidNavMesh
       - name: CCSBotManager_AddBot_BotNavIgnore
         category: patch
         alias:
