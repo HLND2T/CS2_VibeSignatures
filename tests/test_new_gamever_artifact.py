@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import subprocess
 import tempfile
 import unittest
@@ -34,6 +35,8 @@ class NewGameverArtifactTests(unittest.TestCase):
 
     def _repository(self, root: Path, *, include_prior: bool = False, major_update: bool = False):
         self._git(root, "init", "-b", "main")
+        # Detached maintenance can outlive Git and race TemporaryDirectory cleanup.
+        self._git(root, "config", "maintenance.auto", "false")
         self._git(root, "config", "user.email", "test@example.com")
         self._git(root, "config", "user.name", "Test")
         required = {path: f"trusted base {path}\n".encode() for path in tpc.TRUSTED_FILE_PATHS}
@@ -276,6 +279,23 @@ class NewGameverArtifactTests(unittest.TestCase):
         self._git(root, "checkout", "--detach", merge)
         context = tpc.build_trusted_pr_context(repo_root=root, base_ref=base, head_ref=sha, merge_ref=merge)
         return tap.build_trusted_artifact_plan(repo_root=root, trusted_context=context)
+
+    def test_repository_does_not_spawn_automatic_maintenance(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            root.mkdir()
+            trace_path = Path(temporary) / "git-trace.json"
+            with patch.dict(os.environ, {"GIT_TRACE2_EVENT": trace_path.resolve().as_posix()}):
+                self._repository(root)
+            events = [json.loads(line) for line in trace_path.read_text(encoding="utf-8").splitlines()]
+            maintenance = [
+                event["argv"]
+                for event in events
+                if event.get("event") == "child_start"
+                and "maintenance" in event.get("argv", [])
+                and "--auto" in event["argv"]
+            ]
+            self.assertEqual([], maintenance)
 
     def test_reuse_accepts_publication_and_unrelated_followup(self):
         import bootstrap_reuse as reuse
