@@ -17429,3 +17429,98 @@ cpp_tests:
       - fdump-vtable-layouts
     reference_modules:
       - tier0  # bin_artifacts/{gamever}/tier0/CCvar_*.{platform}.yaml
+
+  - name: CNetworkGameClientBase_MSVC
+    symbol: CNetworkGameClientBase
+    # The inherited networking slot is named through the concrete client vtable.
+    reference_vtable_owners:
+      - CNetworkGameClient
+    cpp: cpp_tests/cnetworkgameclient.cpp
+    headers:
+      - Wend4r_cs2sdk/public/iclient.h
+    target: x86_64-pc-windows-msvc
+    include_directories:
+      - Wend4r_cs2sdk/public
+      - Wend4r_cs2sdk/public/tier0
+      - Wend4r_cs2sdk/public/tier1
+    defines:
+      - COMPILER_MSVC=1
+      - COMPILER_MSVC64=1
+      - _MSVC_STL_USE_ABORT_AS_DOOM_FUNCTION
+    additional_compiler_options:
+      - fms-extensions
+      - fms-compatibility
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - engine
+  - name: CNetworkGameClient_MSVC
+    symbol: CNetworkGameClientVTableProbe
+    alias_symbols:
+      - CNetworkGameClient
+    cpp: cpp_tests/cnetworkgameclient.cpp
+    headers:
+      - Wend4r_cs2sdk/public/iclient.h
+    target: x86_64-pc-windows-msvc
+    include_directories:
+      - Wend4r_cs2sdk/public
+      - Wend4r_cs2sdk/public/tier0
+      - Wend4r_cs2sdk/public/tier1
+    defines:
+      - COMPILER_MSVC=1
+      - COMPILER_MSVC64=1
+      - _MSVC_STL_USE_ABORT_AS_DOOM_FUNCTION
+    additional_compiler_options:
+      - fms-extensions
+      - fms-compatibility
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - engine
+  - name: CNetworkGameClientBase_GCC
+    symbol: CNetworkGameClientBase
+    # The inherited networking slot is named through the concrete client vtable.
+    reference_vtable_owners:
+      - CNetworkGameClient
+    cpp: cpp_tests/cnetworkgameclient.cpp
+    headers:
+      - Wend4r_cs2sdk/public/iclient.h
+    target: x86_64-pc-linux-gnu
+    include_directories:
+      - Wend4r_cs2sdk/public
+      - Wend4r_cs2sdk/public/tier0
+      - Wend4r_cs2sdk/public/tier1
+    defines:
+      - COMPILER_GCC=1
+      - POSIX=1
+      - LINUX=1
+      - _LINUX=1
+      - stricmp=strcasecmp
+    additional_compiler_options:
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - engine
+  - name: CNetworkGameClient_GCC
+    symbol: CNetworkGameClientVTableProbe
+    alias_symbols:
+      - CNetworkGameClient
+    cpp: cpp_tests/cnetworkgameclient.cpp
+    headers:
+      - Wend4r_cs2sdk/public/iclient.h
+    target: x86_64-pc-linux-gnu
+    include_directories:
+      - Wend4r_cs2sdk/public
+      - Wend4r_cs2sdk/public/tier0
+      - Wend4r_cs2sdk/public/tier1
+    defines:
+      - COMPILER_GCC=1
+      - POSIX=1
+      - LINUX=1
+      - _LINUX=1
+      - stricmp=strcasecmp
+    additional_compiler_options:
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - engine
