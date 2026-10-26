@@ -1,0 +1,403 @@
+func_name: CCommand_Tokenize
+func_va: '0x18020e690'
+disasm_code: |-
+  .text:000000018020E690                 mov     [rsp+arg_18], rbp
+  .text:000000018020E695                 mov     [rsp+arg_10], r8
+  .text:000000018020E69A                 push    rsi
+  .text:000000018020E69B                 push    rdi
+  .text:000000018020E69C                 push    r12
+  .text:000000018020E69E                 push    r14
+  .text:000000018020E6A0                 push    r15
+  .text:000000018020E6A2                 sub     rsp, 70h
+  .text:000000018020E6A6                 mov     rsi, rdx
+  .text:000000018020E6A9                 mov     rbp, r8
+  .text:000000018020E6AC                 mov     edx, [rcx+8]
+  .text:000000018020E6AF                 mov     r14, rcx
+  .text:000000018020E6B2                 test    edx, edx
+  .text:000000018020E6B4                 jnz     short loc_18020E6EB
+  .text:000000018020E6B6                 mov     r8d, 1FFh
+  .text:000000018020E6BC                 add     rcx, 8
+  .text:000000018020E6C0                 call    sub_18005BE90
+  .text:000000018020E6C5                 lea     rcx, [r14+220h]
+  .text:000000018020E6CC                 mov     eax, 1FFh
+  .text:000000018020E6D1                 mov     edx, [rcx]
+  .text:000000018020E6D3                 sub     eax, edx
+  .text:000000018020E6D5                 test    eax, eax
+  .text:000000018020E6D7                 jle     short loc_18020E6E3
+  .text:000000018020E6D9                 mov     r8d, eax
+  .text:000000018020E6DC                 call    sub_18005BE90
+  .text:000000018020E6E1                 jmp     short loc_18020E6EB
+  .text:000000018020E6E3                 jns     short loc_18020E6EB
+  .text:000000018020E6E5                 mov     dword ptr [rcx], 1FFh
+  .text:000000018020E6EB                 xor     r12d, r12d
+  .text:000000018020E6EE                 lea     rdi, [r14+438h]
+  .text:000000018020E6F5                 mov     [r14], r12d
+  .text:000000018020E6F8                 mov     rax, [r14+10h]
+  .text:000000018020E6FC                 mov     [rax], r12b
+  .text:000000018020E6FF                 mov     eax, [rdi]
+  .text:000000018020E701                 neg     eax
+  .text:000000018020E703                 test    eax, eax
+  .text:000000018020E705                 jle     short loc_18020E71A
+  .text:000000018020E707                 mov     edx, [rdi+10h]
+  .text:000000018020E70A                 test    edx, edx
+  .text:000000018020E70C                 jns     short loc_18020E71C
+  .text:000000018020E70E                 neg     edx
+  .text:000000018020E710                 mov     rcx, rdi
+  .text:000000018020E713                 call    sub_18005C050
+  .text:000000018020E718                 jmp     short loc_18020E71C
+  .text:000000018020E71A                 jns     short loc_18020E71F
+  .text:000000018020E71C                 mov     [rdi], r12d
+  .text:000000018020E71F                 mov     [r14+650h], r12b
+  .text:000000018020E726                 mov     rax, 7FF8000000000000h
+  .text:000000018020E730                 mov     [r14+658h], rax
+  .text:000000018020E737                 mov     [r14+660h], r12
+  .text:000000018020E73E                 test    rsi, rsi
+  .text:000000018020E741                 jz      loc_18020E9A1
+  .text:000000018020E747                 cmp     [rsi], r12b
+  .text:000000018020E74A                 jz      loc_18020E9A1
+  .text:000000018020E750                 mov     [rsp+98h+arg_0], rbx
+  .text:000000018020E758                 test    rbp, rbp
+  .text:000000018020E75B                 jnz     short loc_18020E778
+  .text:000000018020E75D                 mov     rcx, cs:g_pCVar
+  .text:000000018020E764                 mov     rax, [rcx]
+  .text:000000018020E767                 call    qword ptr [rax+100h]  ; 100h = ICvar_GetCharacterSet
+  .text:000000018020E76D                 mov     rbp, rax
+  .text:000000018020E770                 mov     [rsp+98h+arg_10], rax
+  .text:000000018020E778                 mov     rbx, 0FFFFFFFFFFFFFFFFh
+  .text:000000018020E77F                 nop
+  .text:000000018020E780                 inc     rbx
+  .text:000000018020E783                 cmp     [rsi+rbx], r12b
+  .text:000000018020E787                 jnz     short loc_18020E780
+  .text:000000018020E789                 mov     eax, [r14+8]
+  .text:000000018020E78D                 dec     eax
+  .text:000000018020E78F                 cmp     ebx, eax
+  .text:000000018020E791                 jl      short loc_18020E7BE
+  .text:000000018020E793                 lea     rcx, aCcommandTokeni; "CCommand::Tokenize: Encountered command"...
+  .text:000000018020E79A                 call    Warning
+  .text:000000018020E79F                 xor     al, al
+  .text:000000018020E7A1                 mov     rbx, [rsp+98h+arg_0]
+  .text:000000018020E7A9                 mov     rbp, [rsp+98h+arg_18]
+  .text:000000018020E7B1                 add     rsp, 70h
+  .text:000000018020E7B5                 pop     r15
+  .text:000000018020E7B7                 pop     r14
+  .text:000000018020E7B9                 pop     r12
+  .text:000000018020E7BB                 pop     rdi
+  .text:000000018020E7BC                 pop     rsi
+  .text:000000018020E7BD                 retn
+  .text:000000018020E7BE                 mov     rcx, [r14+10h]
+  .text:000000018020E7C2                 lea     eax, [rbx+1]
+  .text:000000018020E7C5                 movsxd  r8, eax
+  .text:000000018020E7C8                 mov     rdx, rsi
+  .text:000000018020E7CB                 mov     [rsp+98h+arg_8], r13
+  .text:000000018020E7D3                 call    V_tier0_memmove_0
+  .text:000000018020E7D8                 mov     rdx, [r14+10h]
+  .text:000000018020E7DC                 lea     rcx, [rsp+98h+var_68]
+  .text:000000018020E7E1                 mov     r9b, 9
+  .text:000000018020E7E4                 mov     r8d, ebx
+  .text:000000018020E7E7                 call    ??0CUtlBuffer@@QEAA@PEBXHW4BufferFlags_t@0@@Z; CUtlBuffer::CUtlBuffer(void const *,int,CUtlBuffer::BufferFlags_t)
+  .text:000000018020E7EC                 mov     r15d, r12d
+  .text:000000018020E7EF                 cmp     [rsp+98h+var_50], r12b
+  .text:000000018020E7F4                 jnz     loc_18020E955
+  .text:000000018020E7FA                 nop     word ptr [rax+rax+00h]
+  .text:000000018020E800                 mov     ebx, [r14+220h]
+  .text:000000018020E807                 ; this
+  .text:000000018020E807                 lea     rcx, [rsp+98h+var_68]; this
+  .text:000000018020E80C                 mov     esi, [rsp+98h+var_58]
+  .text:000000018020E810                 sub     ebx, r15d
+  .text:000000018020E813                 movsxd  r13, r15d
+  .text:000000018020E816                 ; int
+  .text:000000018020E816                 mov     r9d, ebx; int
+  .text:000000018020E819                 add     r13, [r14+228h]
+  .text:000000018020E820                 ; struct characterset_t *
+  .text:000000018020E820                 mov     rdx, rbp; struct characterset_t *
+  .text:000000018020E823                 ; char *
+  .text:000000018020E823                 mov     r8, r13; char *
+  .text:000000018020E826                 ; bool
+  .text:000000018020E826                 mov     [rsp+98h+var_78], 1; bool
+  .text:000000018020E82B                 call    ?ParseToken@CUtlBuffer@@QEAAHPEBUcharacterset_t@@PEADH_N@Z; CUtlBuffer::ParseToken(characterset_t const *,char *,int,bool)
+  .text:000000018020E830                 mov     r12d, eax
+  .text:000000018020E833                 test    eax, eax
+  .text:000000018020E835                 js      loc_18020E955
+  .text:000000018020E83B                 cmp     ebx, eax
+  .text:000000018020E83D                 jz      loc_18020E995
+  .text:000000018020E843                 movsxd  rbp, dword ptr [rdi]
+  .text:000000018020E846                 cmp     ebp, 1
+  .text:000000018020E849                 jnz     short loc_18020E87F
+  .text:000000018020E84B                 mov     edx, [rsp+98h+var_58]
+  .text:000000018020E84F                 mov     [r14], edx
+  .text:000000018020E852                 mov     r8, [r14+10h]
+  .text:000000018020E856                 lea     ecx, [rdx-1]
+  .text:000000018020E859                 movsxd  rax, ecx
+  .text:000000018020E85C                 cmp     byte ptr [rax+r8], 22h ; '"'
+  .text:000000018020E861                 cmovz   edx, ecx
+  .text:000000018020E864                 sub     edx, r12d
+  .text:000000018020E867                 mov     [r14], edx
+  .text:000000018020E86A                 cmp     edx, esi
+  .text:000000018020E86C                 jle     short loc_18020E87F
+  .text:000000018020E86E                 movsxd  rax, edx
+  .text:000000018020E871                 lea     ecx, [rdx-1]
+  .text:000000018020E874                 cmp     byte ptr [rax+r8-1], 22h ; '"'
+  .text:000000018020E87A                 jnz     short loc_18020E87F
+  .text:000000018020E87C                 mov     [r14], ecx
+  .text:000000018020E87F                 cmp     ebp, [rdi+10h]
+  .text:000000018020E882                 jnz     loc_18020E929
+  .text:000000018020E888                 test    dword ptr [rdi+14h], 40000000h
+  .text:000000018020E88F                 jnz     loc_18020E929
+  .text:000000018020E895                 mov     ecx, [rdi+10h]
+  .text:000000018020E898                 cmp     ecx, 7FFFFFFEh
+  .text:000000018020E89E                 jle     short loc_18020E8AA
+  .text:000000018020E8A0                 mov     edx, 1
+  .text:000000018020E8A5                 call    UtlVectorMemory_FailedAllocation
+  .text:000000018020E8AA                 mov     ecx, [rdi+10h]
+  .text:000000018020E8AD                 mov     r9d, 8
+  .text:000000018020E8B3                 mov     edx, [rdi+14h]
+  .text:000000018020E8B6                 and     edx, 3FFFFFFFh
+  .text:000000018020E8BC                 lea     esi, [rcx+1]
+  .text:000000018020E8BF                 mov     r8d, esi
+  .text:000000018020E8C2                 call    UtlVectorMemory_CalcNewAllocationCount
+  .text:000000018020E8C7                 mov     ebx, eax
+  .text:000000018020E8C9                 cmp     eax, esi
+  .text:000000018020E8CB                 jge     short loc_18020E8EE
+  .text:000000018020E8CD                 test    eax, eax
+  .text:000000018020E8CF                 jnz     short loc_18020E8E0
+  .text:000000018020E8D1                 cmp     esi, 0FFFFFFFFh
+  .text:000000018020E8D4                 jg      short loc_18020E8E0
+  .text:000000018020E8D6                 mov     ebx, 0FFFFFFFFh
+  .text:000000018020E8DB                 jmp     short loc_18020E8EE
+  .text:000000018020E8E0                 lea     eax, [rbx+rsi]
+  .text:000000018020E8E3                 cdq
+  .text:000000018020E8E4                 sub     eax, edx
+  .text:000000018020E8E6                 sar     eax, 1
+  .text:000000018020E8E8                 mov     ebx, eax
+  .text:000000018020E8EA                 cmp     eax, esi
+  .text:000000018020E8EC                 jl      short loc_18020E8E0
+  .text:000000018020E8EE                 movsxd  r9, dword ptr [rdi+10h]
+  .text:000000018020E8F2                 mov     rcx, [rdi+8]
+  .text:000000018020E8F6                 shl     r9, 3
+  .text:000000018020E8FA                 movsxd  r8, ebx
+  .text:000000018020E8FD                 shl     r8, 3
+  .text:000000018020E901                 test    dword ptr [rdi+14h], 0C0000000h
+  .text:000000018020E908                 setz    dl
+  .text:000000018020E90B                 call    UtlVectorMemory_Alloc
+  .text:000000018020E910                 mov     [rdi+8], rax
+  .text:000000018020E914                 mov     eax, [rdi+14h]
+  .text:000000018020E917                 test    eax, 0C0000000h
+  .text:000000018020E91C                 jz      short loc_18020E926
+  .text:000000018020E91E                 and     eax, 3FFFFFFFh
+  .text:000000018020E923                 mov     [rdi+14h], eax
+  .text:000000018020E926                 mov     [rdi+10h], ebx
+  .text:000000018020E929                 inc     dword ptr [rdi]
+  .text:000000018020E92B                 inc     r15d
+  .text:000000018020E92E                 mov     rax, [rdi+8]
+  .text:000000018020E932                 add     r15d, r12d
+  .text:000000018020E935                 mov     [rax+rbp*8], r13
+  .text:000000018020E939                 cmp     r15d, [r14+220h]
+  .text:000000018020E940                 jge     short loc_18020E955
+  .text:000000018020E942                 cmp     [rsp+98h+var_50], 0
+  .text:000000018020E947                 mov     rbp, [rsp+98h+arg_10]
+  .text:000000018020E94F                 jz      loc_18020E800
+  .text:000000018020E955                 mov     bl, 1
+  .text:000000018020E957                 mov     ecx, [rsp+98h+var_64]
+  .text:000000018020E95B                 mov     r13, [rsp+98h+arg_8]
+  .text:000000018020E963                 mov     [rsp+98h+var_68], 0
+  .text:000000018020E96B                 test    ecx, 7FFFFFFFh
+  .text:000000018020E971                 jbe     short loc_18020E98D
+  .text:000000018020E973                 shr     ecx, 1Fh
+  .text:000000018020E976                 test    cl, cl
+  .text:000000018020E978                 jnz     short loc_18020E98D
+  .text:000000018020E97A                 mov     rcx, cs:g_pMemAlloc
+  .text:000000018020E981                 mov     rdx, [rsp+98h+var_60]
+  .text:000000018020E986                 mov     r8, [rcx]
+  .text:000000018020E989                 call    qword ptr [r8+18h]
+  .text:000000018020E98D                 movzx   eax, bl
+  .text:000000018020E990                 jmp     loc_18020E7A1
+  .text:000000018020E995                 mov     rcx, r14
+  .text:000000018020E998                 call    sub_18005A970
+  .text:000000018020E99D                 xor     bl, bl
+  .text:000000018020E99F                 jmp     short loc_18020E957
+  .text:000000018020E9A1                 xor     al, al
+  .text:000000018020E9A3                 jmp     loc_18020E7A9
+procedure: |-
+  char __fastcall sub_18020E690(__int64 a1, _BYTE *a2, const struct characterset_t *a3)
+  {
+    const struct characterset_t *v4; // rbp
+    __int64 v5; // rdx
+    _DWORD *v7; // rcx
+    __int64 v8; // rdx
+    int v9; // eax
+    int *v10; // rdi
+    int v11; // edx
+    __int64 v12; // rbx
+    __int64 v14; // r9
+    int v15; // r15d
+    int v16; // esi
+    int v17; // ebx
+    char *v18; // r13
+    int v19; // eax
+    int v20; // r12d
+    __int64 v21; // rbp
+    int v22; // edx
+    __int64 v23; // r8
+    int v24; // edx
+    __int64 v25; // rcx
+    __int64 v26; // rcx
+    int v27; // esi
+    int v28; // eax
+    __int64 v29; // rdx
+    int v30; // ebx
+    int v31; // eax
+    char v32; // bl
+    int v33; // [rsp+30h] [rbp-68h] BYREF
+    int v34; // [rsp+34h] [rbp-64h]
+    __int64 v35; // [rsp+38h] [rbp-60h]
+    int v36; // [rsp+40h] [rbp-58h]
+    char v37; // [rsp+48h] [rbp-50h]
+    const struct characterset_t *v38; // [rsp+B0h] [rbp+18h]
+
+    v38 = a3;
+    v4 = a3;
+    v5 = *(unsigned int *)(a1 + 8);
+    if ( !(_DWORD)v5 )
+    {
+      sub_18005BE90(a1 + 8, v5, 511);
+      v7 = (_DWORD *)(a1 + 544);
+      v8 = *(unsigned int *)(a1 + 544);
+      v9 = 511 - v8;
+      if ( 511 - (int)v8 <= 0 )
+      {
+        if ( v9 < 0 )
+          *v7 = 511;
+      }
+      else
+      {
+        sub_18005BE90(v7, v8, (unsigned int)v9);
+      }
+    }
+    v10 = (int *)(a1 + 1080);
+    *(_DWORD *)a1 = 0;
+    **(_BYTE **)(a1 + 16) = 0;
+    if ( -*(_DWORD *)(a1 + 1080) >= 0 && *(_DWORD *)(a1 + 1080) != 0 )
+    {
+      v11 = *(_DWORD *)(a1 + 1096);
+      if ( v11 < 0 )
+        sub_18005C050(a1 + 1080, (unsigned int)-v11);
+      goto LABEL_10;
+    }
+    if ( *(int *)(a1 + 1080) > 0 )
+  LABEL_10:
+      *v10 = 0;
+    *(_BYTE *)(a1 + 1616) = 0;
+    *(_QWORD *)(a1 + 1624) = 0x7FF8000000000000LL;
+    *(_QWORD *)(a1 + 1632) = 0;
+    if ( !a2 || !*a2 )
+      return 0;
+    if ( !v4 )
+    {
+      v4 = (const struct characterset_t *)(*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pCVar + 256LL))(g_pCVar);  // 256LL = 0x100 = ICvar_GetCharacterSet
+      v38 = v4;
+    }
+    v12 = -1;
+    do
+      ++v12;
+    while ( a2[v12] );
+    if ( (int)v12 < *(_DWORD *)(a1 + 8) - 1 )
+    {
+      V_tier0_memmove_0(*(_QWORD *)(a1 + 16), a2, (int)v12 + 1);
+      LOBYTE(v14) = 9;
+      CUtlBuffer::CUtlBuffer(&v33, *(_QWORD *)(a1 + 16), (unsigned int)v12, v14);
+      v15 = 0;
+      if ( !v37 )
+      {
+        while ( 1 )
+        {
+          v16 = v36;
+          v17 = *(_DWORD *)(a1 + 544) - v15;
+          v18 = (char *)(*(_QWORD *)(a1 + 552) + v15);
+          v19 = CUtlBuffer::ParseToken((CUtlBuffer *)&v33, v4, v18, v17, 1);
+          v20 = v19;
+          if ( v19 < 0 )
+            break;
+          if ( v17 == v19 )
+          {
+            sub_18005A970(a1);
+            v32 = 0;
+            goto LABEL_43;
+          }
+          v21 = *v10;
+          if ( (_DWORD)v21 == 1 )
+          {
+            v22 = v36;
+            *(_DWORD *)a1 = v36;
+            v23 = *(_QWORD *)(a1 + 16);
+            if ( *(_BYTE *)(v22 - 1 + v23) == 34 )
+              --v22;
+            v24 = v22 - v19;
+            *(_DWORD *)a1 = v24;
+            if ( v24 > v16 && *(_BYTE *)(v24 + v23 - 1) == 34 )
+              *(_DWORD *)a1 = v24 - 1;
+          }
+          if ( (_DWORD)v21 == *(_DWORD *)(a1 + 1096) && (*(_DWORD *)(a1 + 1100) & 0x40000000) == 0 )
+          {
+            v25 = *(unsigned int *)(a1 + 1096);
+            if ( (_DWORD)v25 == 0x7FFFFFFF )
+              UtlVectorMemory_FailedAllocation(v25, 1);
+            v26 = *(unsigned int *)(a1 + 1096);
+            v27 = v26 + 1;
+            v28 = UtlVectorMemory_CalcNewAllocationCount(
+                    v26,
+                    *(_DWORD *)(a1 + 1100) & 0x3FFFFFFF,
+                    (unsigned int)(v26 + 1),
+                    8);
+            v30 = v28;
+            if ( v28 < v27 )
+            {
+              if ( v28 || v27 > -1 )
+              {
+                do
+                {
+                  v29 = (unsigned int)((v30 + v27) >> 31);
+                  v30 = (v30 + v27) / 2;
+                }
+                while ( v30 < v27 );
+              }
+              else
+              {
+                v30 = -1;
+              }
+            }
+            LOBYTE(v29) = (*(_DWORD *)(a1 + 1100) & 0xC0000000) == 0;
+            *(_QWORD *)(a1 + 1088) = UtlVectorMemory_Alloc(
+                                       *(_QWORD *)(a1 + 1088),
+                                       v29,
+                                       8LL * v30,
+                                       8LL * *(int *)(a1 + 1096));
+            v31 = *(_DWORD *)(a1 + 1100);
+            if ( (v31 & 0xC0000000) != 0 )
+              *(_DWORD *)(a1 + 1100) = v31 & 0x3FFFFFFF;
+            *(_DWORD *)(a1 + 1096) = v30;
+          }
+          ++*v10;
+          v15 += v20 + 1;
+          *(_QWORD *)(*(_QWORD *)(a1 + 1088) + 8 * v21) = v18;
+          if ( v15 < *(_DWORD *)(a1 + 544) )
+          {
+            v4 = v38;
+            if ( !v37 )
+              continue;
+          }
+          break;
+        }
+      }
+      v32 = 1;
+  LABEL_43:
+      v33 = 0;
+      if ( (v34 & 0x7FFFFFFF) != 0 && v34 >= 0 )
+        (*(void (__fastcall **)(__int64, __int64))(*(_QWORD *)g_pMemAlloc + 24LL))(g_pMemAlloc, v35);
+      return v32;
+    }
+    else
+    {
+      Warning("CCommand::Tokenize: Encountered command which overflows the tokenizer buffer.. Skipping!\n");
+      return 0;
+    }
+  }
