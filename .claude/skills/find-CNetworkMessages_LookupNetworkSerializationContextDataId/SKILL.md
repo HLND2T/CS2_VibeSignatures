@@ -1,16 +1,16 @@
 ---
-name: find-CNetworkMessages_GetNetworkSerializationContextData
+name: find-CNetworkMessages_LookupNetworkSerializationContextDataId
 description: |
-  Find and identify the CNetworkMessages_GetNetworkSerializationContextData virtual function in CS2 binary using IDA Pro MCP.
-  Use this skill when reverse engineering CS2 networksystem.dll or libnetworksystem.so to locate the getter vfunc
+  Find and identify the CNetworkMessages_LookupNetworkSerializationContextDataId virtual function in CS2 binary using IDA Pro MCP.
+  Use this skill when reverse engineering CS2 networksystem.dll or libnetworksystem.so to locate the context-ID lookup vfunc
   by reusing the known CNetworkMessages_SetNetworkSerializationContextData slot and checking the adjacent CNetworkMessages vtable entry.
-  Trigger: CNetworkMessages_GetNetworkSerializationContextData
+  Trigger: CNetworkMessages_LookupNetworkSerializationContextDataId
 disable-model-invocation: true
 ---
 
-# Find CNetworkMessages_GetNetworkSerializationContextData
+# Find CNetworkMessages_LookupNetworkSerializationContextDataId
 
-Locate `CNetworkMessages_GetNetworkSerializationContextData` vfunc in CS2 `networksystem.dll` or `libnetworksystem.so` using IDA Pro MCP tools.
+Locate `CNetworkMessages_LookupNetworkSerializationContextDataId` vfunc in CS2 `networksystem.dll` or `libnetworksystem.so` using IDA Pro MCP tools.
 
 ## Method
 
@@ -34,9 +34,9 @@ Otherwise, extract:
 - `vtable_numvfunc`
 - `vtable_entries`
 
-### 3. Resolve the Adjacent Getter Slot
+### 3. Resolve the Adjacent Context-ID Lookup Slot
 
-Compute the candidate slot for `CNetworkMessages_GetNetworkSerializationContextData`:
+Compute the candidate slot for `CNetworkMessages_LookupNetworkSerializationContextDataId`:
 
 - `target_vfunc_index = CNetworkMessages_SetNetworkSerializationContextData.vfunc_index + 1`
 - `target_vfunc_offset = CNetworkMessages_SetNetworkSerializationContextData.vfunc_offset + 8`
@@ -45,10 +45,13 @@ Validate that `target_vfunc_index < vtable_numvfunc`, then read:
 
 - `candidate_func_addr = CNetworkMessages_vtable[target_vfunc_index]`
 
-This adjacent-slot rule is required because `GetNetworkSerializationContextData` immediately follows
+This adjacent-slot rule is required because `LookupNetworkSerializationContextDataId` immediately follows
 `SetNetworkSerializationContextData` in the `CNetworkMessages` vtable for `networksystem.dll` / `libnetworksystem.so`.
 
-### 4. Decompile the Getter Candidate
+The following slot, `GetNetworkSerializationContextData(uint16, NetworkSerializationMode_t)`, returns
+the stored data pointer. Do not confuse that data getter with this string-to-ID lookup.
+
+### 4. Decompile the Context-ID Lookup Candidate
 
 Decompile the resolved adjacent entry:
 
@@ -56,7 +59,7 @@ Decompile the resolved adjacent entry:
 mcp__ida-pro-mcp__decompile addr="<candidate_func_addr>"
 ```
 
-Confirm the candidate matches the network-serialization-context getter pattern.
+Confirm the candidate matches the serialization-context ID lookup pattern.
 
 Expected behavior:
 
@@ -68,7 +71,7 @@ Expected behavior:
 Windows example shape:
 
 ```c
-__int64 __fastcall CNetworkMessages_GetNetworkSerializationContextData(..., __int64 key_name)
+__int64 __fastcall CNetworkMessages_LookupNetworkSerializationContextDataId(..., __int64 key_name)
 {
   AcquireSRWLockExclusive(...);
   CUtlSymbolTable::Find(..., key_name);
@@ -81,7 +84,7 @@ __int64 __fastcall CNetworkMessages_GetNetworkSerializationContextData(..., __in
 Linux example shape:
 
 ```c
-__int64 __fastcall CNetworkMessages_GetNetworkSerializationContextData(__int64 thisptr, __int64 key_name)
+__int64 __fastcall CNetworkMessages_LookupNetworkSerializationContextDataId(__int64 thisptr, __int64 key_name)
 {
   ...
   sub_176D10(..., thisptr + ..., key_name);
@@ -96,11 +99,11 @@ The exact helper names and structure offsets may change across game updates. The
 2. It performs a locked lookup from the `CNetworkMessages` serialization-context symbol table
 3. It returns the resolved small integer context value instead of writing data into the object
 
-If all three conditions hold, the candidate is `CNetworkMessages_GetNetworkSerializationContextData`.
+If all three conditions hold, the candidate is `CNetworkMessages_LookupNetworkSerializationContextDataId`.
 
 ### 5. Generate Function Signature
 
-**ALWAYS** Use SKILL `/generate-signature-for-function` with `addr=<candidate_func_addr>` to generate a robust and unique `func_sig` for `CNetworkMessages_GetNetworkSerializationContextData`.
+**ALWAYS** Use SKILL `/generate-signature-for-function` with `addr=<candidate_func_addr>` to generate a robust and unique `func_sig` for `CNetworkMessages_LookupNetworkSerializationContextDataId`.
 
 Use the returned validated `func_sig` in the next step.
 
@@ -109,7 +112,7 @@ Use the returned validated `func_sig` in the next step.
 **ALWAYS** Use SKILL `/write-vfunc-as-yaml` to write the analysis results.
 
 Required parameters:
-- `func_name`: `CNetworkMessages_GetNetworkSerializationContextData`
+- `func_name`: `CNetworkMessages_LookupNetworkSerializationContextDataId`
 - `func_addr`: `<candidate_func_addr>`
 - `func_sig`: The validated signature from step 5
 - `vfunc_sig`: `None`
@@ -141,5 +144,5 @@ This is robust because:
 ## Output YAML Format
 
 The output YAML filename depends on the platform:
-- `networksystem.dll` -> `CNetworkMessages_GetNetworkSerializationContextData.windows.yaml`
-- `libnetworksystem.so` -> `CNetworkMessages_GetNetworkSerializationContextData.linux.yaml`
+- `networksystem.dll` -> `CNetworkMessages_LookupNetworkSerializationContextDataId.windows.yaml`
+- `libnetworksystem.so` -> `CNetworkMessages_LookupNetworkSerializationContextDataId.linux.yaml`

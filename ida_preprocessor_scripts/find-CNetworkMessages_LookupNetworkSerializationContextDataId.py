@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CNetworkMessages_GetNetworkSerializationContextData skill."""
+"""Preprocess script for find-CNetworkMessages_LookupNetworkSerializationContextDataId skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
-    "CNetworkMessages_GetNetworkSerializationContextData",
+    "CNetworkMessages_LookupNetworkSerializationContextDataId",
 ]
 
 FUNC_VTABLE_RELATIONS = [
     # (func_name, vtable_class)
     (
-        "CNetworkMessages_GetNetworkSerializationContextData",
+        "CNetworkMessages_LookupNetworkSerializationContextDataId",
         "CNetworkMessages",
     ),
 ]
@@ -19,7 +19,7 @@ FUNC_VTABLE_RELATIONS = [
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
     (
-        "CNetworkMessages_GetNetworkSerializationContextData",
+        "CNetworkMessages_LookupNetworkSerializationContextDataId",
         [
             "func_name",
             "func_va",

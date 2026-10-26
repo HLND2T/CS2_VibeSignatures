@@ -384,6 +384,63 @@ class TestInitGamebin(unittest.TestCase):
         self.assertEqual("Steam depot fallback", result["source"])
         fallback.assert_called_once_with(root, "14168", config)
 
+    def test_prepare_supplements_verified_release_when_configured_binaries_are_missing(self) -> None:
+        root = Path("repo")
+        config = root / "configs" / "14168.yaml"
+        for release_complete, depot_complete in ((True, True), (False, True), (False, False)):
+            with (
+                self.subTest(release_complete=release_complete, depot_complete=depot_complete),
+                patch.object(init_gamebin, "load_versions", return_value=["14168"]),
+                patch.object(init_gamebin, "resolve_analysis_config", return_value=config),
+                patch.object(init_gamebin, "check_binaries", side_effect=[False, release_complete, depot_complete]),
+                patch.object(init_gamebin, "fetch_release_manifest", return_value={}),
+                patch.object(init_gamebin, "download_verified_release_archive", return_value=(Path("gamebin.7z"), [])),
+                patch.object(init_gamebin, "extract_archive"),
+                patch.object(init_gamebin, "merge_archive_bin", return_value=(20, 0)),
+                patch.object(init_gamebin, "run_depot_fallback") as fallback,
+                patch.object(init_gamebin, "verify_source_binary_root") as verify,
+            ):
+                if depot_complete:
+                    result = init_gamebin.prepare(root, "14168")
+                    expected_source = (
+                        "release archive" if release_complete else "release archive + Steam depot fallback"
+                    )
+                    self.assertEqual(expected_source, result["source"])
+                    self.assertEqual(20, result["copied"])
+                    verify.assert_called_once_with(
+                        repo_root=root,
+                        gamever="14168",
+                        binary_root=root / "bin" / "14168",
+                        label="initialized binary tree",
+                    )
+                else:
+                    with self.assertRaisesRegex(init_gamebin.InitGamebinError, "still incomplete"):
+                        init_gamebin.prepare(root, "14168")
+                    verify.assert_not_called()
+                if release_complete:
+                    fallback.assert_not_called()
+                else:
+                    fallback.assert_called_once_with(root, "14168", config)
+
+    def test_prepare_invalid_release_archive_does_not_use_depot_fallback(self) -> None:
+        with (
+            patch.object(init_gamebin, "load_versions", return_value=["14168"]),
+            patch.object(init_gamebin, "resolve_analysis_config", return_value=Path("configs/14168.yaml")),
+            patch.object(init_gamebin, "check_binaries", return_value=False),
+            patch.object(init_gamebin, "fetch_release_manifest", return_value={}),
+            patch.object(
+                init_gamebin,
+                "download_verified_release_archive",
+                side_effect=init_gamebin.InitGamebinError("archive differs from the Release manifest"),
+            ),
+            patch.object(init_gamebin, "run_depot_fallback") as fallback,
+            patch.object(init_gamebin, "verify_source_binary_root") as verify,
+        ):
+            with self.assertRaisesRegex(init_gamebin.InitGamebinError, "differs from the Release manifest"):
+                init_gamebin.prepare(Path("repo"), "14168")
+        fallback.assert_not_called()
+        verify.assert_not_called()
+
     def test_prepare_rejects_complete_binary_tree_that_differs_from_source_lock(self) -> None:
         root = Path("repo")
         config = root / "configs" / "14168.yaml"
