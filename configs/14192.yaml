@@ -6635,6 +6635,32 @@ modules:
           - CScriptConvarAccessor_RegisterConvar.{platform}.yaml
         prerequisite:
           - find-ICvar_RegisterConVar_Impl
+      - name: find-CaptureCubemap_Static_Init-windows
+        platform: windows
+        expected_output:
+          - CaptureCubemap_Static_Init.{platform}.yaml
+      - name: find-Global_Static_Init-linux
+        platform: linux
+        expected_output:
+          - Global_Static_Init.{platform}.yaml
+      - name: find-CaptureCubemap_Static_Cleanup-windows
+        platform: windows
+        expected_output:
+          - CaptureCubemap_Static_Cleanup.{platform}.yaml
+        expected_input:
+          - CaptureCubemap_Static_Init.{platform}.yaml
+      - name: find-ConCommand_Destroy
+        expected_output:
+          - ConCommand_Destroy.{platform}.yaml
+        expected_input_windows:
+          - CaptureCubemap_Static_Cleanup.{platform}.yaml
+        expected_input_linux:
+          - Global_Static_Init.{platform}.yaml
+      - name: find-ICvar_UnregisterConCommandCallbacks
+        expected_output:
+          - ICvar_UnregisterConCommandCallbacks.{platform}.yaml
+        expected_input:
+          - ConCommand_Destroy.{platform}.yaml
     symbols:
       - name: CLoopModeGame_RegisterEventMapInternal
         category: func
@@ -7887,6 +7913,19 @@ modules:
         category: func
       - name: RegisterConVar
         category: func
+      - name: CaptureCubemap_Static_Init
+        category: func
+        platform: windows
+      - name: CaptureCubemap_Static_Cleanup
+        category: func
+        platform: windows
+      - name: Global_Static_Init
+        category: func
+        platform: linux
+      - name: ConCommand_Destroy
+        category: func
+      - name: ICvar_UnregisterConCommandCallbacks
+        category: vfunc
       - name: ICvar_RegisterConVar
         category: vfunc
   - name: server
@@ -16042,6 +16081,12 @@ modules:
         expected_input:
           - ../engine/ICvar_DispatchConCommand.{platform}.yaml
           - CCvar_vtable.{platform}.yaml
+      - name: find-CCvar_UnregisterConCommandCallbacks
+        expected_output:
+          - CCvar_UnregisterConCommandCallbacks.{platform}.yaml
+        expected_input:
+          - ../client/ICvar_UnregisterConCommandCallbacks.{platform}.yaml
+          - CCvar_vtable.{platform}.yaml
     symbols:
       - name: CCommandLine_vtable
         category: vtable
@@ -16178,6 +16223,10 @@ modules:
           - CCvar::RemoveCreationListeners
       - name: CCvar_DispatchConCommand
         category: vfunc
+      - name: CCvar_UnregisterConCommandCallbacks
+        category: vfunc
+        alias:
+          - CCvar::UnregisterConCommandCallbacks
   - name: schemasystem
     path_windows: game/bin/win64/schemasystem.dll
     path_linux: game/bin/linuxsteamrt64/libschemasystem.so

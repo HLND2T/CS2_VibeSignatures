@@ -1,0 +1,32 @@
+func_name: ConCommand_Destroy
+func_va: '0x1819ca820'
+disasm_code: |-
+  .text:00000001819CA820                 push    rbx
+  .text:00000001819CA822                 sub     rsp, 20h
+  .text:00000001819CA826                 cmp     qword ptr [rcx], 0FFFFh
+  .text:00000001819CA82D                 mov     rbx, rcx
+  .text:00000001819CA830                 jz      short loc_1819CA851
+  .text:00000001819CA832                 mov     rcx, cs:g_pVEngineCvar
+  .text:00000001819CA839                 test    rcx, rcx
+  .text:00000001819CA83C                 jz      short loc_1819CA84A
+  .text:00000001819CA83E                 mov     rax, [rcx]
+  .text:00000001819CA841                 mov     rdx, [rbx]
+  .text:00000001819CA844                 ; 0x158 = 344LL = ICvar_UnregisterConCommandCallbacks
+  .text:00000001819CA844                 call    qword ptr [rax+158h]; 0x158 = 344LL = ICvar_UnregisterConCommandCallbacks
+  .text:00000001819CA84A                 mov     qword ptr [rbx], 0FFFFh
+  .text:00000001819CA851                 add     rsp, 20h
+  .text:00000001819CA855                 pop     rbx
+  .text:00000001819CA856                 retn
+procedure: |-
+  __int64 __fastcall sub_1819CA820(_QWORD *a1)
+  {
+    __int64 result; // rax
+
+    if ( *a1 != 0xFFFF )
+    {
+      if ( g_pVEngineCvar )
+        result = (*(__int64 (__fastcall **)(__int64, _QWORD))(*(_QWORD *)g_pVEngineCvar + 344LL))(g_pVEngineCvar, *a1);// 0x158 = 344LL = ICvar_UnregisterConCommandCallbacks
+      *a1 = 0xFFFF;
+    }
+    return result;
+  }
