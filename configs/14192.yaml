@@ -3400,6 +3400,10 @@ modules:
         category: vfunc
         alias:
           - ICvar::CopyUserInfoCvarDefaults
+      - name: ICvar_GetTotalUserInfoCvarsByteSize
+        category: vfunc
+        alias:
+          - ICvar::GetTotalUserInfoCvarsByteSize
       - name: CNetworkGameServer_vtable
         category: vtable
       - name: CServerSideClient_vtable
@@ -15368,9 +15372,11 @@ modules:
         expected_output:
           - ISource2GameClients_ClientSetConVarUserInfoSet.{platform}.yaml
           - ICvar_CopyUserInfoCvarDefaults.{platform}.yaml
+          - ICvar_GetTotalUserInfoCvarsByteSize.{platform}.yaml
         expected_input_windows:
           - CServerSideClientBase_dtor.{platform}.yaml
         expected_input_linux:
+          - CServerSideClientBase_dtor.{platform}.yaml
           - CServerSideClientBase_SetConVarUserInfo.{platform}.yaml
       - name: find-CNetworkClientService_IsPutInServer
         expected_output:
@@ -15887,6 +15893,12 @@ modules:
         expected_input:
           - ../engine/ICvar_CopyUserInfoCvarDefaults.{platform}.yaml
           - CCvar_vtable.{platform}.yaml
+      - name: find-CCvar_GetTotalUserInfoCvarsByteSize
+        expected_output:
+          - CCvar_GetTotalUserInfoCvarsByteSize.{platform}.yaml
+        expected_input:
+          - ../engine/ICvar_GetTotalUserInfoCvarsByteSize.{platform}.yaml
+          - CCvar_vtable.{platform}.yaml
       - name: find-ICvar_FindFirstConVar
         expected_output:
           - ICvar_FindFirstConVar.{platform}.yaml
@@ -16094,6 +16106,10 @@ modules:
         category: vfunc
         alias:
           - CCvar::CopyUserInfoCvarDefaults
+      - name: CCvar_GetTotalUserInfoCvarsByteSize
+        category: vfunc
+        alias:
+          - CCvar::GetTotalUserInfoCvarsByteSize
       - name: ICvar_FindFirstConVar
         category: vfunc
         alias:
