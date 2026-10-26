@@ -57,3 +57,11 @@ source SHA: config + download.yaml + binary lock
 - Release rebuild preparation and verification.
 - Accepted-bin restore/sync, warm-IDB production, trusted PR workers, and Release source preflight.
 - Release bundle build, hosted verification, and Pages schema consumers.
+
+## Published gamebin can be incomplete for the current config
+
+- Trigger: 14192 warmup initializes 30/32 configured entries from a verified 20-file Release archive, but `worldrenderer.dll` and `libworldrenderer.so` remain missing.
+- Root cause: a Release manifest describes its original published inventory; later source configs and binary locks can require additional modules. Archive integrity does not establish current config coverage.
+- Correct approach: after merging a verified Release, check current config coverage and supplement missing files through the configured exact-manifest Steam depot path. Preserve existing binaries and keep the final source binary lock comparison. Invalid manifests/archives must still fail directly.
+- Verification: regression coverage for complete/partial Releases, failed supplementation and invalid archives; verify the real published archive plus source-locked supplemental files against the current full binary lock.
+- Scope: `init_gamebin.py prepare`, including CI warmup and other callers using published gamebin fallback.

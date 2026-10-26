@@ -553,6 +553,12 @@ def prepare(
                     extract_archive(root, archive, extracted, expected_files)
                     copied, skipped = merge_archive_bin(extracted, root / "bin", gamever)
                     source = "release archive"
+                    if not check_binaries(root, gamever, config_path):
+                        print(
+                            "Verified Release archive is missing configured binaries; supplementing from Steam depots"
+                        )
+                        run_depot_fallback(root, gamever, config_path)
+                        source = "release archive + Steam depot fallback"
                 else:
                     run_depot_fallback(root, gamever, config_path)
                     source = "Steam depot fallback"
