@@ -21,7 +21,7 @@ NETWORK_MESSAGES_GET_IS_FOR_SERVER_SCRIPT_PATH = Path(
     "ida_preprocessor_scripts/find-CNetworkMessages_GetIsForServer.py"
 )
 NETWORK_MESSAGES_GET_SERIALIZATION_CONTEXT_SCRIPT_PATH = Path(
-    "ida_preprocessor_scripts/find-CNetworkMessages_GetNetworkSerializationContextData.py"
+    "ida_preprocessor_scripts/find-CNetworkMessages_LookupNetworkSerializationContextDataId.py"
 )
 FLASHBANG_PROJECTILE_SPAWN_DECOMPILES_SCRIPT_PATH = Path(
     "ida_preprocessor_scripts/find-CFlashbangProjectile_Spawn-decompiles.py"
@@ -287,11 +287,11 @@ class TestFindCNetworkMessagesGetIsForServer(unittest.IsolatedAsyncioTestCase):
         )
 
 
-class TestFindCNetworkMessagesGetNetworkSerializationContextData(unittest.IsolatedAsyncioTestCase):
+class TestFindCNetworkMessagesLookupNetworkSerializationContextDataId(unittest.IsolatedAsyncioTestCase):
     async def test_preprocess_skill_forwards_vfunc_metadata_contract(self) -> None:
         module = _load_module(
             NETWORK_MESSAGES_GET_SERIALIZATION_CONTEXT_SCRIPT_PATH,
-            "find_CNetworkMessages_GetNetworkSerializationContextData",
+            "find_CNetworkMessages_LookupNetworkSerializationContextDataId",
         )
         mock_preprocess_common_skill = AsyncMock(return_value=True)
 
@@ -319,16 +319,16 @@ class TestFindCNetworkMessagesGetNetworkSerializationContextData(unittest.Isolat
             new_binary_dir="bin_dir",
             platform="windows",
             image_base=0x180000000,
-            func_names=["CNetworkMessages_GetNetworkSerializationContextData"],
+            func_names=["CNetworkMessages_LookupNetworkSerializationContextDataId"],
             func_vtable_relations=[
                 (
-                    "CNetworkMessages_GetNetworkSerializationContextData",
+                    "CNetworkMessages_LookupNetworkSerializationContextDataId",
                     "CNetworkMessages",
                 ),
             ],
             generate_yaml_desired_fields=[
                 (
-                    "CNetworkMessages_GetNetworkSerializationContextData",
+                    "CNetworkMessages_LookupNetworkSerializationContextDataId",
                     [
                         "func_name",
                         "func_va",

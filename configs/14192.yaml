@@ -662,10 +662,10 @@ modules:
         alias:
           - CNetworkMessages::GetIsForServer
         shared: true
-      - name: CNetworkMessages_GetNetworkSerializationContextData
+      - name: CNetworkMessages_LookupNetworkSerializationContextDataId
         category: vfunc
         alias:
-          - CNetworkMessages::GetNetworkSerializationContextData
+          - CNetworkMessages::LookupNetworkSerializationContextDataId
         shared: true
       - name: CNetChan_ParseMessagesDemoInternal
         category: func
@@ -15746,9 +15746,9 @@ modules:
         expected_input:
           - CNetworkMessages_vtable.{platform}.yaml
           - ../server/INetworkMessages_SetNetworkSerializationContextData.{platform}.yaml
-      - name: find-CNetworkMessages_GetNetworkSerializationContextData
+      - name: find-CNetworkMessages_LookupNetworkSerializationContextDataId
         expected_output:
-          - CNetworkMessages_GetNetworkSerializationContextData.{platform}.yaml
+          - CNetworkMessages_LookupNetworkSerializationContextDataId.{platform}.yaml
         expected_input:
           - CNetworkMessages_vtable.{platform}.yaml
           - CNetworkMessages_SetNetworkSerializationContextData.{platform}.yaml
@@ -16491,6 +16491,7 @@ cpp_tests:
     target: x86_64-pc-windows-msvc
     include_directories:
       - cpp_tests/stubs
+      - s2sdk/common
       - s2sdk/game/shared
       - s2sdk/public
       - s2sdk/public/tier0
@@ -16518,6 +16519,7 @@ cpp_tests:
     target: x86_64-pc-windows-msvc
     include_directories:
       - cpp_tests/stubs
+      - s2sdk/common
       - s2sdk/game/shared
       - s2sdk/public
       - s2sdk/public/tier0
@@ -16945,6 +16947,7 @@ cpp_tests:
     target: x86_64-pc-linux-gnu
     include_directories:
       - cpp_tests/stubs
+      - s2sdk/common
       - s2sdk/game/shared
       - s2sdk/public
       - s2sdk/public/tier0
@@ -16971,6 +16974,7 @@ cpp_tests:
     target: x86_64-pc-linux-gnu
     include_directories:
       - cpp_tests/stubs
+      - s2sdk/common
       - s2sdk/game/shared
       - s2sdk/public
       - s2sdk/public/tier0
