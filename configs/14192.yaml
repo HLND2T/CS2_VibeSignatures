@@ -16000,6 +16000,20 @@ modules:
         expected_input:
           - ../server/ICvar_RemoveGlobalChangeCallback.{platform}.yaml
           - CCvar_vtable.{platform}.yaml
+      - name: find-CCommand_Tokenize
+        expected_output:
+          - CCommand_Tokenize.{platform}.yaml
+      - name: find-ICvar_GetCharacterSet
+        expected_output:
+          - ICvar_GetCharacterSet.{platform}.yaml
+        expected_input:
+          - CCommand_Tokenize.{platform}.yaml
+      - name: find-CCvar_GetCharacterSet
+        expected_output:
+          - CCvar_GetCharacterSet.{platform}.yaml
+        expected_input:
+          - ICvar_GetCharacterSet.{platform}.yaml
+          - CCvar_vtable.{platform}.yaml
       - name: find-CCvar_DispatchConCommand
         expected_output:
           - CCvar_DispatchConCommand.{platform}.yaml
@@ -16124,6 +16138,18 @@ modules:
         category: vfunc
         alias:
           - CCvar::RemoveGlobalChangeCallback
+      - name: CCommand_Tokenize
+        category: func
+        alias:
+          - CCommand::Tokenize
+      - name: ICvar_GetCharacterSet
+        category: vfunc
+        alias:
+          - ICvar::GetCharacterSet
+      - name: CCvar_GetCharacterSet
+        category: vfunc
+        alias:
+          - CCvar::GetCharacterSet
       - name: CCvar_DispatchConCommand
         category: vfunc
   - name: schemasystem
