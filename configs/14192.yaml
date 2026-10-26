@@ -15990,6 +15990,17 @@ modules:
         expected_input:
           - ICvar_FindConCommand.{platform}.yaml
           - CCvar_vtable.{platform}.yaml
+      - name: find-ICvar_GetConCommandData
+        expected_output:
+          - ICvar_GetConCommandData.{platform}.yaml
+        expected_input:
+          - CCvar_FindConCommand.{platform}.yaml
+      - name: find-CCvar_GetConCommandData
+        expected_output:
+          - CCvar_GetConCommandData.{platform}.yaml
+        expected_input:
+          - ICvar_GetConCommandData.{platform}.yaml
+          - CCvar_vtable.{platform}.yaml
       - name: find-ConVarRefAbstract_CallChangeCallbacks
         optional_output:
           - ConVarRefAbstract_CallChangeCallbacks.{platform}.yaml
@@ -16172,6 +16183,14 @@ modules:
         category: vfunc
         alias:
           - CCvar::GetCharacterSet
+      - name: ICvar_GetConCommandData
+        category: vfunc
+        alias:
+          - ICvar::GetConCommandData
+      - name: CCvar_GetConCommandData
+        category: vfunc
+        alias:
+          - CCvar::GetConCommandData
       - name: CCvar_RemoveCreationListeners
         category: vfunc
         alias:
