@@ -3,11 +3,16 @@
 
 from ida_analyze_util import preprocess_common_skill
 
-INHERIT_VFUNCS = [("CCvar_GetCharacterSet", "CCvar", "ICvar_GetCharacterSet", True)]
+INHERIT_VFUNCS = [
+    # (target_func_name, inherit_vtable_class, base_vfunc_name, generate_func_sig)
+    # GetCharacterSet is a two-instruction accessor thunk, so no unique func_sig exists.
+    ("CCvar_GetCharacterSet", "CCvar", "ICvar_GetCharacterSet", False),
+]
+
 GENERATE_YAML_DESIRED_FIELDS = [
     (
         "CCvar_GetCharacterSet",
-        ["func_name", "func_va", "func_rva", "func_size", "func_sig", "vtable_name", "vfunc_offset", "vfunc_index"],
+        ["func_name", "func_va", "func_rva", "func_size", "vtable_name", "vfunc_offset", "vfunc_index"],
     )
 ]
 

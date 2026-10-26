@@ -1622,6 +1622,14 @@ modules:
         expected_input:
           - CNetworkGameServerBase_ShutdownInternal.{platform}.yaml
           - CNetworkGameServerBase_vtable.{platform}.yaml
+      - name: find-CNetworkGameServerBase_dtor
+        expected_output:
+          - CNetworkGameServerBase_dtor.{platform}.yaml
+      - name: find-ICvar_RemoveCreationListeners
+        expected_output:
+          - ICvar_RemoveCreationListeners.{platform}.yaml
+        expected_input:
+          - CNetworkGameServerBase_dtor.{platform}.yaml
       - name: find-CNetworkGameServerBase_BroadcastMessage
         expected_output:
           - CNetworkGameServerBase_BroadcastMessage.{platform}.yaml
@@ -3602,6 +3610,14 @@ modules:
           - ICvar::RegisterCreationListeners
       - name: CNetworkGameServerBase_vtable
         category: vtable
+      - name: CNetworkGameServerBase_dtor
+        category: func
+        alias:
+          - CNetworkGameServerBase::~CNetworkGameServerBase
+      - name: ICvar_RemoveCreationListeners
+        category: vfunc
+        alias:
+          - ICvar::RemoveCreationListeners
       - name: CNetworkGameServerBase_SV_BroadcastVoiceData
         category: func
         alias:
@@ -16014,6 +16030,12 @@ modules:
         expected_input:
           - ICvar_GetCharacterSet.{platform}.yaml
           - CCvar_vtable.{platform}.yaml
+      - name: find-CCvar_RemoveCreationListeners
+        expected_output:
+          - CCvar_RemoveCreationListeners.{platform}.yaml
+        expected_input:
+          - ../engine/ICvar_RemoveCreationListeners.{platform}.yaml
+          - CCvar_vtable.{platform}.yaml
       - name: find-CCvar_DispatchConCommand
         expected_output:
           - CCvar_DispatchConCommand.{platform}.yaml
@@ -16150,6 +16172,10 @@ modules:
         category: vfunc
         alias:
           - CCvar::GetCharacterSet
+      - name: CCvar_RemoveCreationListeners
+        category: vfunc
+        alias:
+          - CCvar::RemoveCreationListeners
       - name: CCvar_DispatchConCommand
         category: vfunc
   - name: schemasystem
