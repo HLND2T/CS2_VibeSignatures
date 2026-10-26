@@ -1434,6 +1434,14 @@ modules:
       - name: find-CNetworkGameServerBase_ConnectClient
         expected_output:
           - CNetworkGameServerBase_ConnectClient.{platform}.yaml
+      - name: find-CNetworkGameServerBase_ctor
+        expected_output:
+          - CNetworkGameServerBase_ctor.{platform}.yaml
+      - name: find-ICvar_RegisterCreationListeners
+        expected_output:
+          - ICvar_RegisterCreationListeners.{platform}.yaml
+        expected_input:
+          - CNetworkGameServerBase_ctor.{platform}.yaml
       - name: find-CNetworkGameServerBase_vtable
         expected_output:
           - CNetworkGameServerBase_vtable.{platform}.yaml
@@ -3584,6 +3592,14 @@ modules:
         category: vfunc
         alias:
           - CNetworkGameServerBase::CheckPassword
+      - name: CNetworkGameServerBase_ctor
+        category: func
+        alias:
+          - CNetworkGameServerBase::CNetworkGameServerBase
+      - name: ICvar_RegisterCreationListeners
+        category: vfunc
+        alias:
+          - ICvar::RegisterCreationListeners
       - name: CNetworkGameServerBase_vtable
         category: vtable
       - name: CNetworkGameServerBase_SV_BroadcastVoiceData
@@ -15912,6 +15928,12 @@ modules:
         expected_input:
           - ICvar_CallChangeCallback.{platform}.yaml
           - CCvar_vtable.{platform}.yaml
+      - name: find-CCvar_RegisterCreationListeners
+        expected_output:
+          - CCvar_RegisterCreationListeners.{platform}.yaml
+        expected_input:
+          - ../engine/ICvar_RegisterCreationListeners.{platform}.yaml
+          - CCvar_vtable.{platform}.yaml
       - name: find-CKeyValuesSystem_vtable
         expected_output:
           - CKeyValuesSystem_vtable.{platform}.yaml
@@ -16068,6 +16090,10 @@ modules:
         category: vfunc
         alias:
           - CCvar::CallChangeCallback
+      - name: CCvar_RegisterCreationListeners
+        category: vfunc
+        alias:
+          - CCvar::RegisterCreationListeners
       - name: CCvar_CallFilterCallback
         category: vfunc
         alias:
