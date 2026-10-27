@@ -1,0 +1,293 @@
+func_name: CCvar_FindConCommand
+func_va: '0x159c00'
+disasm_code: |-
+  .text:0000000000159C00                 push    rbp
+  .text:0000000000159C01                 mov     rbp, rsp
+  .text:0000000000159C04                 push    r15
+  .text:0000000000159C06                 mov     r15, rsi
+  .text:0000000000159C09                 push    r14
+  .text:0000000000159C0B                 mov     r14, rdi
+  .text:0000000000159C0E                 push    r13
+  .text:0000000000159C10                 push    r12
+  .text:0000000000159C12                 lea     r12, [rdi+158h]
+  .text:0000000000159C19                 push    rbx
+  .text:0000000000159C1A                 mov     ebx, edx
+  .text:0000000000159C1C                 sub     rsp, 0A8h
+  .text:0000000000159C23                 call    sub_12B2E0
+  .text:0000000000159C28                 cmp     rax, [r14+160h]
+  .text:0000000000159C2F                 jz      loc_159D78
+  .text:0000000000159C35                 mov     rsi, rax
+  .text:0000000000159C38                 mov     eax, [r14+158h]
+  .text:0000000000159C3F                 test    eax, eax
+  .text:0000000000159C41                 jz      loc_159CF0
+  .text:0000000000159C47                 mov     rdi, r12
+  .text:0000000000159C4A                 call    sub_12B670
+  .text:0000000000159C4F                 xor     eax, eax
+  .text:0000000000159C51                 test    r15, r15
+  .text:0000000000159C54                 jz      short loc_159C60
+  .text:0000000000159C56                 cmp     byte ptr [r15], 0
+  .text:0000000000159C5A                 jnz     loc_159D90
+  .text:0000000000159C60                 xor     ecx, ecx
+  .text:0000000000159C62                 mov     edx, eax
+  .text:0000000000159C64                 mov     esi, eax
+  .text:0000000000159C66                 lea     rdi, [r14+118h]
+  .text:0000000000159C6D                 call    sub_1571E0
+  .text:0000000000159C72                 cmp     eax, 0FFFFFFFFh
+  .text:0000000000159C75                 jz      loc_159D40
+  .text:0000000000159C7B                 xor     edx, edx
+  .text:0000000000159C7D                 test    dword ptr [r14+11Ch], 7FFFFFFFh
+  .text:0000000000159C88                 jz      short loc_159C91
+  .text:0000000000159C8A                 mov     rdx, [r14+120h]
+  .text:0000000000159C91                 cdqe
+  .text:0000000000159C93                 lea     rax, [rax+rax*2]
+  .text:0000000000159C97                 movzx   r13d, word ptr [rdx+rax*4+8]
+  .text:0000000000159C9D                 cmp     r13, 0FFFFh
+  .text:0000000000159CA4                 jz      loc_159D40
+  .text:0000000000159CAA                 lea     r15, qword_50D648
+  .text:0000000000159CB1                 mov     rsi, r13
+  .text:0000000000159CB4                 mov     rdi, [r15]
+  .text:0000000000159CB7                 mov     rax, [rdi]
+  .text:0000000000159CBA                 call    qword ptr [rax+160h]; 0x160 = 352LL = ICvar_GetConCommandData
+  .text:0000000000159CC0                 test    byte ptr [rax+10h], 2
+  .text:0000000000159CC4                 jnz     short loc_159D20
+  .text:0000000000159CC6                 sub     word ptr [r14+15Ch], 1
+  .text:0000000000159CCF                 jz      loc_159D51
+  .text:0000000000159CD5                 add     rsp, 0A8h
+  .text:0000000000159CDC                 mov     rax, r13
+  .text:0000000000159CDF                 pop     rbx
+  .text:0000000000159CE0                 pop     r12
+  .text:0000000000159CE2                 pop     r13
+  .text:0000000000159CE4                 pop     r14
+  .text:0000000000159CE6                 pop     r15
+  .text:0000000000159CE8                 pop     rbp
+  .text:0000000000159CE9                 retn
+  .text:0000000000159CF0                 mov     edx, 3
+  .text:0000000000159CF5                 lock cmpxchg [r12], edx
+  .text:0000000000159CFB                 jnz     loc_159C47
+  .text:0000000000159D01                 mov     eax, 1
+  .text:0000000000159D06                 mov     [r14+160h], rsi
+  .text:0000000000159D0D                 mov     [r14+15Ch], ax
+  .text:0000000000159D15                 jmp     loc_159C4F
+  .text:0000000000159D20                 test    ebx, ebx
+  .text:0000000000159D22                 jnz     short loc_159D40
+  .text:0000000000159D24                 mov     rdi, [r15]
+  .text:0000000000159D27                 mov     rsi, r13
+  .text:0000000000159D2A                 mov     rax, [rdi]
+  .text:0000000000159D2D                 ; 0x160 = 352LL = ICvar_GetConCommandData
+  .text:0000000000159D2D                 call    qword ptr [rax+160h]; 0x160 = 352LL = ICvar_GetConCommandData
+  .text:0000000000159D33                 test    byte ptr [rax+14h], 1
+  .text:0000000000159D37                 jnz     short loc_159CC6
+  .text:0000000000159D39                 nop     dword ptr [rax+00000000h]
+  .text:0000000000159D40                 sub     word ptr [r14+15Ch], 1
+  .text:0000000000159D49                 mov     r13d, 0FFFFh
+  .text:0000000000159D4F                 jnz     short loc_159CD5
+  .text:0000000000159D51                 mov     qword ptr [r14+160h], 0
+  .text:0000000000159D5C                 lock sub dword ptr [r12], 3
+  .text:0000000000159D62                 jz      loc_159CD5
+  .text:0000000000159D68                 mov     rdi, r12
+  .text:0000000000159D6B                 call    sub_12B240
+  .text:0000000000159D70                 jmp     loc_159CD5
+  .text:0000000000159D78                 add     word ptr [r14+15Ch], 1
+  .text:0000000000159D81                 jmp     loc_159C4F
+  .text:0000000000159D90                 lea     r13, [rbp+var_C0]
+  .text:0000000000159D97                 mov     rdi, r15
+  .text:0000000000159D9A                 call    sub_134CE0
+  .text:0000000000159D9F                 xor     r8d, r8d
+  .text:0000000000159DA2                 xor     esi, esi
+  .text:0000000000159DA4                 mov     rdx, r15
+  .text:0000000000159DA7                 mov     r10, rax
+  .text:0000000000159DAA                 mov     rdi, r13
+  .text:0000000000159DAD                 mov     qword ptr [rbp+var_D0], rax
+  .text:0000000000159DB4                 mov     rax, 0C000008000000000h
+  .text:0000000000159DBE                 mov     ecx, r10d
+  .text:0000000000159DC1                 mov     [rbp+var_C4], r10d
+  .text:0000000000159DC8                 mov     [rbp+var_C0], rax
+  .text:0000000000159DCF                 mov     [rbp+var_B8], 0
+  .text:0000000000159DDA                 call    sub_1290F0
+  .text:0000000000159DDF                 xor     esi, esi
+  .text:0000000000159DE1                 mov     rdi, r13
+  .text:0000000000159DE4                 call    sub_129020
+  .text:0000000000159DE9                 test    byte ptr [rbp+var_C0+7], 40h
+  .text:0000000000159DF0                 lea     rcx, [rbp+var_B8]
+  .text:0000000000159DF7                 mov     r9d, [rbp+var_C4]
+  .text:0000000000159DFE                 mov     r10, qword ptr [rbp+var_D0]
+  .text:0000000000159E05                 jnz     short loc_159E21
+  .text:0000000000159E07                 lea     rcx, byte_10EB47
+  .text:0000000000159E0E                 test    dword ptr [rbp+var_C0+4], 3FFFFFFFh
+  .text:0000000000159E18                 jz      short loc_159E21
+  .text:0000000000159E1A                 mov     rcx, [rbp+var_B8]
+  .text:0000000000159E21                 mov     eax, r10d
+  .text:0000000000159E24                 xor     eax, 31415926h
+  .text:0000000000159E29                 cmp     r10d, 3
+  .text:0000000000159E2D                 jle     short loc_159EAB
+  .text:0000000000159E2F                 lea     r9d, [r10-4]
+  .text:0000000000159E33                 mov     r8d, r9d
+  .text:0000000000159E36                 shr     r8d, 2
+  .text:0000000000159E3A                 lea     edx, [r8+1]
+  .text:0000000000159E3E                 lea     rdi, [rcx+rdx*4]
+  .text:0000000000159E42                 nop     word ptr [rax+rax+00000000h]
+  .text:0000000000159E4D                 nop     word ptr [rax+rax+00000000h]
+  .text:0000000000159E58                 nop     word ptr [rax+rax+00000000h]
+  .text:0000000000159E63                 nop     word ptr [rax+rax+00000000h]
+  .text:0000000000159E6E                 nop     word ptr [rax+rax+00000000h]
+  .text:0000000000159E79                 nop     dword ptr [rax+00000000h]
+  .text:0000000000159E80                 imul    edx, [rcx], 5BD1E995h
+  .text:0000000000159E86                 add     rcx, 4
+  .text:0000000000159E8A                 imul    eax, 5BD1E995h
+  .text:0000000000159E90                 mov     esi, edx
+  .text:0000000000159E92                 shr     esi, 18h
+  .text:0000000000159E95                 xor     edx, esi
+  .text:0000000000159E97                 imul    edx, 5BD1E995h
+  .text:0000000000159E9D                 xor     eax, edx
+  .text:0000000000159E9F                 cmp     rcx, rdi
+  .text:0000000000159EA2                 jnz     short loc_159E80
+  .text:0000000000159EA4                 shl     r8d, 2
+  .text:0000000000159EA8                 sub     r9d, r8d
+  .text:0000000000159EAB                 cmp     r9d, 2
+  .text:0000000000159EAF                 jz      short loc_159F09
+  .text:0000000000159EB1                 cmp     r9d, 3
+  .text:0000000000159EB5                 jz      short loc_159F00
+  .text:0000000000159EB7                 cmp     r9d, 1
+  .text:0000000000159EBB                 jnz     short loc_159EC8
+  .text:0000000000159EBD                 movzx   edx, byte ptr [rcx]
+  .text:0000000000159EC0                 xor     eax, edx
+  .text:0000000000159EC2                 imul    eax, 5BD1E995h
+  .text:0000000000159EC8                 mov     edx, eax
+  .text:0000000000159ECA                 xor     esi, esi
+  .text:0000000000159ECC                 mov     rdi, r13
+  .text:0000000000159ECF                 shr     edx, 0Dh
+  .text:0000000000159ED2                 xor     eax, edx
+  .text:0000000000159ED4                 imul    eax, 5BD1E995h
+  .text:0000000000159EDA                 mov     edx, eax
+  .text:0000000000159EDC                 shr     edx, 0Fh
+  .text:0000000000159EDF                 xor     eax, edx
+  .text:0000000000159EE1                 mov     [rbp+var_C4], eax
+  .text:0000000000159EE7                 call    sub_128FA0
+  .text:0000000000159EEC                 mov     eax, [rbp+var_C4]
+  .text:0000000000159EF2                 jmp     loc_159C60
+  .text:0000000000159F00                 movzx   edx, byte ptr [rcx+2]
+  .text:0000000000159F04                 shl     edx, 10h
+  .text:0000000000159F07                 xor     eax, edx
+  .text:0000000000159F09                 movzx   edx, byte ptr [rcx+1]
+  .text:0000000000159F0D                 shl     edx, 8
+  .text:0000000000159F10                 xor     eax, edx
+  .text:0000000000159F12                 jmp     short loc_159EBD
+procedure: |-
+  __int64 __fastcall CCvar_FindConCommand(__int64 a1, _BYTE *a2, int a3)
+  {
+    volatile signed __int32 *v4; // r12
+    __int64 v6; // rax
+    unsigned int v7; // eax
+    int v8; // eax
+    __int64 v9; // rdx
+    __int64 v10; // rax
+    __int64 v11; // r13
+    bool v12; // zf
+    const char *v14; // rcx
+    int v15; // r9d
+    unsigned int v16; // eax
+    unsigned int v17; // r8d
+    const char *v18; // rdi
+    unsigned int v19; // edx
+    int v20; // [rsp+0h] [rbp-D0h]
+    unsigned int v21; // [rsp+Ch] [rbp-C4h]
+    unsigned __int64 v22; // [rsp+10h] [rbp-C0h] BYREF
+    const char *v23; // [rsp+18h] [rbp-B8h] BYREF
+
+    v4 = (volatile signed __int32 *)(a1 + 344);
+    v6 = sub_12B2E0();
+    if ( v6 == *(_QWORD *)(a1 + 352) )
+    {
+      ++*(_WORD *)(a1 + 348);
+    }
+    else if ( *(_DWORD *)(a1 + 344) || _InterlockedCompareExchange(v4, 3, 0) )
+    {
+      sub_12B670(a1 + 344, v6);
+    }
+    else
+    {
+      *(_QWORD *)(a1 + 352) = v6;
+      *(_WORD *)(a1 + 348) = 1;
+    }
+    v7 = 0;
+    if ( !a2 || !*a2 )
+      goto LABEL_6;
+    v20 = sub_134CE0(a2);
+    v22 = 0xC000008000000000LL;
+    v23 = nullptr;
+    sub_1290F0(&v22, 0, a2, (unsigned int)v20, 0);
+    sub_129020(&v22, 0);
+    v14 = (const char *)&v23;
+    v15 = v20;
+    if ( (v22 & 0x4000000000000000LL) == 0 )
+    {
+      v14 = &byte_10EB47;
+      if ( (v22 & 0x3FFFFFFF00000000LL) != 0 )
+        v14 = v23;
+    }
+    v16 = v20 ^ 0x31415926;
+    if ( v20 > 3 )
+    {
+      v17 = (unsigned int)(v20 - 4) >> 2;
+      v18 = &v14[4 * v17 + 4];
+      do
+      {
+        v19 = 1540483477 * *(_DWORD *)v14;
+        v14 += 4;
+        v16 = (1540483477 * (HIBYTE(v19) ^ v19)) ^ (1540483477 * v16);
+      }
+      while ( v14 != v18 );
+      v15 = v20 - 4 - 4 * v17;
+    }
+    switch ( v15 )
+    {
+      case 2:
+        goto LABEL_34;
+      case 3:
+        v16 ^= *((unsigned __int8 *)v14 + 2) << 16;
+  LABEL_34:
+        v16 ^= *((unsigned __int8 *)v14 + 1) << 8;
+        goto LABEL_31;
+      case 1:
+  LABEL_31:
+        v16 = 1540483477 * (*(unsigned __int8 *)v14 ^ v16);
+        break;
+    }
+    v21 = ((1540483477 * ((v16 >> 13) ^ v16)) >> 15) ^ (1540483477 * ((v16 >> 13) ^ v16));
+    sub_128FA0(&v22, 0);
+    v7 = v21;
+  LABEL_6:
+    v8 = sub_1571E0(a1 + 280, v7, v7, 0);
+    if ( v8 == -1 )
+      goto LABEL_17;
+    v9 = 0;
+    if ( (*(_DWORD *)(a1 + 284) & 0x7FFFFFFF) != 0 )
+      v9 = *(_QWORD *)(a1 + 288);
+    v10 = 3LL * v8;
+    v11 = *(unsigned __int16 *)(v9 + 4 * v10 + 8);
+    if ( v11 == 0xFFFF
+      || (*(_BYTE *)((*(__int64 (__fastcall **)(_QWORD *, _QWORD))(*qword_50D648 + 352LL))(// 0x160 = 352LL = ICvar_GetConCommandData
+                       qword_50D648,
+                       *(unsigned __int16 *)(v9 + 4 * v10 + 8))
+                   + 16)
+        & 2) != 0
+      && (a3
+       || (*(_BYTE *)((*(__int64 (__fastcall **)(_QWORD *, __int64))(*qword_50D648 + 352LL))(qword_50D648, v11) + 20) & 1) == 0) )// 0x160 = 352LL = ICvar_GetConCommandData
+    {
+  LABEL_17:
+      v12 = (*(_WORD *)(a1 + 348))-- == 1;
+      v11 = 0xFFFF;
+      if ( !v12 )
+        return v11;
+    }
+    else
+    {
+      v12 = (*(_WORD *)(a1 + 348))-- == 1;
+      if ( !v12 )
+        return v11;
+    }
+    *(_QWORD *)(a1 + 352) = 0;
+    if ( _InterlockedSub(v4, 3u) )
+      sub_12B240(v4);
+    return v11;
+  }

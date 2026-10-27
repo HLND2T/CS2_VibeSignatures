@@ -25,7 +25,7 @@ disasm_code: |-
   .text:00000001800C334E                 mov     [rdi+110h], rbp
   .text:00000001800C3355                 mov     rcx, cs:qword_180696758
   .text:00000001800C335C                 mov     rax, [rcx]
-  .text:00000001800C335F                 call    qword ptr [rax+118h]
+  .text:00000001800C335F                 call    qword ptr [rax+118h]; 0x118 = 280LL = ICvar_GetTotalUserInfoCvarsByteSize
   .text:00000001800C3365                 test    rax, rax
   .text:00000001800C3368                 jz      short loc_1800C33C1
   .text:00000001800C336A                 mov     rcx, cs:qword_180696758
@@ -272,7 +272,7 @@ procedure: |-
       KeyValues::operator delete(v2);
       *(_QWORD *)(a1 + 272) = 0;
     }
-    v3 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)qword_180696758 + 280LL))(qword_180696758);
+    v3 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)qword_180696758 + 280LL))(qword_180696758);// 0x118 = 280LL = ICvar_GetTotalUserInfoCvarsByteSize
     if ( v3 )
     {
       v17 = 0;

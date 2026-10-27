@@ -756,6 +756,10 @@ modules:
         category: vfunc
         alias:
           - CNetworkSystem::GetSteamNetworkingMessages
+      - name: CNetworkSystem_GetSteamNetworkUtils
+        category: vfunc
+        alias:
+          - CNetworkSystem::GetSteamNetworkUtils
       - name: CNetworkSystem_GetScratchBuffer
         category: vfunc
         alias:
@@ -3400,6 +3404,10 @@ modules:
         category: vfunc
         alias:
           - ICvar::CopyUserInfoCvarDefaults
+      - name: ICvar_GetTotalUserInfoCvarsByteSize
+        category: vfunc
+        alias:
+          - ICvar::GetTotalUserInfoCvarsByteSize
       - name: CNetworkGameServer_vtable
         category: vtable
       - name: CServerSideClient_vtable
@@ -4606,11 +4614,11 @@ modules:
       - name: CEngineClient_DumpNetStats
         category: vfunc
         alias:
-          - CEngineClient::DumpNetStats
+          - CEngineClient::PrintNetworkSummaryReport
       - name: CEngineClient_ExecuteClientCmd
         category: vfunc
         alias:
-          - CEngineClient::ExecuteClientCmd
+          - CEngineClient::ServerCmd
       - name: CEngineClient_IsPlayingDemo
         category: vfunc
         alias:
@@ -4639,7 +4647,7 @@ modules:
         category: vfunc
         platform: windows
         alias:
-          - CEngineClient::ClientCmd_Unrestricted
+          - CEngineClient::ClientCommand
       - name: INetworkGameClient_SendStringCmd
         category: vfunc
         alias:
@@ -5264,7 +5272,7 @@ modules:
       - name: CServerSideClientBase_ProcessChangeSplitscreenUser
         category: vfunc
         alias:
-          - CServerSideClientBase::ProcessChangeSplitscreenUser
+          - CServerSideClientBase::ProcessSplitscreenUserChanged
       - name: CServerSideClientBase_UpdateUserSettings
         category: vfunc
         alias:
@@ -5355,7 +5363,7 @@ modules:
       - name: CServerSideClientBase_GetPlayerInfo
         category: vfunc
         alias:
-          - CServerSideClientBase::GetPlayerInfo
+          - CServerSideClientBase::Create
       - name: CNetworkGameServer_GetPlayerNetworkIDString
         category: vfunc
         alias:
@@ -6661,6 +6669,14 @@ modules:
           - ICvar_UnregisterConCommandCallbacks.{platform}.yaml
         expected_input:
           - ConCommand_Destroy.{platform}.yaml
+      - name: find-UpdateNetworkConfigState
+        expected_output:
+          - UpdateNetworkConfigState.{platform}.yaml
+      - name: find-INetworkSystem_GetSteamNetworkUtils
+        expected_output:
+          - INetworkSystem_GetSteamNetworkUtils.{platform}.yaml
+        expected_input:
+          - UpdateNetworkConfigState.{platform}.yaml
     symbols:
       - name: CLoopModeGame_RegisterEventMapInternal
         category: func
@@ -7047,7 +7063,7 @@ modules:
       - name: IVEngineClient2_ExecuteClientCmd
         category: vfunc
         alias:
-          - IVEngineClient2::ExecuteClientCmd
+          - IVEngineClient2::ServerCmd
       - name: IGameEventManager2_UnserializeEvent
         category: vfunc
         alias:
@@ -7211,7 +7227,7 @@ modules:
         category: vfunc
         platform: windows
         alias:
-          - IVEngineClient2::GetNetworkClient
+          - IVEngineClient2::GetNetChannel
       - name: INetworkClient_GetLocalAddress
         category: vfunc
         platform: windows
@@ -7928,6 +7944,12 @@ modules:
         category: vfunc
       - name: ICvar_RegisterConVar
         category: vfunc
+      - name: UpdateNetworkConfigState
+        category: func
+      - name: INetworkSystem_GetSteamNetworkUtils
+        category: vfunc
+        alias:
+          - INetworkSystem::GetSteamNetworkUtils
   - name: server
     path_windows: game/csgo/bin/win64/server.dll
     path_linux: game/csgo/bin/linuxsteamrt64/libserver.so
@@ -15407,9 +15429,11 @@ modules:
         expected_output:
           - ISource2GameClients_ClientSetConVarUserInfoSet.{platform}.yaml
           - ICvar_CopyUserInfoCvarDefaults.{platform}.yaml
+          - ICvar_GetTotalUserInfoCvarsByteSize.{platform}.yaml
         expected_input_windows:
           - CServerSideClientBase_dtor.{platform}.yaml
         expected_input_linux:
+          - CServerSideClientBase_dtor.{platform}.yaml
           - CServerSideClientBase_SetConVarUserInfo.{platform}.yaml
       - name: find-CNetworkClientService_IsPutInServer
         expected_output:
@@ -15698,6 +15722,12 @@ modules:
         expected_input:
           - CNetworkSystem_vtable.{platform}.yaml
           - ../engine/INetworkSystem_GetSteamNetworkingMessages.{platform}.yaml
+      - name: find-CNetworkSystem_GetSteamNetworkUtils
+        expected_output:
+          - CNetworkSystem_GetSteamNetworkUtils.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_vtable.{platform}.yaml
+          - ../client/INetworkSystem_GetSteamNetworkUtils.{platform}.yaml
       - name: find-CNetworkSystem_GetScratchBuffer
         expected_output:
           - CNetworkSystem_GetScratchBuffer.{platform}.yaml
@@ -15926,6 +15956,12 @@ modules:
         expected_input:
           - ../engine/ICvar_CopyUserInfoCvarDefaults.{platform}.yaml
           - CCvar_vtable.{platform}.yaml
+      - name: find-CCvar_GetTotalUserInfoCvarsByteSize
+        expected_output:
+          - CCvar_GetTotalUserInfoCvarsByteSize.{platform}.yaml
+        expected_input:
+          - ../engine/ICvar_GetTotalUserInfoCvarsByteSize.{platform}.yaml
+          - CCvar_vtable.{platform}.yaml
       - name: find-ICvar_FindFirstConVar
         expected_output:
           - ICvar_FindFirstConVar.{platform}.yaml
@@ -16028,6 +16064,17 @@ modules:
           - CCvar_FindConCommand.{platform}.yaml
         expected_input:
           - ICvar_FindConCommand.{platform}.yaml
+          - CCvar_vtable.{platform}.yaml
+      - name: find-ICvar_GetConCommandData
+        expected_output:
+          - ICvar_GetConCommandData.{platform}.yaml
+        expected_input:
+          - CCvar_FindConCommand.{platform}.yaml
+      - name: find-CCvar_GetConCommandData
+        expected_output:
+          - CCvar_GetConCommandData.{platform}.yaml
+        expected_input:
+          - ICvar_GetConCommandData.{platform}.yaml
           - CCvar_vtable.{platform}.yaml
       - name: find-ConVarRefAbstract_CallChangeCallbacks
         optional_output:
@@ -16139,6 +16186,10 @@ modules:
         category: vfunc
         alias:
           - CCvar::CopyUserInfoCvarDefaults
+      - name: CCvar_GetTotalUserInfoCvarsByteSize
+        category: vfunc
+        alias:
+          - CCvar::GetTotalUserInfoCvarsByteSize
       - name: ICvar_FindFirstConVar
         category: vfunc
         alias:
@@ -16217,6 +16268,14 @@ modules:
         category: vfunc
         alias:
           - CCvar::GetCharacterSet
+      - name: ICvar_GetConCommandData
+        category: vfunc
+        alias:
+          - ICvar::GetConCommandData
+      - name: CCvar_GetConCommandData
+        category: vfunc
+        alias:
+          - CCvar::GetConCommandData
       - name: CCvar_RemoveCreationListeners
         category: vfunc
         alias:
@@ -17572,3 +17631,208 @@ cpp_tests:
       - fdump-vtable-layouts
     reference_modules:
       - engine
+  - name: CHostStateMgr_MSVC
+    symbol: CHostStateMgrVTableProbe
+    alias_symbols:
+      - CHostStateMgr
+    cpp: cpp_tests/hoststatemgr.cpp
+    headers:
+      - s2sdk/public/engine2/hoststate.h  # Used by the fix-cppheaders SKILL
+    target: x86_64-pc-windows-msvc
+    include_directories:
+      - s2sdk/game/shared
+      - s2sdk/public
+      - s2sdk/public/tier0
+      - s2sdk/public/tier1
+      - s2sdk/public/mathlib
+      - s2sdk/common
+    defines:
+      - COMPILER_MSVC=1
+      - COMPILER_MSVC64=1
+      - _MSVC_STL_USE_ABORT_AS_DOOM_FUNCTION
+    additional_compiler_options:
+      - fms-extensions
+      - fms-compatibility
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - engine  # bin_artifacts/{gamever}/engine/CHostStateMgr_*.{platform}.yaml
+  - name: CHostStateMgr_GCC
+    symbol: CHostStateMgrVTableProbe
+    alias_symbols:
+      - CHostStateMgr
+    cpp: cpp_tests/hoststatemgr.cpp
+    headers:
+      - s2sdk/public/engine2/hoststate.h  # Used by the fix-cppheaders SKILL
+    target: x86_64-pc-linux-gnu
+    include_directories:
+      - s2sdk/game/shared
+      - s2sdk/public
+      - s2sdk/public/tier0
+      - s2sdk/public/tier1
+      - s2sdk/public/mathlib
+      - s2sdk/common
+    defines:
+      - COMPILER_GCC=1
+      - POSIX=1
+      - LINUX=1
+      - stricmp=strcasecmp
+    additional_compiler_options:
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - engine  # bin_artifacts/{gamever}/engine/CHostStateMgr_*.{platform}.yaml
+  - name: CServerSideClientBase_MSVC
+    symbol: CServerSideClientBaseVTableProbe
+    alias_symbols:
+      - CServerSideClientBase
+    cpp: cpp_tests/serversideclientbase.cpp
+    headers:
+      - s2sdk/public/engine2/serversideclientbase.h  # Used by the fix-cppheaders SKILL
+    target: x86_64-pc-windows-msvc
+    include_directories:
+      - cpp_tests/stubs
+      - s2sdk/game/shared
+      - s2sdk/public
+      - s2sdk/public/tier0
+      - s2sdk/public/tier1
+      - s2sdk/public/mathlib
+      - s2sdk/common
+    defines:
+      - COMPILER_MSVC=1
+      - COMPILER_MSVC64=1
+      - _MSVC_STL_USE_ABORT_AS_DOOM_FUNCTION
+    additional_compiler_options:
+      - fms-extensions
+      - fms-compatibility
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - engine  # bin_artifacts/{gamever}/engine/CServerSideClientBase_*.{platform}.yaml
+  - name: CServerSideClientBase_GCC
+    symbol: CServerSideClientBaseVTableProbe
+    alias_symbols:
+      - CServerSideClientBase
+    cpp: cpp_tests/serversideclientbase.cpp
+    headers:
+      - s2sdk/public/engine2/serversideclientbase.h  # Used by the fix-cppheaders SKILL
+    target: x86_64-pc-linux-gnu
+    include_directories:
+      - cpp_tests/stubs
+      - s2sdk/game/shared
+      - s2sdk/public
+      - s2sdk/public/tier0
+      - s2sdk/public/tier1
+      - s2sdk/public/mathlib
+      - s2sdk/common
+    defines:
+      - COMPILER_GCC=1
+      - POSIX=1
+      - LINUX=1
+      - stricmp=strcasecmp
+    additional_compiler_options:
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - engine  # bin_artifacts/{gamever}/engine/CServerSideClientBase_*.{platform}.yaml
+  - name: CServerSideClient_MSVC
+    symbol: CServerSideClientVTableProbe
+    alias_symbols:
+      - CServerSideClient
+    cpp: cpp_tests/serversideclient.cpp
+    headers:
+      - s2sdk/public/engine2/serversideclient.h  # Used by the fix-cppheaders SKILL
+    target: x86_64-pc-windows-msvc
+    include_directories:
+      - cpp_tests/stubs
+      - s2sdk/game/shared
+      - s2sdk/public
+      - s2sdk/public/tier0
+      - s2sdk/public/tier1
+      - s2sdk/public/mathlib
+      - s2sdk/common
+    defines:
+      - COMPILER_MSVC=1
+      - COMPILER_MSVC64=1
+      - _MSVC_STL_USE_ABORT_AS_DOOM_FUNCTION
+    additional_compiler_options:
+      - fms-extensions
+      - fms-compatibility
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - engine  # bin_artifacts/{gamever}/engine/CServerSideClient_*.{platform}.yaml
+  - name: CServerSideClient_GCC
+    symbol: CServerSideClientVTableProbe
+    alias_symbols:
+      - CServerSideClient
+    cpp: cpp_tests/serversideclient.cpp
+    headers:
+      - s2sdk/public/engine2/serversideclient.h  # Used by the fix-cppheaders SKILL
+    target: x86_64-pc-linux-gnu
+    include_directories:
+      - cpp_tests/stubs
+      - s2sdk/game/shared
+      - s2sdk/public
+      - s2sdk/public/tier0
+      - s2sdk/public/tier1
+      - s2sdk/public/mathlib
+      - s2sdk/common
+    defines:
+      - COMPILER_GCC=1
+      - POSIX=1
+      - LINUX=1
+      - stricmp=strcasecmp
+    additional_compiler_options:
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - engine  # bin_artifacts/{gamever}/engine/CServerSideClient_*.{platform}.yaml
+  - name: IVEngineClient2_MSVC
+    symbol: IVEngineClient2VTableProbe
+    alias_symbols:
+      - IVEngineClient2
+      - CEngineClient
+    cpp: cpp_tests/ivengineclient2.cpp
+    headers:
+      - Wend4r_cs2sdk/public/cdll_int.h
+    target: x86_64-pc-windows-msvc
+    include_directories:
+      - Wend4r_cs2sdk/public
+      - Wend4r_cs2sdk/public/tier0
+      - Wend4r_cs2sdk/public/tier1
+    defines:
+      - COMPILER_MSVC=1
+      - COMPILER_MSVC64=1
+      - _MSVC_STL_USE_ABORT_AS_DOOM_FUNCTION
+    additional_compiler_options:
+      - fms-extensions
+      - fms-compatibility
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - engine  # bin_artifacts/{gamever}/engine/CEngineClient_*.{platform}.yaml
+  - name: IVEngineClient2_GCC
+    symbol: IVEngineClient2VTableProbe
+    alias_symbols:
+      - IVEngineClient2
+      - CEngineClient
+    cpp: cpp_tests/ivengineclient2.cpp
+    headers:
+      - Wend4r_cs2sdk/public/cdll_int.h
+    target: x86_64-pc-linux-gnu
+    include_directories:
+      - Wend4r_cs2sdk/public
+      - Wend4r_cs2sdk/public/tier0
+      - Wend4r_cs2sdk/public/tier1
+    defines:
+      - COMPILER_GCC=1
+      - POSIX=1
+      - LINUX=1
+      - _LINUX=1
+      - stricmp=strcasecmp
+    additional_compiler_options:
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - engine  # bin_artifacts/{gamever}/engine/CEngineClient_*.{platform}.yaml
