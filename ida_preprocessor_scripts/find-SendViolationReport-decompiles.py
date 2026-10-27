@@ -10,6 +10,12 @@ TARGET_FUNCTION_NAMES = [
     "INetworkClientService_SendNetMessage",
 ]
 
+# The artifact key is historical: slot 41 returns the net channel held for a
+# split-screen slot, which the SDK declares as GetNetChannel.
+OUTPUT_NAME_MAP = {
+    "IVEngineClient2_GetNetworkClient": "IVEngineClient2_GetNetChannel",
+}
+
 LLM_DECOMPILE = [
     {
         "symbol_name": "IVEngineClient2_GetNetworkClient",
@@ -132,4 +138,5 @@ async def preprocess_skill(
         llm_config=llm_config,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
+        output_name_map=OUTPUT_NAME_MAP,
     )

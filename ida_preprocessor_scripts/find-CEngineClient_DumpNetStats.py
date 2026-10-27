@@ -1,11 +1,22 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CEngineClient_DumpNetStats skill."""
+"""Preprocess script for find-CEngineClient_DumpNetStats skill.
+
+Resolves the parameterless ``CEngineClient::PrintNetworkSummaryReport``, which
+only delegates to the network client's PrintNetStats. The artifact key and the
+slot are historical: index 184 is not the ``DumpNetStats( void *, void (
+* )( const char * ) )`` that the SDK declares at index 29.
+"""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
     "CEngineClient_DumpNetStats",
 ]
+
+# The artifact key is historical; the body takes no arguments and returns void.
+OUTPUT_NAME_MAP = {
+    "CEngineClient_DumpNetStats": "CEngineClient_PrintNetworkSummaryReport",
+}
 
 FUNC_XREFS = [
     {
@@ -69,4 +80,5 @@ async def preprocess_skill(
         func_vtable_relations=FUNC_VTABLE_RELATIONS,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
+        output_name_map=OUTPUT_NAME_MAP,
     )

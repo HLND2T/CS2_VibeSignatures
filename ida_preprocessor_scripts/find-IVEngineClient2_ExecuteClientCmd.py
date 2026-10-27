@@ -1,11 +1,20 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-IVEngineClient2_ExecuteClientCmd skill."""
+"""Preprocess script for find-IVEngineClient2_ExecuteClientCmd skill.
+
+Resolves the interface's ``ServerCmd( CSplitScreenSlot, const char * )`` slot,
+which the artifact key still spells ``ExecuteClientCmd``.
+"""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
     "IVEngineClient2_ExecuteClientCmd",
 ]
+
+# The artifact key is historical; the slot sends the command to the server.
+OUTPUT_NAME_MAP = {
+    "IVEngineClient2_ExecuteClientCmd": "IVEngineClient2_ServerCmd",
+}
 
 LLM_DECOMPILE = [
     {
@@ -51,7 +60,7 @@ async def preprocess_skill(
     llm_config=None,
     debug=False,
 ):
-    """Resolve the IVEngineClient2 ExecuteClientCmd slot from FireGameEvent."""
+    """Resolve the IVEngineClient2 ServerCmd slot from FireGameEvent."""
     return await preprocess_common_skill(
         session=session,
         expected_outputs=expected_outputs,
@@ -65,4 +74,5 @@ async def preprocess_skill(
         llm_config=llm_config,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
+        output_name_map=OUTPUT_NAME_MAP,
     )

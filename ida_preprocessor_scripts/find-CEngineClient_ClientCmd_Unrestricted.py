@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CEngineClient_ClientCmd_Unrestricted skill."""
+"""Preprocess script for find-CEngineClient_ClientCmd_Unrestricted skill.
+
+Resolves the engine's ``ClientCommand`` override, which the artifact key still
+spells ``ClientCmd_Unrestricted``. It wraps a non-NAN input time in
+``__beginseq``/``__endseq`` and sends the ``"%s\\n"`` text, matching the SDK's
+ClientCommand rather than an unrestricted command path.
+"""
 
 from ida_analyze_util import preprocess_common_skill
 
@@ -7,6 +13,11 @@ from ida_analyze_util import preprocess_common_skill
 TARGET_FUNCTION_NAMES = [
     "CEngineClient_ClientCmd_Unrestricted",
 ]
+
+# The artifact key is historical; the body matches the SDK's ClientCommand.
+OUTPUT_NAME_MAP = {
+    "CEngineClient_ClientCmd_Unrestricted": "CEngineClient_ClientCommand",
+}
 
 FUNC_XREFS = [
     {
@@ -61,7 +72,7 @@ async def preprocess_skill(
     image_base,
     debug=False,
 ):
-    """Reuse previous gamever func_sig to locate CEngineClient::ClientCmd_Unrestricted."""
+    """Reuse previous gamever func_sig to locate CEngineClient::ClientCommand."""
     return await preprocess_common_skill(
         session=session,
         expected_outputs=expected_outputs,
@@ -74,4 +85,5 @@ async def preprocess_skill(
         func_vtable_relations=FUNC_VTABLE_RELATIONS,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
+        output_name_map=OUTPUT_NAME_MAP,
     )

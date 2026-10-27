@@ -1,11 +1,22 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CEngineClient_ExecuteClientCmd skill."""
+"""Preprocess script for find-CEngineClient_ExecuteClientCmd skill.
+
+Resolves the engine's ``ServerCmd( CSplitScreenSlot, const char * )`` override,
+which the artifact key still spells ``ExecuteClientCmd``.
+"""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
     "CEngineClient_ExecuteClientCmd",
 ]
+
+# The artifact key is historical: the slot clamps the split-screen slot and
+# forwards to the network client's SendStringCmd, which the SDK declares as
+# ServerCmd.
+OUTPUT_NAME_MAP = {
+    "CEngineClient_ExecuteClientCmd": "CEngineClient_ServerCmd",
+}
 
 INHERIT_VFUNCS = [
     # (target_func_name, inherit_vtable_class, base_vfunc_name, generate_func_sig)
@@ -15,25 +26,6 @@ INHERIT_VFUNCS = [
         "../client/IVEngineClient2_ExecuteClientCmd",
         True,
     ),
-]
-
-# The Linux CEngineClient composite vtable places this IVEngineClient2 override
-# at a different slot. Its tail dispatch to INetworkGameClient is unique and
-# lets the normal vtable relation recover that platform's actual slot.
-FUNC_XREFS_LINUX = [
-    {
-        "func_name": "CEngineClient_ExecuteClientCmd",
-        "xref_strings": [],
-        "xref_gvs": [],
-        "xref_signatures": [
-            "48 8D 05 ?? ?? ?? ?? 48 8B 38 48 8B 07 FF A0 30 01 00 00",
-        ],
-        "xref_funcs": [],
-        "exclude_funcs": [],
-        "exclude_strings": [],
-        "exclude_gvs": [],
-        "exclude_signatures": [],
-    },
 ]
 
 FUNC_VTABLE_RELATIONS = [
@@ -67,23 +59,13 @@ async def preprocess_skill(
     image_base,
     debug=False,
 ):
-    """Resolve CEngineClient's ExecuteClientCmd implementation on each ABI."""
-    _ = skill_name
+    """Resolve CEngineClient's ServerCmd implementation on each ABI.
 
-    if platform == "linux":
-        return await preprocess_common_skill(
-            session=session,
-            expected_outputs=expected_outputs,
-            old_yaml_map=old_yaml_map,
-            new_binary_dir=new_binary_dir,
-            platform=platform,
-            image_base=image_base,
-            func_names=TARGET_FUNCTION_NAMES,
-            func_xrefs=FUNC_XREFS_LINUX,
-            func_vtable_relations=FUNC_VTABLE_RELATIONS,
-            generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
-            debug=debug,
-        )
+    Both ABIs keep this IVEngineClient2 override at the inherited slot, so the
+    same inherit path serves them. The former Linux-only byte signature matched
+    a sibling forwarder and recorded slot 101 instead of 50.
+    """
+    _ = skill_name
 
     return await preprocess_common_skill(
         session=session,
@@ -95,4 +77,5 @@ async def preprocess_skill(
         inherit_vfuncs=INHERIT_VFUNCS,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
+        output_name_map=OUTPUT_NAME_MAP,
     )

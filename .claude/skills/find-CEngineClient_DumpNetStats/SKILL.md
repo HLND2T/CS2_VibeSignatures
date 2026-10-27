@@ -78,7 +78,10 @@ Use /generate-signature-for-function on the verified current entry. Validate uni
 Keep the finder's existing generation options: these targets do not enable `func_sig_allow_across_function_boundary`, `func_sig_resolve_jmp_thunk` or `func_sig_skip_degenerate`; do not add those directives. If the fully wildcarded head is ambiguous, compare the competing matches and refine only distinguishing wildcard bytes within the verified function body, following the canonical refinement in `ida_analyze_util.preprocess_gen_func_sig_via_mcp`. Revalidate the pattern at the exact entry. If no valid unique body signature can be obtained, report the unresolved output instead of extending into neighbouring functions.
 Use /write-vfunc-as-yaml through its IDA `py_eval` implementation in the assigned session to write the YAML; do not substitute CLI shell or file-edit tools. Parameters:
 
-- `artifact_name=CEngineClient_DumpNetStats` and `func_name=CEngineClient_DumpNetStats`.
+- `artifact_name=CEngineClient_DumpNetStats` and `func_name=CEngineClient_PrintNetworkSummaryReport`.
+  The artifact key is historical: slot 184 takes no arguments and only delegates to
+  `CNetworkGameClient_PrintNetStats`. The `DumpNetStats( void *, void ( * )( const char * ) )`
+  the SDK declares is a different slot (29).
 - `func_addr`: the verified concrete entry in the assigned binary; emit `func_va`, `func_rva = VA - image_base`
   and the verified current `func_size`. Never emit a bodyless slot-only result for this target.
 - `vtable_name=CEngineClient_vtable`, current `vfunc_index` and `vfunc_offset = index * 8`.

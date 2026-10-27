@@ -47,6 +47,46 @@ the same name, because both compilers then emit the pair before
 server-info slot from 48 to 50 on MSVC, so the shared name is part of the ABI, not
 a naming shortcut.
 
+The client engine interface needed the same treatment once `cpp_tests` began
+comparing it against `CEngineClient_vtable` through `IVEngineClient2`. Four slots
+carried labels that do not match their bodies, and one Linux slot was resolved from
+a sibling thunk:
+
+| Legacy key | Corrected `func_name` | Evidence in 14192 |
+|---|---|---|
+| `CEngineClient_ExecuteClientCmd` / `IVEngineClient2_ExecuteClientCmd` | `CEngineClient_ServerCmd` / `IVEngineClient2_ServerCmd` | Windows `0x180075d30` / Linux `0x5096d0`, slot 50: clamps the split-screen slot to 0..3 and dispatches to the network client's `SendStringCmd`, i.e. `ServerCmd( CSplitScreenSlot, const char * )`. |
+| `CEngineClient_ClientCmd_Unrestricted` | `CEngineClient_ClientCommand` | Windows `0x180075d60`, slot 51: takes the `( slot, cmd, bool, double, uint64 )` signature, tests the input time with `V_isnand`, wraps a non-NAN time in `__beginseq`/`__endseq`, and sends the `"%s\n"` text — the SDK's `ClientCommand`. |
+| `CEngineClient_DumpNetStats` | `CEngineClient_PrintNetworkSummaryReport` | Windows `0x180075ca0` / Linux `0x507640`, slot 184: no arguments, 0x11 bytes, delegates to `CNetworkGameClient_PrintNetStats`. The real `DumpNetStats( void *, void ( * )( const char * ) )` sits at slot 29. |
+| `IVEngineClient2_GetNetworkClient` | `IVEngineClient2_GetNetChannel` | Windows `0x180076530`, slot 41: indexes the per-split-screen channel array at `netclient + 24 * slot + 240`; the caller in `SendViolationReport` uses the result as a net channel. |
+
+The Linux `CEngineClient_ServerCmd` slot was recorded as index 101
+(`0x506eb0`) because the finder matched a byte signature against a sibling
+forwarder. Both ABIs keep this override at the inherited slot 50, and the client
+artifact already said 50, so the Linux entry now points at slot 50 (`0x5096d0`).
+The Linux-only signature branch was removed; the shared inherit path resolves both
+platforms.
+
+### SendStringCmd finder replay (2026-10-27)
+
+Correcting the Linux ServerCmd anchor exposed a downstream assumption in
+`find-INetworkGameClient_SendStringCmd`: slot 50 at `0x5096d0` tail-jumps directly
+to the helper at `0x4d47a0`, rather than dispatching virtually in its own body.
+The helper loads slot `0x130` and performs a guarded `jmp rax` at `0x4d4914`.
+The finder now opts into following one unique external direct tail jump when its
+initial virtual-call scan is empty. Only tail dispatches in the helper are
+scanned; missing or ambiguous targets still fail without writing an artifact.
+
+Real Windows/Linux IDB replay regenerated all 10 nodes in the required dependency
+chain: the engine vtable, client FireGameEvent anchor, IVEngineClient2 slot,
+CEngineClient override, and INetworkGameClient slot on each platform. Both final
+artifacts retain offset `0x130`, index 38; there are no downstream finder consumers
+in the 14192 config. Source artifact bytes were unchanged. A candidate composed
+from the replay passed the 4073-artifact contract and both native C++ ABI gates:
+28 layout comparisons per platform, including 26 vtable comparisons, all with
+zero differences. Python unit tests ran 1542 cases (18 skipped), and all 124
+repository-contract tests passed. Regression coverage includes ambiguous/missing
+tail targets and virtual slots, failed source scans, and Windows direct dispatch.
+
 ## 14191b corrections
 
 SDK source: `HLND2T/s2sdk`, commit

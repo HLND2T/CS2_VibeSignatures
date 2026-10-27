@@ -1,7 +1,12 @@
 import unittest
-from unittest.mock import patch
+import tempfile
+from pathlib import Path
+from unittest.mock import AsyncMock, patch
+
+import yaml
 
 from ida_preprocessor_scripts._indirect_vcall_target_common import _build_indirect_vcall_target_py_eval
+from ida_skill_preprocessor import _get_preprocess_entry
 
 
 class TestIndirectVcallTargetCommon(unittest.TestCase):
@@ -142,6 +147,97 @@ class TestIndirectVcallTargetCommon(unittest.TestCase):
         self.assertEqual(len(parsed["targets"]), 1)
         self.assertEqual(parsed["targets"][0]["vfunc_offset"], "0x128")
         self.assertEqual(parsed["targets"][0]["vfunc_index"], 37)
+
+
+class TestSendStringCmdTailDispatch(unittest.IsolatedAsyncioTestCase):
+    async def _run_finder(self, platform, indirect_targets, direct_targets):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / f"CEngineClient_ExecuteClientCmd.{platform}.yaml"
+            source.write_text("func_name: CEngineClient_ServerCmd\nfunc_va: '0x1000'\n", encoding="utf-8")
+            output = root / f"INetworkGameClient_SendStringCmd.{platform}.yaml"
+            with (
+                patch(
+                    "ida_preprocessor_scripts._indirect_vcall_target_common.IndirectVcallTargetLocator.collect_targets",
+                    new_callable=AsyncMock,
+                    side_effect=indirect_targets,
+                ) as indirect,
+                patch(
+                    "ida_preprocessor_scripts._direct_branch_target_common.DirectBranchTargetLocator.collect_targets",
+                    new_callable=AsyncMock,
+                    return_value=direct_targets,
+                ) as direct,
+            ):
+                result = await _get_preprocess_entry("find-INetworkGameClient_SendStringCmd")(
+                    session=object(),
+                    skill_name="find-INetworkGameClient_SendStringCmd",
+                    expected_outputs=[str(output)],
+                    old_yaml_map={},
+                    new_binary_dir=directory,
+                    platform=platform,
+                    image_base=0,
+                )
+            payload = yaml.safe_load(output.read_text(encoding="utf-8")) if output.exists() else None
+            return result, payload, indirect, direct
+
+    @staticmethod
+    def _slot(offset):
+        return {
+            "source_ea": "0x2010",
+            "source_mnemonic": "jmp",
+            "vfunc_offset": hex(offset),
+            "vfunc_index": offset // 8,
+        }
+
+    async def test_linux_follows_unique_external_tail_jump(self):
+        result, payload, indirect, direct = await self._run_finder(
+            "linux",
+            [[], [self._slot(0x130)]],
+            [{"target_va": "0x1000"}, {"target_va": "0x2000"}],
+        )
+        self.assertTrue(result)
+        self.assertEqual(
+            {
+                "func_name": "INetworkGameClient_SendStringCmd",
+                "vtable_name": "INetworkGameClient",
+                "vfunc_offset": "0x130",
+                "vfunc_index": 38,
+            },
+            payload,
+        )
+        direct.assert_awaited_once_with(source_func_va="0x1000", allowed_mnemonics=("jmp",))
+        self.assertEqual("0x2000", indirect.await_args.kwargs["source_func_va"])
+        self.assertEqual(("jmp",), indirect.await_args.kwargs["allowed_mnemonics"])
+
+    async def test_windows_keeps_direct_virtual_dispatch(self):
+        result, payload, indirect, direct = await self._run_finder("windows", [[self._slot(0x130)]], [])
+        self.assertTrue(result)
+        self.assertEqual(38, payload["vfunc_index"])
+        self.assertEqual(1, indirect.await_count)
+        direct.assert_not_awaited()
+
+    async def test_linux_rejects_missing_or_ambiguous_tail_targets(self):
+        for targets in (None, [], [{"target_va": "0x1000"}], [{"target_va": "0x2000"}, {"target_va": "0x3000"}]):
+            with self.subTest(targets=targets):
+                result, payload, indirect, _ = await self._run_finder("linux", [[]], targets)
+                self.assertFalse(result)
+                self.assertIsNone(payload)
+                self.assertEqual(1, indirect.await_count)
+
+    async def test_linux_rejects_missing_or_ambiguous_virtual_slots(self):
+        for slots in (None, [], [self._slot(0x130), self._slot(0x140)]):
+            with self.subTest(slots=slots):
+                result, payload, _, _ = await self._run_finder("linux", [[], slots], [{"target_va": "0x2000"}])
+                self.assertFalse(result)
+                self.assertIsNone(payload)
+
+    async def test_linux_does_not_follow_after_scan_failure_or_ambiguity(self):
+        for slots in (None, [self._slot(0x130), self._slot(0x140)]):
+            with self.subTest(slots=slots):
+                result, payload, _, direct = await self._run_finder("linux", [slots], [{"target_va": "0x2000"}])
+                self.assertFalse(result)
+                self.assertIsNone(payload)
+                direct.assert_not_awaited()
 
 
 if __name__ == "__main__":
