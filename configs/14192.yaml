@@ -17542,3 +17542,54 @@ cpp_tests:
       - fdump-vtable-layouts
     reference_modules:
       - engine
+  - name: CHostStateMgr_MSVC
+    symbol: CHostStateMgrVTableProbe
+    alias_symbols:
+      - CHostStateMgr
+    cpp: cpp_tests/hoststatemgr.cpp
+    headers:
+      - s2sdk/public/engine2/hoststate.h  # Used by the fix-cppheaders SKILL
+    target: x86_64-pc-windows-msvc
+    include_directories:
+      - s2sdk/game/shared
+      - s2sdk/public
+      - s2sdk/public/tier0
+      - s2sdk/public/tier1
+      - s2sdk/public/mathlib
+      - s2sdk/common
+    defines:
+      - COMPILER_MSVC=1
+      - COMPILER_MSVC64=1
+      - _MSVC_STL_USE_ABORT_AS_DOOM_FUNCTION
+    additional_compiler_options:
+      - fms-extensions
+      - fms-compatibility
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - engine  # bin_artifacts/{gamever}/engine/CHostStateMgr_*.{platform}.yaml
+  - name: CHostStateMgr_GCC
+    symbol: CHostStateMgrVTableProbe
+    alias_symbols:
+      - CHostStateMgr
+    cpp: cpp_tests/hoststatemgr.cpp
+    headers:
+      - s2sdk/public/engine2/hoststate.h  # Used by the fix-cppheaders SKILL
+    target: x86_64-pc-linux-gnu
+    include_directories:
+      - s2sdk/game/shared
+      - s2sdk/public
+      - s2sdk/public/tier0
+      - s2sdk/public/tier1
+      - s2sdk/public/mathlib
+      - s2sdk/common
+    defines:
+      - COMPILER_GCC=1
+      - POSIX=1
+      - LINUX=1
+      - stricmp=strcasecmp
+    additional_compiler_options:
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - engine  # bin_artifacts/{gamever}/engine/CHostStateMgr_*.{platform}.yaml
