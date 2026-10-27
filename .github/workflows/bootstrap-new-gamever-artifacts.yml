@@ -225,7 +225,7 @@ jobs:
           path: ${{ env.CANDIDATE_PACKAGE }}
           if-no-files-found: error
           include-hidden-files: true
-          retention-days: 7
+          retention-days: 3
       - name: Upload failed bootstrap diagnostics
         if: >-
           failure() && (steps.bootstrap-analysis.outcome == 'failure' || steps.gates.outcome == 'failure' ||
@@ -240,7 +240,7 @@ jobs:
             ${{ runner.temp }}/new-gamever-bin-artifacts/${{ github.run_id }}-${{ github.run_attempt }}/**/*.yaml
             ${{ runner.temp }}/new-gamever-force-all-execution-${{ github.run_id }}-${{ github.run_attempt }}.json
             ${{ runner.temp }}/new-gamever-gates/${{ github.run_id }}-${{ github.run_attempt }}/**
-          retention-days: 30
+          retention-days: 3
           include-hidden-files: true
           if-no-files-found: warn
   publish-new-gamever-artifacts:
@@ -472,7 +472,7 @@ jobs:
           name: ${{ steps.package.outputs.candidate-artifact-name }}
           path: ${{ env.CANDIDATE_PACKAGE }}
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 3
     needs:
       - build-bootstrap-candidate
       - cpp-validation

@@ -40,7 +40,7 @@ jobs:
           persist-credentials: false
       - uses: astral-sh/setup-uv@v9.0.0
       - run: uv sync --project .trusted-tools --locked
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
         with:
           name: ${{ inputs.plan_artifact_name }}
           path: ${{ runner.temp }}/trusted-pr-plan
@@ -67,7 +67,7 @@ jobs:
         with:
           name: bootstrap-reuse-${{ github.run_id }}-${{ github.run_attempt }}-${{ inputs.gamever }}
           path: ${{ runner.temp }}/bootstrap-reuse.json
-          retention-days: 7
+          retention-days: 3
           if-no-files-found: error
   warmup-idb:
     needs: bootstrap-reuse
@@ -145,13 +145,13 @@ jobs:
         with:
           command: sync-trusted
       - name: Download bound trusted plan
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
         with:
           name: ${{ inputs.plan_artifact_name }}
           path: ${{ runner.temp }}/trusted-pr-plan
       - name: Download hosted bootstrap reuse evidence
         if: needs.bootstrap-reuse.outputs.reused == 'true'
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
         with:
           name: bootstrap-reuse-${{ github.run_id }}-${{ github.run_attempt }}-${{ inputs.gamever }}
           path: ${{ runner.temp }}/trusted-bootstrap-reuse
@@ -293,7 +293,7 @@ jobs:
             ${{ runner.temp }}/pr-platform-analysis-${{ github.run_id }}-${{ github.run_attempt }}-${{ env.GAMEVER }}/summary.json
             ${{ runner.temp }}/pr-platform-analysis-${{ github.run_id }}-${{ github.run_attempt }}-${{ env.GAMEVER }}/**/worker.json
           if-no-files-found: warn
-          retention-days: 30
+          retention-days: 3
       - name: Verify execution evidence and exact Git bytes
         id: verify-rebuild
         if: needs.bootstrap-reuse.outputs.reused != 'true'
@@ -321,7 +321,7 @@ jobs:
           name: cpp-input-pr-${{ inputs.gamever }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ steps.downstream.outputs.cpp-input-root }}
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 3
       - name: Collect partial rebuild evidence on failure
         id: collect-failure
         if: >-
@@ -350,7 +350,7 @@ jobs:
         with:
           name: trusted-pr-rebuild-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}-${{ inputs.gamever }}
           path: ${{ steps.collect-failure.outputs.diagnostics }}/**
-          retention-days: 30
+          retention-days: 3
           include-hidden-files: true
           if-no-files-found: warn
       - name: Upload bound rebuild evidence
@@ -362,7 +362,7 @@ jobs:
             ${{ steps.prepare-rebuild.outputs.execution-report }}
             ${{ steps.prepare-rebuild.outputs.verification }}
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 3
     outputs:
       cpp_artifact_id: ${{ steps.cpp-validation.outputs.artifact-id }}
       cpp_artifact_digest: ${{ steps.cpp-validation.outputs.artifact-digest }}

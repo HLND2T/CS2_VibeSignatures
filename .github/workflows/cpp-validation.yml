@@ -111,7 +111,7 @@ jobs:
           name: cpp-result-${{ inputs.scope }}-${{ inputs.gamever }}-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.platform }}
           path: ${{ runner.temp }}/cpp-result
           if-no-files-found: warn
-          retention-days: 14
+          retention-days: ${{ startsWith(inputs.scope, 'release') && 14 || 3 }}
   aggregate:
     needs: validate
     runs-on: ubuntu-latest
@@ -160,4 +160,4 @@ jobs:
           name: cpp-evidence-${{ inputs.scope }}-${{ inputs.gamever }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/cpp-evidence
           if-no-files-found: error
-          retention-days: 14
+          retention-days: ${{ startsWith(inputs.scope, 'release') && 14 || 3 }}

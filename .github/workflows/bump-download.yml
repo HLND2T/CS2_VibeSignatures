@@ -156,7 +156,7 @@ jobs:
           name: ${{ steps.package.outputs.artifact_name }}
           path: ${{ env.CANDIDATE_ROOT }}
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 3
   publish-bump-branch:
     needs: bump
     if: needs.bump.outputs.updated == 'true' && needs.bump.outputs.skip_pr != 'true'
