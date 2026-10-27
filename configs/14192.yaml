@@ -700,6 +700,10 @@ modules:
         category: vfunc
         alias:
           - CNetworkSystem::GetUDPPort
+      - name: CNetworkSystem_GetFakeLag
+        category: vfunc
+        alias:
+          - CNetworkSystem::GetFakeLag
       - name: CNetworkSystem_InitNetworkSystem
         category: vfunc
         alias:
@@ -2017,6 +2021,7 @@ modules:
         expected_output:
           - INetworkSystem_GetUDPPort.{platform}.yaml
           - INetworkServerService_IsActiveInGame.{platform}.yaml
+          - INetworkSystem_GetFakeLag.{platform}.yaml
         expected_input:
           - CSteam3ServerS1_InitGameServer.{platform}.yaml
           - CNetworkServerService_vtable.{platform}.yaml
@@ -4420,6 +4425,10 @@ modules:
         category: vfunc
         alias:
           - INetworkSystem::GetUDPPort
+      - name: INetworkSystem_GetFakeLag
+        category: vfunc
+        alias:
+          - INetworkSystem::GetFakeLag
       - name: INetworkServerService_IsServerRunning
         category: vfunc
         alias:
@@ -15746,6 +15755,12 @@ modules:
         expected_input:
           - CNetworkSystem_vtable.{platform}.yaml
           - ../engine/INetworkSystem_GetUDPPort.{platform}.yaml
+      - name: find-CNetworkSystem_GetFakeLag
+        expected_output:
+          - CNetworkSystem_GetFakeLag.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_vtable.{platform}.yaml
+          - ../engine/INetworkSystem_GetFakeLag.{platform}.yaml
       - name: find-CNetworkSystem_PrintNetworkStats
         expected_output:
           - CNetworkSystem_PrintNetworkStats.{platform}.yaml
