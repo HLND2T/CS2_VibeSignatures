@@ -11,7 +11,6 @@ import re
 import shutil
 import subprocess
 import sys
-import tempfile
 import uuid
 
 import ci_s3_cache
@@ -87,44 +86,6 @@ def require_lock(value):
 def check_lock(result, expected):
     if require_lock(result.get("binary_lock_sha256")) != require_lock(expected):
         raise ValueError("Source binary lock identity drifted")
-
-
-def download_plan():
-    from trusted_artifact_pr import TrustedArtifactPrError, load_trusted_artifact_plan
-
-    expected = env("PLAN_SHA256")
-    source = env("SOURCE_SHA")
-    if not DIGEST_RE.fullmatch(expected) or not SHA_RE.fullmatch(source):
-        raise ValueError("Trusted plan workflow binding is invalid")
-    destination = temporary("trusted-pr-plan", "trusted-source-artifact-plan.json")
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    for attempt in range(1, 4):
-        try:
-            with tempfile.TemporaryDirectory(dir=destination.parent, prefix=".download-") as directory:
-                command(
-                    [
-                        "gh",
-                        "run",
-                        "download",
-                        env("GITHUB_RUN_ID"),
-                        "--repo",
-                        env("GITHUB_REPOSITORY"),
-                        "--name",
-                        env("CI_PLAN_ARTIFACT_NAME"),
-                        "--dir",
-                        directory,
-                    ]
-                )
-                downloaded = Path(directory) / destination.name
-                plan = load_trusted_artifact_plan(downloaded)
-                if plan["plan_sha256"] != expected or plan["merge_sha"] != source:
-                    raise ValueError("Downloaded trusted plan differs from workflow binding")
-                os.replace(downloaded, destination)
-                return
-        except (OSError, ValueError, subprocess.CalledProcessError, TrustedArtifactPrError) as exc:
-            print(f"Trusted plan download attempt {attempt}/3 failed validation", file=sys.stderr)
-            if attempt == 3:
-                raise ValueError("Unable to download a complete, workflow-bound trusted plan after 3 attempts") from exc
 
 
 def accepted_restore():
@@ -1097,7 +1058,6 @@ def cpp_run():
 
 
 COMMANDS = {
-    "download-plan": download_plan,
     "accepted-restore": accepted_restore,
     "accepted-verify": accepted_verify,
     "accepted-stage": accepted_stage,

@@ -2,7 +2,6 @@ import json
 import os
 from pathlib import Path
 import shutil
-import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -11,119 +10,6 @@ import ci_runner as runner
 import ci_cpp_validation as cpp_evidence
 from release_workflow_lib.errors import ReleaseWorkflowError
 from tests import test_ci_cpp_validation as evidence_support
-import trusted_artifact_pr as trusted_plan
-
-
-class TestTrustedPlanDownload(unittest.TestCase):
-    def plan(self):
-        document = {
-            "schema_version": trusted_plan.PLAN_SCHEMA_VERSION,
-            "base_sha": "a" * 40,
-            "head_sha": "b" * 40,
-            "merge_sha": "c" * 40,
-            "merge_tree_sha": "d" * 40,
-            "mode": "light",
-            "execution_strategy": sorted(trusted_plan.EXECUTION_STRATEGIES)[0],
-            "game_versions": [],
-            "padding": "完整计划" * 300000,
-        }
-        document["plan_sha256"] = trusted_plan._digest("trusted-pr-plan", document)
-        return document
-
-    def test_download_retries_incomplete_failed_and_unbound_plans_before_atomic_publication(self):
-        for failure in ("truncated", "missing", "command", "digest", "binding", "source", "schema", None):
-            with self.subTest(failure=failure), tempfile.TemporaryDirectory() as directory:
-                root = Path(directory)
-                plan = self.plan()
-                destination = root / "trusted-pr-plan/trusted-source-artifact-plan.json"
-                destination.parent.mkdir()
-                destination.write_bytes(b"previous verified plan")
-                values = {
-                    "RUNNER_TEMP": str(root),
-                    "GITHUB_RUN_ID": "100",
-                    "GITHUB_REPOSITORY": "owner/repo",
-                    "CI_PLAN_ARTIFACT_NAME": "trusted-source-artifact-plan-100-1",
-                    "PLAN_SHA256": plan["plan_sha256"],
-                    "SOURCE_SHA": plan["merge_sha"],
-                }
-                attempts = []
-
-                def download(args):
-                    self.assertEqual(b"previous verified plan", destination.read_bytes())
-                    attempts.append(args)
-                    payload = dict(plan)
-                    target = Path(args[args.index("--dir") + 1]) / destination.name
-                    if len(attempts) == 1 and failure:
-                        if failure == "missing":
-                            return
-                        if failure == "command":
-                            raise subprocess.CalledProcessError(1, args)
-                        if failure == "truncated":
-                            target.write_bytes(b'{"padding":"incomplete')
-                            return
-                        if failure in ("digest", "binding"):
-                            payload["padding"] = "tampered"
-                        elif failure == "source":
-                            payload["merge_sha"] = "e" * 40
-                        elif failure == "schema":
-                            payload["schema_version"] = 0
-                        if failure != "digest":
-                            payload.pop("plan_sha256")
-                            payload["plan_sha256"] = trusted_plan._digest("trusted-pr-plan", payload)
-                    target.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
-
-                with patch.dict(os.environ, values), patch.object(runner, "command", side_effect=download):
-                    self.assertEqual(0, runner.main(["download-plan"]))
-                self.assertEqual(2 if failure else 1, len(attempts))
-                self.assertEqual(plan, trusted_plan.load_trusted_artifact_plan(destination))
-                self.assertEqual([destination], list(destination.parent.iterdir()))
-                for args in attempts:
-                    self.assertEqual(["gh", "run", "download", "100", "--repo", "owner/repo"], args[:6])
-                    self.assertEqual(values["CI_PLAN_ARTIFACT_NAME"], args[args.index("--name") + 1])
-
-    def test_download_fails_closed_after_three_attempts_without_publishing(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            plan = self.plan()
-            values = {
-                "RUNNER_TEMP": str(root),
-                "GITHUB_RUN_ID": "100",
-                "GITHUB_REPOSITORY": "owner/repo",
-                "CI_PLAN_ARTIFACT_NAME": "trusted-source-artifact-plan-100-1",
-                "PLAN_SHA256": plan["plan_sha256"],
-                "SOURCE_SHA": plan["merge_sha"],
-            }
-            with patch.dict(os.environ, values), patch.object(runner, "command") as download:
-                with self.assertRaisesRegex(ValueError, "after 3 attempts"):
-                    runner.download_plan()
-            self.assertEqual(3, download.call_count)
-            self.assertEqual([], list((root / "trusted-pr-plan").iterdir()))
-
-    def test_both_pr_consumers_use_verified_plan_downloads(self):
-        import yaml
-
-        workflow = yaml.safe_load((Path(runner.__file__).parent / ".github/workflows/pr-self-runner.yml").read_text())
-        for job in ("bootstrap-reuse", "validate"):
-            steps = workflow["jobs"][job]["steps"]
-            downloads = [step for step in steps if step.get("with", {}).get("command") == "download-plan"]
-            self.assertEqual(1, len(downloads))
-            self.assertEqual("${{ github.token }}", downloads[0]["env"]["GH_TOKEN"])
-            self.assertEqual("${{ inputs.plan_artifact_name }}", downloads[0]["env"]["CI_PLAN_ARTIFACT_NAME"])
-            self.assertFalse(
-                any(step.get("with", {}).get("path") == "${{ runner.temp }}/trusted-pr-plan" for step in steps)
-            )
-
-    def test_invalid_workflow_binding_is_rejected_before_downloading(self):
-        for field in ("PLAN_SHA256", "SOURCE_SHA"):
-            values = {"PLAN_SHA256": "sha256:" + "a" * 64, "SOURCE_SHA": "b" * 40, field: "invalid"}
-            with (
-                self.subTest(field=field),
-                patch.dict(os.environ, values),
-                patch.object(runner, "command") as download,
-                self.assertRaisesRegex(ValueError, "workflow binding is invalid"),
-            ):
-                runner.download_plan()
-            download.assert_not_called()
 
 
 class TestConsumerIdaPreflight(unittest.TestCase):

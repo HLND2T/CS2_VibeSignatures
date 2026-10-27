@@ -40,15 +40,10 @@ jobs:
           persist-credentials: false
       - uses: astral-sh/setup-uv@v9.0.0
       - run: uv sync --project .trusted-tools --locked
-      - name: Download and verify bound trusted plan
-        uses: ./.trusted-tools/.github/actions/ci-command
-        env:
-          GH_TOKEN: ${{ github.token }}
-          CI_PLAN_ARTIFACT_NAME: ${{ inputs.plan_artifact_name }}
-          PLAN_SHA256: ${{ inputs.plan_sha256 }}
-          SOURCE_SHA: ${{ inputs.source_sha }}
+      - uses: actions/download-artifact@v5
         with:
-          command: download-plan
+          name: ${{ inputs.plan_artifact_name }}
+          path: ${{ runner.temp }}/trusted-pr-plan
       - name: Authenticate and rebind prior bootstrap execution
         id: probe
         env:
@@ -150,12 +145,10 @@ jobs:
         with:
           command: sync-trusted
       - name: Download bound trusted plan
-        uses: ./.cache-tools/.github/actions/ci-command
-        env:
-          GH_TOKEN: ${{ github.token }}
-          CI_PLAN_ARTIFACT_NAME: ${{ inputs.plan_artifact_name }}
+        uses: actions/download-artifact@v5
         with:
-          command: download-plan
+          name: ${{ inputs.plan_artifact_name }}
+          path: ${{ runner.temp }}/trusted-pr-plan
       - name: Download hosted bootstrap reuse evidence
         if: needs.bootstrap-reuse.outputs.reused == 'true'
         uses: actions/download-artifact@v5
