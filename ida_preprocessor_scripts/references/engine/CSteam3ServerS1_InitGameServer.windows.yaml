@@ -48,8 +48,8 @@ disasm_code: |-
   .text:00000001800F9520                 mov     rdx, [rcx]
   .text:00000001800F9523                 mov     r8, [rdx+110h]
   .text:00000001800F952A                 mov     edx, cs:dword_1806B93C0
-  .text:00000001800F9530                 ; 0x110 = 272LL = INetworkSystem_GetFakeLag
-  .text:00000001800F9530                 call    r8; 0x110 = 272LL = INetworkSystem_GetFakeLag
+  .text:00000001800F9530                 ; 0x110 = 272LL = INetworkSystem_GetUDPPort
+  .text:00000001800F9530                 call    r8; 0x110 = 272LL = INetworkSystem_GetUDPPort
   .text:00000001800F9533                 mov     rcx, cs:g_pNetworkServerService
   .text:00000001800F953A                 movzx   r15d, ax
   .text:00000001800F953E                 mov     rdx, [rcx]
@@ -296,7 +296,7 @@ procedure: |-
       v9 = (*(__int64 (__fastcall **)(__int64, _QWORD))(*(_QWORD *)g_pNetworkSystem + 280LL))(
              g_pNetworkSystem,
              (unsigned int)dword_1806B93B8);      // 0x118 = 280LL = INetworkSystem_GetUDPPortWithFallback
-      v10 = (*(__int64 (__fastcall **)(__int64, _QWORD))(*(_QWORD *)g_pNetworkSystem + 272LL))(// 0x110 = 272LL = INetworkSystem_GetFakeLag
+      v10 = (*(__int64 (__fastcall **)(__int64, _QWORD))(*(_QWORD *)g_pNetworkSystem + 272LL))(// 0x110 = 272LL = INetworkSystem_GetUDPPort
               g_pNetworkSystem,
               (unsigned int)dword_1806B93C0);
       v11 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pNetworkServerService + 192LL))(g_pNetworkServerService);// 0xC0 = 192LL = INetworkServerService_IsActiveInGame

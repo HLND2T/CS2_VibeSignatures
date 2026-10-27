@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
-"""Resolve CNetworkSystem::GetFakeLag from the interface slot."""
+"""Resolve CNetworkSystem::GetUDPPort while preserving the legacy artifact key."""
 
 from ida_analyze_util import preprocess_common_skill
 
 INHERIT_VFUNCS = [("CNetworkSystem_GetFakeLag", "CNetworkSystem", "../engine/INetworkSystem_GetFakeLag", True)]
+# Artifact keys stay stable; emitted names reflect the verified SDK semantics.
+OUTPUT_NAME_MAP = {
+    "CNetworkSystem_GetFakeLag": "CNetworkSystem_GetUDPPort",
+}
 
 GENERATE_YAML_DESIRED_FIELDS = [
     (
@@ -27,4 +31,5 @@ async def preprocess_skill(
         inherit_vfuncs=INHERIT_VFUNCS,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
+        output_name_map=OUTPUT_NAME_MAP,
     )

@@ -56,6 +56,7 @@ FUNC_VTABLE_RELATIONS = [
 # Artifact keys stay stable; emitted names reflect the verified SDK semantics.
 OUTPUT_NAME_MAP = {
     "INetworkSystem_GetUDPPort": "INetworkSystem_GetUDPPortWithFallback",
+    "INetworkSystem_GetFakeLag": "INetworkSystem_GetUDPPort",
 }
 
 GENERATE_YAML_DESIRED_FIELDS = [

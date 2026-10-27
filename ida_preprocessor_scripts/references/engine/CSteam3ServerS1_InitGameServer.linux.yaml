@@ -59,8 +59,8 @@ disasm_code: |-
   .text:0000000000597E59                 lea     rax, dword_A9E470
   .text:0000000000597E60                 mov     esi, [rax]
   .text:0000000000597E62                 mov     rax, [rdi]
-  .text:0000000000597E65                 ; 0x110 = 272LL = INetworkSystem_GetFakeLag
-  .text:0000000000597E65                 call    qword ptr [rax+110h]; 0x110 = 272LL = INetworkSystem_GetFakeLag
+  .text:0000000000597E65                 ; 0x110 = 272LL = INetworkSystem_GetUDPPort
+  .text:0000000000597E65                 call    qword ptr [rax+110h]; 0x110 = 272LL = INetworkSystem_GetUDPPort
   .text:0000000000597E6B                 mov     r13d, eax
   .text:0000000000597E6E                 mov     [rbp+var_2438], ax
   .text:0000000000597E75                 lea     rax, g_pNetworkServerService
@@ -323,7 +323,7 @@ procedure: |-
              (unsigned int)dword_A9E478);         // 0x118 = 280LL = INetworkSystem_GetUDPPortWithFallback
       v29 = v5;
       v6 = (*(__int64 (__fastcall **)(_QWORD *, _QWORD))(*g_pNetworkSystem
-                                                       + 272LL))(// 0x110 = 272LL = INetworkSystem_GetFakeLag
+                                                       + 272LL))(// 0x110 = 272LL = INetworkSystem_GetUDPPort
              g_pNetworkSystem,
              (unsigned int)dword_A9E470);
       v28 = v6;
