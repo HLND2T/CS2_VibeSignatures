@@ -6,6 +6,7 @@ from ida_analyze_util import preprocess_common_skill
 TARGET_FUNCTION_NAMES = [
     "ISource2GameClients_ClientSetConVarUserInfoSet",
     "ICvar_CopyUserInfoCvarDefaults",
+    "ICvar_GetTotalUserInfoCvarsByteSize",
 ]
 
 # Windows: the SetConVarUserInfo body (and with it the
@@ -45,6 +46,7 @@ LLM_DECOMPILE_LINUX = [
 
 FUNC_VTABLE_RELATIONS = [
     ("ICvar_CopyUserInfoCvarDefaults", "ICvar"),
+    ("ICvar_GetTotalUserInfoCvarsByteSize", "ICvar"),
     # ISource2GameClients is abstract; this relation supplies vtable metadata only.
     ("ISource2GameClients_ClientSetConVarUserInfoSet", "ISource2GameClients"),
 ]
@@ -114,6 +116,18 @@ async def preprocess_skill(
             "dependency_policy": {f"{predecessor}.{{platform}}.yaml": "required"},
         }
     )
+    # ICvar_GetTotalUserInfoCvarsByteSize (0x118) stays in the destructor body on
+    # BOTH platforms: unlike the SetConVarUserInfo dispatch, it is never outlined
+    # into the Linux CServerSideClientBase_SetConVarUserInfo helper.
+    llm_decompile.append(
+        {
+            "symbol_name": "ICvar_GetTotalUserInfoCvarsByteSize",
+            "prompt_path": "prompt/call_llm_decompile.md",
+            "reference_yaml_paths": ["references/engine/CServerSideClientBase_dtor.{platform}.yaml"],
+            "expected_result_sections": ["found_vcall"],
+            "dependency_policy": {"CServerSideClientBase_dtor.{platform}.yaml": "required"},
+        }
+    )
     generate_yaml_desired_fields = (
         GENERATE_YAML_DESIRED_FIELDS_WINDOWS if platform == "windows" else GENERATE_YAML_DESIRED_FIELDS_LINUX
     )
@@ -132,6 +146,10 @@ async def preprocess_skill(
         + [
             (
                 "ICvar_CopyUserInfoCvarDefaults",
+                ["func_name", "vfunc_sig", "vfunc_offset", "vfunc_index", "vtable_name"],
+            ),
+            (
+                "ICvar_GetTotalUserInfoCvarsByteSize",
                 ["func_name", "vfunc_sig", "vfunc_offset", "vfunc_index", "vtable_name"],
             ),
         ],
