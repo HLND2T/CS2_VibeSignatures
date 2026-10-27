@@ -756,6 +756,10 @@ modules:
         category: vfunc
         alias:
           - CNetworkSystem::GetSteamNetworkingMessages
+      - name: CNetworkSystem_GetSteamNetworkUtils
+        category: vfunc
+        alias:
+          - CNetworkSystem::GetSteamNetworkUtils
       - name: CNetworkSystem_GetScratchBuffer
         category: vfunc
         alias:
@@ -6635,6 +6639,14 @@ modules:
           - CScriptConvarAccessor_RegisterConvar.{platform}.yaml
         prerequisite:
           - find-ICvar_RegisterConVar_Impl
+      - name: find-UpdateNetworkConfigState
+        expected_output:
+          - UpdateNetworkConfigState.{platform}.yaml
+      - name: find-INetworkSystem_GetSteamNetworkUtils
+        expected_output:
+          - INetworkSystem_GetSteamNetworkUtils.{platform}.yaml
+        expected_input:
+          - UpdateNetworkConfigState.{platform}.yaml
     symbols:
       - name: CLoopModeGame_RegisterEventMapInternal
         category: func
@@ -7889,6 +7901,12 @@ modules:
         category: func
       - name: ICvar_RegisterConVar
         category: vfunc
+      - name: UpdateNetworkConfigState
+        category: func
+      - name: INetworkSystem_GetSteamNetworkUtils
+        category: vfunc
+        alias:
+          - INetworkSystem::GetSteamNetworkUtils
   - name: server
     path_windows: game/csgo/bin/win64/server.dll
     path_linux: game/csgo/bin/linuxsteamrt64/libserver.so
@@ -15659,6 +15677,12 @@ modules:
         expected_input:
           - CNetworkSystem_vtable.{platform}.yaml
           - ../engine/INetworkSystem_GetSteamNetworkingMessages.{platform}.yaml
+      - name: find-CNetworkSystem_GetSteamNetworkUtils
+        expected_output:
+          - CNetworkSystem_GetSteamNetworkUtils.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_vtable.{platform}.yaml
+          - ../client/INetworkSystem_GetSteamNetworkUtils.{platform}.yaml
       - name: find-CNetworkSystem_GetScratchBuffer
         expected_output:
           - CNetworkSystem_GetScratchBuffer.{platform}.yaml

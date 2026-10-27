@@ -1,0 +1,306 @@
+func_name: UpdateNetworkConfigState
+func_va: '0x180fff1b0'
+disasm_code: |-
+  .text:0000000180FFF1B0                 mov     [rsp-8+arg_18], rbx
+  .text:0000000180FFF1B5                 push    rbp
+  .text:0000000180FFF1B6                 lea     rbp, [rsp-1B0h]
+  .text:0000000180FFF1BE                 sub     rsp, 2B0h
+  .text:0000000180FFF1C5                 mov     rbx, rcx
+  .text:0000000180FFF1C8                 mov     rcx, cs:g_pNetworkSystem
+  .text:0000000180FFF1CF                 test    rcx, rcx
+  .text:0000000180FFF1D2                 jz      loc_180FFF4B6
+  .text:0000000180FFF1D8                 mov     rax, [rcx]
+  .text:0000000180FFF1DB                 ; 0x148 = 328LL = INetworkSystem_GetSteamNetworkUtils
+  .text:0000000180FFF1DB                 call    qword ptr [rax+148h]; 0x148 = 328LL = INetworkSystem_GetSteamNetworkUtils
+  .text:0000000180FFF1E1                 test    rax, rax
+  .text:0000000180FFF1E4                 jz      loc_180FFF4B6
+  .text:0000000180FFF1EA                 mov     rcx, [rax]
+  .text:0000000180FFF1ED                 lea     rdx, [rbp+1B0h+var_230]
+  .text:0000000180FFF1F1                 mov     r8, [rcx+8]
+  .text:0000000180FFF1F5                 mov     rcx, rax
+  .text:0000000180FFF1F8                 call    r8
+  .text:0000000180FFF1FB                 xor     ecx, ecx
+  .text:0000000180FFF1FD                 cmp     eax, 0FFFFFFF6h
+  .text:0000000180FFF200                 jge     short loc_180FFF209
+  .text:0000000180FFF202                 mov     ecx, 2
+  .text:0000000180FFF207                 jmp     short loc_180FFF219
+  .text:0000000180FFF209                 cmp     eax, 64h ; 'd'
+  .text:0000000180FFF20C                 jnz     short loc_180FFF219
+  .text:0000000180FFF20E                 cmp     [rbp+1B0h+var_22C], ecx
+  .text:0000000180FFF211                 mov     eax, 1
+  .text:0000000180FFF216                 cmovz   ecx, eax
+  .text:0000000180FFF219                 mov     [rsp+2B0h+arg_0], rsi
+  .text:0000000180FFF221                 mov     [rsp+2B0h+arg_10], rdi
+  .text:0000000180FFF229                 cmp     ecx, [rbx+3080h]
+  .text:0000000180FFF22F                 jz      short loc_180FFF292
+  .text:0000000180FFF231                 mov     [rbx+3080h], ecx
+  .text:0000000180FFF237                 mov     rdi, cs:qword_182735EE0
+  .text:0000000180FFF23E                 test    rdi, rdi
+  .text:0000000180FFF241                 jz      short loc_180FFF292
+  .text:0000000180FFF243                 mov     rax, [rdi]
+  .text:0000000180FFF246                 mov     ecx, 20h ; ' '
+  .text:0000000180FFF24B                 mov     rsi, [rax+178h]
+  .text:0000000180FFF252                 call    sub_180C32810
+  .text:0000000180FFF257                 test    rax, rax
+  .text:0000000180FFF25A                 jz      short loc_180FFF27F
+  .text:0000000180FFF25C                 movzx   ecx, cs:word_182248590
+  .text:0000000180FFF263                 mov     [rax+8], cx
+  .text:0000000180FFF267                 mov     rcx, 0FFFFFFFF00000000h
+  .text:0000000180FFF271                 mov     [rax+0Ch], rcx
+  .text:0000000180FFF275                 lea     rcx, ??_7?$CUIEvent@$0A@$$V@panorama@@6B@; const panorama::CUIEvent<0,>::`vftable'
+  .text:0000000180FFF27C                 mov     [rax], rcx
+  .text:0000000180FFF27F                 lea     rdx, [rbp+1B0h+arg_8]
+  .text:0000000180FFF286                 mov     [rbp+1B0h+arg_8], rax
+  .text:0000000180FFF28D                 mov     rcx, rdi
+  .text:0000000180FFF290                 call    rsi
+  .text:0000000180FFF292                 mov     r8d, [rbp+1B0h+var_228]
+  .text:0000000180FFF296                 cmp     r8d, 0FFFFFFF6h
+  .text:0000000180FFF29A                 jge     loc_180FFF4A6
+  .text:0000000180FFF2A0                 lea     rdx, aAncD; "ANC[%d]"
+  .text:0000000180FFF2A7                 lea     rcx, [rbp+1B0h+var_120]
+  .text:0000000180FFF2AE                 call    sub_180148530
+  .text:0000000180FFF2B3                 mov     ecx, [rax+4]
+  .text:0000000180FFF2B6                 bt      ecx, 1Eh
+  .text:0000000180FFF2BA                 jnb     short loc_180FFF2C2
+  .text:0000000180FFF2BC                 lea     rdi, [rax+8]
+  .text:0000000180FFF2C0                 jmp     short loc_180FFF2D7
+  .text:0000000180FFF2C2                 test    ecx, 3FFFFFFFh
+  .text:0000000180FFF2C8                 jbe     short loc_180FFF2D0
+  .text:0000000180FFF2CA                 mov     rdi, [rax+8]
+  .text:0000000180FFF2CE                 jmp     short loc_180FFF2D7
+  .text:0000000180FFF2D0                 lea     rdi, byte_181AC2088
+  .text:0000000180FFF2D7                 xorps   xmm0, xmm0
+  .text:0000000180FFF2DA                 comisd  xmm0, qword ptr [rbx+3088h]
+  .text:0000000180FFF2E2                 ja      loc_180FFF497
+  .text:0000000180FFF2E8                 call    sub_18118E120
+  .text:0000000180FFF2ED                 cmp     dword ptr [rax+474h], 0
+  .text:0000000180FFF2F4                 jnz     loc_180FFF497
+  .text:0000000180FFF2FA                 mov     eax, cs:dword_18257E4F0
+  .text:0000000180FFF300                 shr     eax, 8
+  .text:0000000180FFF303                 test    al, 1
+  .text:0000000180FFF305                 jz      loc_180FFF497
+  .text:0000000180FFF30B                 movaps  [rsp+2B0h+var_10], xmm6
+  .text:0000000180FFF313                 call    cs:Plat_FloatTime
+  .text:0000000180FFF319                 movsd   xmm1, qword ptr [rbx+3088h]
+  .text:0000000180FFF321                 movaps  xmm6, xmm0
+  .text:0000000180FFF324                 comisd  xmm1, xmm0
+  .text:0000000180FFF328                 ja      loc_180FFF48F
+  .text:0000000180FFF32E                 movss   xmm1, cs:dword_181ADC314
+  .text:0000000180FFF336                 movss   xmm0, cs:dword_181B00CD4
+  .text:0000000180FFF33E                 call    cs:__imp_RandomFloat
+  .text:0000000180FFF344                 xorps   xmm1, xmm1
+  .text:0000000180FFF347                 mov     edx, 2
+  .text:0000000180FFF34C                 cvtss2sd xmm1, xmm0
+  .text:0000000180FFF350                 addsd   xmm1, xmm6
+  .text:0000000180FFF354                 movsd   qword ptr [rbx+3088h], xmm1
+  .text:0000000180FFF35C                 mov     ecx, cs:dword_1825E4FAC
+  .text:0000000180FFF362                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:0000000180FFF368                 test    al, al
+  .text:0000000180FFF36A                 jz      short loc_180FFF384
+  .text:0000000180FFF36C                 mov     ecx, cs:dword_1825E4FAC
+  .text:0000000180FFF372                 lea     r8, aRequestingFall; "Requesting fallback networking config.."...
+  .text:0000000180FFF379                 mov     edx, 2
+  .text:0000000180FFF37E                 call    cs:LoggingSystem_Log
+  .text:0000000180FFF384                 mov     edx, 2404h
+  .text:0000000180FFF389                 lea     rcx, [rsp+2B0h+var_278]
+  .text:0000000180FFF38E                 call    sub_18162AE60
+  .text:0000000180FFF393                 lea     rax, aCBuildworkerCs_60; "C:\\buildworker\\csgo_rel_win64\\build"...
+  .text:0000000180FFF39A                 mov     qword ptr [rsp+2B0h+var_290+8], 17Ch
+  .text:0000000180FFF3A3                 mov     qword ptr [rsp+2B0h+var_290], rax
+  .text:0000000180FFF3A8                 lea     rsi, ??_7?$CProtoBufMsg@VCMsgGCCStrike15_v2_ClientNetworkConfig@@@GCSDK@@6B@; const GCSDK::CProtoBufMsg<CMsgGCCStrike15_v2_ClientNetworkConfig>::`vftable'
+  .text:0000000180FFF3AF                 movups  xmm0, [rsp+2B0h+var_290]
+  .text:0000000180FFF3B4                 lea     rax, aCprotobufmsg; "CProtoBufMsg"
+  .text:0000000180FFF3BB                 mov     [rsp+2B0h+var_278], rsi
+  .text:0000000180FFF3C0                 mov     [rsp+2B0h+var_280], rax
+  .text:0000000180FFF3C5                 lea     r8, [rsp+2B0h+var_250]
+  .text:0000000180FFF3CA                 movsd   xmm1, [rsp+2B0h+var_280]
+  .text:0000000180FFF3D0                 lea     rdx, off_182251198; "Networking"
+  .text:0000000180FFF3D7                 lea     rcx, aCprotobufmsgCp; "CProtoBufMsg::CProtoBufMsg( MsgType_t )"
+  .text:0000000180FFF3DE                 movsd   [rsp+2B0h+var_240], xmm1
+  .text:0000000180FFF3E4                 mov     [rsp+2B0h+var_258], 0
+  .text:0000000180FFF3ED                 movaps  [rsp+2B0h+var_250], xmm0
+  .text:0000000180FFF3F2                 call    cs:?EnterScopeInternalBudgetFlags@?$VProfScopeHelper@$0A@$0A@@@SAP6AXXZPEBDAEAUVProfBudgetGroupCallSite@@AEBVCUtlSourceLocation@@@Z; VProfScopeHelper<0,0>::EnterScopeInternalBudgetFlags(char const *,VProfBudgetGroupCallSite &,CUtlSourceLocation const &)
+  .text:0000000180FFF3F8                 mov     rbx, rax
+  .text:0000000180FFF3FB                 call    sub_180F827A0
+  .text:0000000180FFF400                 mov     [rsp+2B0h+var_258], rax
+  .text:0000000180FFF405                 call    rbx
+  .text:0000000180FFF407                 test    rdi, rdi
+  .text:0000000180FFF40A                 jz      short loc_180FFF44B
+  .text:0000000180FFF40C                 mov     rax, [rsp+2B0h+var_258]
+  .text:0000000180FFF411                 or      dword ptr [rax+10h], 1
+  .text:0000000180FFF415                 lea     rcx, [rax+18h]
+  .text:0000000180FFF419                 mov     rdx, [rax+8]
+  .text:0000000180FFF41D                 and     rdx, 0FFFFFFFFFFFFFFFCh
+  .text:0000000180FFF421                 test    byte ptr [rax+8], 1
+  .text:0000000180FFF425                 jz      short loc_180FFF42A
+  .text:0000000180FFF427                 mov     rdx, [rdx]
+  .text:0000000180FFF42A                 call    sub_181234B40
+  .text:0000000180FFF42F                 mov     r8, 0FFFFFFFFFFFFFFFFh
+  .text:0000000180FFF436                 inc     r8
+  .text:0000000180FFF439                 cmp     byte ptr [rdi+r8], 0
+  .text:0000000180FFF43E                 jnz     short loc_180FFF436
+  .text:0000000180FFF440                 mov     rdx, rdi
+  .text:0000000180FFF443                 mov     rcx, rax
+  .text:0000000180FFF446                 call    sub_18014E7B0
+  .text:0000000180FFF44B                 call    sub_18118E120
+  .text:0000000180FFF450                 lea     rdx, [rsp+2B0h+var_278]
+  .text:0000000180FFF455                 lea     rcx, [rax+0A0h]
+  .text:0000000180FFF45C                 call    sub_18161F980
+  .text:0000000180FFF461                 mov     rdx, [rsp+2B0h+var_258]
+  .text:0000000180FFF466                 mov     [rsp+2B0h+var_278], rsi
+  .text:0000000180FFF46B                 test    rdx, rdx
+  .text:0000000180FFF46E                 jz      short loc_180FFF485
+  .text:0000000180FFF470                 mov     rcx, cs:qword_1825ED278
+  .text:0000000180FFF477                 call    sub_18162BBB0
+  .text:0000000180FFF47C                 mov     [rsp+2B0h+var_258], 0
+  .text:0000000180FFF485                 lea     rcx, [rsp+2B0h+var_278]
+  .text:0000000180FFF48A                 call    sub_18162B400
+  .text:0000000180FFF48F                 movaps  xmm6, [rsp+2B0h+var_10]
+  .text:0000000180FFF497                 xor     edx, edx
+  .text:0000000180FFF499                 lea     rcx, [rbp+1B0h+var_120]
+  .text:0000000180FFF4A0                 call    cs:?Purge@CBufferString@@QEAAXH@Z; CBufferString::Purge(int)
+  .text:0000000180FFF4A6                 mov     rsi, [rsp+2B0h+arg_0]
+  .text:0000000180FFF4AE                 mov     rdi, [rsp+2B0h+arg_10]
+  .text:0000000180FFF4B6                 mov     rbx, [rsp+2B0h+arg_18]
+  .text:0000000180FFF4BE                 add     rsp, 2B0h
+  .text:0000000180FFF4C5                 pop     rbp
+  .text:0000000180FFF4C6                 retn
+procedure: |-
+  void __fastcall sub_180FFF1B0(__int64 a1)
+  {
+    __int64 v2; // rax
+    int v3; // eax
+    int v4; // ecx
+    __int64 v5; // rdi
+    void (__fastcall *v6)(__int64, __int64 *); // rsi
+    __int64 v7; // rax
+    __int64 v8; // rax
+    __int64 v9; // rdx
+    __int64 v10; // rcx
+    char *v11; // rdi
+    __int64 v12; // rdx
+    __int64 v13; // rcx
+    __int64 v14; // r8
+    double v15; // xmm6_8
+    void (*v16)(void); // rbx
+    __int64 v17; // rdx
+    __int64 v18; // rcx
+    __int64 v19; // rax
+    _QWORD *v20; // rdx
+    __int64 v21; // rax
+    __int64 v22; // r8
+    __int64 v23; // rax
+    __int128 v24; // [rsp+20h] [rbp-E0h]
+    _QWORD v25[4]; // [rsp+38h] [rbp-C8h] BYREF
+    __int64 v26; // [rsp+58h] [rbp-A8h]
+    __int128 v27; // [rsp+60h] [rbp-A0h] BYREF
+    const char *v28; // [rsp+70h] [rbp-90h]
+    _BYTE v29[4]; // [rsp+80h] [rbp-80h] BYREF
+    int v30; // [rsp+84h] [rbp-7Ch]
+    int v31; // [rsp+88h] [rbp-78h]
+    _BYTE v32[272]; // [rsp+190h] [rbp+90h] BYREF
+    __int64 v33; // [rsp+2C8h] [rbp+1C8h] BYREF
+
+    if ( g_pNetworkSystem )
+    {
+      v2 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pNetworkSystem + 328LL))(g_pNetworkSystem);// 0x148 = 328LL = INetworkSystem_GetSteamNetworkUtils
+      if ( v2 )
+      {
+        v3 = (*(__int64 (__fastcall **)(__int64, _BYTE *))(*(_QWORD *)v2 + 8LL))(v2, v29);
+        v4 = 0;
+        if ( v3 >= -10 )
+        {
+          if ( v3 == 100 )
+            v4 = v30 == 0;
+        }
+        else
+        {
+          v4 = 2;
+        }
+        if ( v4 != *(_DWORD *)(a1 + 12416) )
+        {
+          *(_DWORD *)(a1 + 12416) = v4;
+          v5 = qword_182735EE0;
+          if ( qword_182735EE0 )
+          {
+            v6 = *(void (__fastcall **)(__int64, __int64 *))(*(_QWORD *)qword_182735EE0 + 376LL);
+            v7 = sub_180C32810(32);
+            if ( v7 )
+            {
+              *(_WORD *)(v7 + 8) = word_182248590;
+              *(_QWORD *)(v7 + 12) = 0xFFFFFFFF00000000uLL;
+              *(_QWORD *)v7 = &panorama::CUIEvent<0,>::`vftable';
+            }
+            v33 = v7;
+            v6(v5, &v33);
+          }
+        }
+        if ( v31 < -10 )
+        {
+          v8 = sub_180148530(v32, "ANC[%d]", v31);
+          v10 = *(unsigned int *)(v8 + 4);
+          if ( (v10 & 0x40000000) != 0 )
+          {
+            v11 = (char *)(v8 + 8);
+          }
+          else if ( (v10 & 0x3FFFFFFF) != 0 )
+          {
+            v11 = *(char **)(v8 + 8);
+          }
+          else
+          {
+            v11 = &byte_181AC2088;
+          }
+          if ( *(double *)(a1 + 12424) >= 0.0
+            && !*(_DWORD *)(sub_18118E120(v10, v9) + 1140)
+            && (dword_18257E4F0 & 0x100) != 0 )
+          {
+            v15 = Plat_FloatTime(v13, v12, v14);
+            if ( *(double *)(a1 + 12424) <= v15 )
+            {
+              *(double *)(a1 + 12424) = RandomFloat() + v15;
+              if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_1825E4FAC, 2) )
+                LoggingSystem_Log((unsigned int)dword_1825E4FAC, 2, "Requesting fallback networking config...\n");
+              sub_18162AE60(v25, 9220);
+              *((_QWORD *)&v24 + 1) = 380;
+              *(_QWORD *)&v24 = "C:\\buildworker\\csgo_rel_win64\\build\\src\\public\\gcsdk_csgo_legacy\\msgprotobuf.h";
+              v25[0] = &GCSDK::CProtoBufMsg<CMsgGCCStrike15_v2_ClientNetworkConfig>::`vftable';
+              v28 = "CProtoBufMsg";
+              v26 = 0;
+              v27 = v24;
+              v16 = (void (*)(void))VProfScopeHelper<0,0>::EnterScopeInternalBudgetFlags(
+                                      "CProtoBufMsg::CProtoBufMsg( MsgType_t )",
+                                      &off_182251198,
+                                      &v27);
+              v26 = sub_180F827A0();
+              v16();
+              if ( v11 )
+              {
+                v19 = v26;
+                *(_DWORD *)(v26 + 16) |= 1u;
+                v20 = (_QWORD *)(*(_QWORD *)(v19 + 8) & 0xFFFFFFFFFFFFFFFCuLL);
+                if ( (*(_BYTE *)(v19 + 8) & 1) != 0 )
+                  v20 = (_QWORD *)*v20;
+                v21 = sub_181234B40(v19 + 24, v20);
+                v22 = -1;
+                do
+                  ++v22;
+                while ( v11[v22] );
+                sub_18014E7B0(v21, v11, v22);
+              }
+              v23 = sub_18118E120(v18, v17);
+              sub_18161F980(v23 + 160, v25);
+              v25[0] = &GCSDK::CProtoBufMsg<CMsgGCCStrike15_v2_ClientNetworkConfig>::`vftable';
+              if ( v26 )
+              {
+                sub_18162BBB0(qword_1825ED278);
+                v26 = 0;
+              }
+              sub_18162B400(v25);
+            }
+          }
+          CBufferString::Purge((CBufferString *)v32, 0);
+        }
+      }
+    }
+  }
