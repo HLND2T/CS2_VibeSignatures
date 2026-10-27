@@ -6,6 +6,7 @@ from ida_analyze_util import preprocess_common_skill
 TARGET_FUNCTION_NAMES = [
     "INetworkSystem_GetUDPPort",
     "INetworkServerService_IsActiveInGame",
+    "INetworkSystem_GetFakeLag",
 ]
 
 LLM_DECOMPILE = [
@@ -31,6 +32,17 @@ LLM_DECOMPILE = [
             "CSteam3ServerS1_InitGameServer.{platform}.yaml": "required",
         },
     },
+    {
+        "symbol_name": "INetworkSystem_GetFakeLag",
+        "prompt_path": "prompt/call_llm_decompile.md",
+        "reference_yaml_paths": [
+            "references/engine/CSteam3ServerS1_InitGameServer.{platform}.yaml",
+        ],
+        "expected_result_sections": ["found_vcall"],
+        "dependency_policy": {
+            "CSteam3ServerS1_InitGameServer.{platform}.yaml": "required",
+        },
+    },
 ]
 
 FUNC_VTABLE_RELATIONS = [
@@ -38,6 +50,7 @@ FUNC_VTABLE_RELATIONS = [
     # INetworkSystem is an abstract interface; vtable_name is metadata only.
     ("INetworkSystem_GetUDPPort", "INetworkSystem"),
     ("INetworkServerService_IsActiveInGame", "CNetworkServerService_vtable"),
+    ("INetworkSystem_GetFakeLag", "INetworkSystem"),
 ]
 
 # Artifact keys stay stable; emitted names reflect the verified SDK semantics.
@@ -60,6 +73,16 @@ GENERATE_YAML_DESIRED_FIELDS = [
     ),
     (
         "INetworkServerService_IsActiveInGame",
+        [
+            "func_name",
+            "vfunc_sig",
+            "vfunc_offset",
+            "vfunc_index",
+            "vtable_name",
+        ],
+    ),
+    (
+        "INetworkSystem_GetFakeLag",
         [
             "func_name",
             "vfunc_sig",

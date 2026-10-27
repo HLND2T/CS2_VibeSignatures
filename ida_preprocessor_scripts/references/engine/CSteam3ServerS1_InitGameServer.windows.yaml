@@ -1,248 +1,248 @@
 func_name: CSteam3ServerS1_InitGameServer
-func_va: '0x1800f8120'
+func_va: '0x1800f9440'
 disasm_code: |-
-  .text:00000001800F8120                 push    rsi
-  .text:00000001800F8122                 push    r14
-  .text:00000001800F8124                 sub     rsp, 668h
-  .text:00000001800F812B                 movzx   r14d, dl
-  .text:00000001800F812F                 mov     rsi, rcx
-  .text:00000001800F8132                 call    sub_1800F7DA0
-  .text:00000001800F8137                 cmp     eax, [rsi+0A0h]
-  .text:00000001800F813D                 jz      loc_1800F85A1
-  .text:00000001800F8143                 mov     [rsp+678h+arg_0], rbx
-  .text:00000001800F814B                 lea     rcx, off_18060E650
-  .text:00000001800F8152                 mov     [rsp+678h+arg_8], rbp
-  .text:00000001800F815A                 mov     [rsp+678h+var_18], r15
-  .text:00000001800F8162                 call    cs:SteamInternal_ContextInit
-  .text:00000001800F8168                 cmp     qword ptr [rax], 0
-  .text:00000001800F816C                 jz      short loc_1800F817F
-  .text:00000001800F816E                 cmp     dword ptr [rsi+0A0h], 1
-  .text:00000001800F8175                 jl      short loc_1800F817F
-  .text:00000001800F8177                 mov     rcx, rsi
-  .text:00000001800F817A                 call    sub_1800F85B0
-  .text:00000001800F817F                 mov     rcx, rsi
-  .text:00000001800F8182                 mov     dword ptr [rsi+110h], 0
-  .text:00000001800F818C                 call    sub_1800F7DA0
-  .text:00000001800F8191                 mov     rcx, cs:g_pVApplication
-  .text:00000001800F8198                 mov     [rsi+0A0h], eax
-  .text:00000001800F819E                 mov     rax, [rcx]
-  .text:00000001800F81A1                 call    qword ptr [rax+0D8h]
-  .text:00000001800F81A7                 xor     ecx, ecx
-  .text:00000001800F81A9                 mov     rbx, rax
-  .text:00000001800F81AC                 call    cs:Plat_GetGameDirectory
-  .text:00000001800F81B2                 mov     r9d, 104h
-  .text:00000001800F81B8                 lea     r8, [rsp+678h+var_638]
-  .text:00000001800F81BD                 mov     rcx, rax
-  .text:00000001800F81C0                 mov     rdx, rbx
-  .text:00000001800F81C3                 call    cs:_V_ComposeFileName
-  .text:00000001800F81C9                 mov     r8d, 104h
-  .text:00000001800F81CF                 lea     rdx, [rsp+678h+var_528]
-  .text:00000001800F81D7                 lea     rcx, [rsp+678h+var_638]
-  .text:00000001800F81DC                 call    cs:_V_FileBase
-  .text:00000001800F81E2                 mov     rcx, cs:g_pNetworkSystem
-  .text:00000001800F81E9                 mov     edx, cs:dword_18060EFC0
-  .text:00000001800F81EF                 mov     rax, [rcx]
-  .text:00000001800F81F2                 ; 0x118 = 280LL = INetworkSystem_GetUDPPort
-  .text:00000001800F81F2                 call    qword ptr [rax+118h]; 0x118 = 280LL = INetworkSystem_GetUDPPort
-  .text:00000001800F81F8                 mov     rcx, cs:g_pNetworkSystem
-  .text:00000001800F81FF                 movzx   ebx, ax
-  .text:00000001800F8202                 mov     rdx, [rcx]
-  .text:00000001800F8205                 mov     r8, [rdx+110h]
-  .text:00000001800F820C                 mov     edx, cs:dword_18060EFB8
-  .text:00000001800F8212                 call    r8
-  .text:00000001800F8215                 mov     rcx, cs:g_pNetworkServerService
-  .text:00000001800F821C                 movzx   r15d, ax
-  .text:00000001800F8220                 mov     rdx, [rcx]
-  .text:00000001800F8223                 ; 0x0C0 = 192LL = INetworkServerService_IsActiveInGame
-  .text:00000001800F8223                 call    qword ptr [rdx+0C0h]; 0x0C0 = 192LL = INetworkServerService_IsActiveInGame
-  .text:00000001800F8229                 movzx   ecx, r15w
-  .text:00000001800F822D                 mov     edx, 2
-  .text:00000001800F8232                 test    al, al
-  .text:00000001800F8234                 cmovnz  cx, bx
-  .text:00000001800F8238                 mov     [rsi+114h], cx
-  .text:00000001800F823F                 mov     ecx, cs:dword_1808CC6B8
-  .text:00000001800F8245                 call    cs:LoggingSystem_IsChannelEnabled
-  .text:00000001800F824B                 test    al, al
-  .text:00000001800F824D                 jz      short loc_1800F8267
-  .text:00000001800F824F                 mov     ecx, cs:dword_1808CC6B8
-  .text:00000001800F8255                 lea     r8, aSteamgameserve_0; "SteamGameServer_Init()\n"
-  .text:00000001800F825C                 mov     edx, 2
-  .text:00000001800F8261                 call    cs:LoggingSystem_Log
-  .text:00000001800F8267                 xor     ecx, ecx
-  .text:00000001800F8269                 call    cs:SteamAPI_SetTryCatchCallbacks
-  .text:00000001800F826F                 xor     edx, edx
-  .text:00000001800F8271                 lea     rcx, [rsp+678h+var_418]
-  .text:00000001800F8279                 mov     r8d, 400h
-  .text:00000001800F827F                 call    sub_1804722B0
-  .text:00000001800F8284                 mov     rax, cs:qword_18090FA48
-  .text:00000001800F828B                 lea     rbp, unk_180528AFF
-  .text:00000001800F8292                 mov     r9d, [rsi+0A0h]
-  .text:00000001800F8299                 test    rax, rax
-  .text:00000001800F829C                 mov     rcx, rbp
-  .text:00000001800F829F                 mov     r8d, 0FFFFh
-  .text:00000001800F82A5                 cmovnz  rcx, rax
-  .text:00000001800F82A9                 movzx   edx, bx
-  .text:00000001800F82AC                 lea     rax, [rsp+678h+var_418]
-  .text:00000001800F82B4                 mov     [rsp+678h+var_648], rax
-  .text:00000001800F82B9                 lea     rax, aSteamutils010_0; "SteamUtils010"
-  .text:00000001800F82C0                 mov     [rsp+678h+var_650], rax
-  .text:00000001800F82C5                 mov     [rsp+678h+var_658], rcx
-  .text:00000001800F82CA                 mov     ecx, [rsi+110h]
-  .text:00000001800F82D0                 call    cs:SteamInternal_GameServer_Init_V2
-  .text:00000001800F82D6                 test    eax, eax
-  .text:00000001800F82D8                 jnz     short loc_1800F830E
-  .text:00000001800F82DA                 call    sub_180415A00
-  .text:00000001800F82DF                 movzx   ecx, al
-  .text:00000001800F82E2                 call    sub_180202E70
-  .text:00000001800F82E7                 lea     rcx, off_18060E650
-  .text:00000001800F82EE                 call    cs:SteamInternal_ContextInit
-  .text:00000001800F82F4                 cmp     qword ptr [rax], 0
-  .text:00000001800F82F8                 jnz     short loc_1800F8324
-  .text:00000001800F82FA                 lea     rdx, aNoSteamgameser; "No SteamGameServer"
-  .text:00000001800F8301                 lea     rcx, [rsp+678h+var_418]
-  .text:00000001800F8309                 call    sub_1800FAAE0
-  .text:00000001800F830E                 lea     rdx, [rsp+678h+var_418]
-  .text:00000001800F8316                 lea     rcx, aFailedToInitia; "Failed to initialize Steamworks SDK for"...
-  .text:00000001800F831D                 call    cs:Plat_FatalError
-  .text:00000001800F8323                 ; Trap to Debugger
-  .text:00000001800F8323                 int     3; Trap to Debugger
-  .text:00000001800F8324                 mov     ecx, cs:dword_1808CC6B8
-  .text:00000001800F832A                 mov     edx, 2
-  .text:00000001800F832F                 mov     [rsp+678h+arg_10], rdi
-  .text:00000001800F8337                 call    cs:LoggingSystem_IsChannelEnabled
-  .text:00000001800F833D                 test    al, al
-  .text:00000001800F833F                 jz      short loc_1800F8359
-  .text:00000001800F8341                 mov     ecx, cs:dword_1808CC6B8
-  .text:00000001800F8347                 lea     r8, aSteamgameserve_1; "SteamGameServer_Init() OK, logging on t"...
-  .text:00000001800F834E                 mov     edx, 2
-  .text:00000001800F8353                 call    cs:LoggingSystem_Log
-  .text:00000001800F8359                 lea     rcx, off_18060E650
-  .text:00000001800F8360                 call    cs:SteamInternal_ContextInit
-  .text:00000001800F8366                 mov     rdx, rbp
-  .text:00000001800F8369                 mov     rcx, [rax]
-  .text:00000001800F836C                 mov     rax, [rcx]
-  .text:00000001800F836F                 mov     r8, [rax+8]
-  .text:00000001800F8373                 mov     rax, cs:qword_180918DD0
-  .text:00000001800F837A                 test    rax, rax
-  .text:00000001800F837D                 cmovnz  rdx, rax
-  .text:00000001800F8381                 call    r8
-  .text:00000001800F8384                 lea     rcx, off_18060E650
-  .text:00000001800F838B                 call    cs:SteamInternal_ContextInit
-  .text:00000001800F8391                 mov     rcx, cs:qword_180911898
-  .text:00000001800F8398                 mov     rdi, [rax]
-  .text:00000001800F839B                 mov     rax, [rdi]
-  .text:00000001800F839E                 mov     rbx, [rax+10h]
-  .text:00000001800F83A2                 mov     rax, [rcx]
-  .text:00000001800F83A5                 call    qword ptr [rax+58h]
-  .text:00000001800F83A8                 mov     rdx, rax
-  .text:00000001800F83AB                 mov     rcx, rdi
-  .text:00000001800F83AE                 call    rbx
-  .text:00000001800F83B0                 lea     rcx, off_18060E650
-  .text:00000001800F83B7                 call    cs:SteamInternal_ContextInit
-  .text:00000001800F83BD                 mov     rdi, [rax]
-  .text:00000001800F83C0                 mov     rax, [rdi]
-  .text:00000001800F83C3                 mov     rbx, [rax+20h]
-  .text:00000001800F83C7                 call    sub_180415A00
-  .text:00000001800F83CC                 movzx   edx, al
-  .text:00000001800F83CF                 mov     rcx, rdi
-  .text:00000001800F83D2                 call    rbx
-  .text:00000001800F83D4                 lea     rcx, off_18060E650
-  .text:00000001800F83DB                 call    cs:SteamInternal_ContextInit
-  .text:00000001800F83E1                 lea     rdx, [rsp+678h+var_528]
-  .text:00000001800F83E9                 mov     rcx, [rax]
-  .text:00000001800F83EC                 mov     rax, [rcx]
-  .text:00000001800F83EF                 call    qword ptr [rax+18h]
-  .text:00000001800F83F2                 lea     rcx, off_18060E650
-  .text:00000001800F83F9                 call    cs:SteamInternal_ContextInit
-  .text:00000001800F83FF                 movzx   edx, r15w
-  .text:00000001800F8403                 mov     rcx, [rax]
-  .text:00000001800F8406                 mov     rax, [rcx]
-  .text:00000001800F8409                 call    qword ptr [rax+88h]
-  .text:00000001800F840F                 mov     rcx, cs:g_pVApplication
-  .text:00000001800F8416                 mov     rax, [rcx]
-  .text:00000001800F8419                 call    qword ptr [rax+90h]
-  .text:00000001800F841F                 xor     r8d, r8d
-  .text:00000001800F8422                 lea     rdx, aGmsRequirelogi; "GMS/RequireLoginForDedicatedServers"
-  .text:00000001800F8429                 mov     rcx, rax
-  .text:00000001800F842C                 call    cs:?GetInt@KeyValues@@QEBAHPEBDH@Z; KeyValues::GetInt(char const *,int)
-  .text:00000001800F8432                 mov     rdi, [rsp+678h+arg_10]
-  .text:00000001800F843A                 test    eax, eax
-  .text:00000001800F843C                 jz      loc_1800F8557
-  .text:00000001800F8442                 mov     rdx, [rsi+118h]
-  .text:00000001800F8449                 test    rdx, rdx
-  .text:00000001800F844C                 jz      short loc_1800F8490
-  .text:00000001800F844E                 cmp     byte ptr [rdx], 0
-  .text:00000001800F8451                 jz      short loc_1800F8490
-  .text:00000001800F8453                 lea     rcx, aLoggingIntoSte; "Logging into Steam gameserver account w"...
-  .text:00000001800F845A                 call    cs:Msg
-  .text:00000001800F8460                 lea     rcx, off_18060E650
-  .text:00000001800F8467                 call    cs:SteamInternal_ContextInit
-  .text:00000001800F846D                 mov     rcx, [rax]
-  .text:00000001800F8470                 mov     rax, [rcx]
-  .text:00000001800F8473                 mov     r8, [rax+28h]
-  .text:00000001800F8477                 mov     rax, [rsi+118h]
-  .text:00000001800F847E                 test    rax, rax
-  .text:00000001800F8481                 cmovnz  rbp, rax
-  .text:00000001800F8485                 mov     rdx, rbp
-  .text:00000001800F8488                 call    r8
-  .text:00000001800F848B                 jmp     loc_1800F856D
-  .text:00000001800F8490                 mov     rcx, cs:g_pSource2Server
-  .text:00000001800F8497                 mov     rax, [rcx]
-  .text:00000001800F849A                 call    qword ptr [rax+58h]
-  .text:00000001800F849D                 test    al, al
-  .text:00000001800F849F                 jz      short loc_1800F84AD
-  .text:00000001800F84A1                 lea     rcx, aLoggingInAsOff; "Logging in as official server anonymous"...
-  .text:00000001800F84A8                 jmp     loc_1800F8551
-  .text:00000001800F84AD                 mov     rcx, cs:g_pVApplication
-  .text:00000001800F84B4                 mov     rax, [rcx]
-  .text:00000001800F84B7                 call    qword ptr [rax+118h]
-  .text:00000001800F84BD                 cmp     eax, 2
-  .text:00000001800F84C0                 jnz     loc_1800F854A
-  .text:00000001800F84C6                 lea     rcx, asc_18054AC38; "***************************************"...
-  .text:00000001800F84CD                 call    cs:Warning
-  .text:00000001800F84D3                 lea     rcx, asc_18054ACD8; "*                                      "...
-  .text:00000001800F84DA                 call    cs:Warning
-  .text:00000001800F84E0                 lea     rcx, aNoSteamAccount; "*  No Steam account token was specified"...
-  .text:00000001800F84E7                 call    cs:Warning
-  .text:00000001800F84ED                 lea     rcx, aLoggingIntoAno; "*  Logging into anonymous game server a"...
-  .text:00000001800F84F4                 call    cs:Warning
-  .text:00000001800F84FA                 lea     rcx, aConnectionsWil; "*  Connections will be restricted to LA"...
-  .text:00000001800F8501                 call    cs:Warning
-  .text:00000001800F8507                 lea     rcx, asc_18054ACD8; "*                                      "...
-  .text:00000001800F850E                 call    cs:Warning
-  .text:00000001800F8514                 lea     rcx, aToCreateAGameS; "*  To create a game server account go t"...
-  .text:00000001800F851B                 call    cs:Warning
-  .text:00000001800F8521                 lea     rcx, aHttpSteamcommu; "*  http://steamcommunity.com/dev/manage"...
-  .text:00000001800F8528                 call    cs:Warning
-  .text:00000001800F852E                 lea     rcx, asc_18054ACD8; "*                                      "...
-  .text:00000001800F8535                 call    cs:Warning
-  .text:00000001800F853B                 lea     rcx, asc_18054AC38; "***************************************"...
-  .text:00000001800F8542                 call    cs:Warning
-  .text:00000001800F8548                 jmp     short loc_1800F8557
-  .text:00000001800F854A                 lea     rcx, aLoggingIntoAno_0; "Logging into anonymous listen server ac"...
-  .text:00000001800F8551                 call    cs:Msg
-  .text:00000001800F8557                 lea     rcx, off_18060E650
-  .text:00000001800F855E                 call    cs:SteamInternal_ContextInit
-  .text:00000001800F8564                 mov     rcx, [rax]
-  .text:00000001800F8567                 mov     rax, [rcx]
-  .text:00000001800F856A                 call    qword ptr [rax+30h]
-  .text:00000001800F856D                 mov     rcx, cs:g_pNetworkSystem
-  .text:00000001800F8574                 mov     rax, [rcx]
-  .text:00000001800F8577                 call    qword ptr [rax+58h]
-  .text:00000001800F857A                 test    r14b, r14b
-  .text:00000001800F857D                 jz      short loc_1800F8589
-  .text:00000001800F857F                 xor     edx, edx
-  .text:00000001800F8581                 mov     rcx, rsi
-  .text:00000001800F8584                 call    CSteam3Server_SendUpdatedServerDetails
-  .text:00000001800F8589                 mov     rbp, [rsp+678h+arg_8]
-  .text:00000001800F8591                 mov     rbx, [rsp+678h+arg_0]
-  .text:00000001800F8599                 mov     r15, [rsp+678h+var_18]
-  .text:00000001800F85A1                 add     rsp, 668h
-  .text:00000001800F85A8                 pop     r14
-  .text:00000001800F85AA                 pop     rsi
-  .text:00000001800F85AB                 retn
+  .text:00000001800F9440                 push    rsi
+  .text:00000001800F9442                 push    r14
+  .text:00000001800F9444                 sub     rsp, 668h
+  .text:00000001800F944B                 movzx   r14d, dl
+  .text:00000001800F944F                 mov     rsi, rcx
+  .text:00000001800F9452                 call    sub_1800F90C0
+  .text:00000001800F9457                 cmp     eax, [rsi+0C0h]
+  .text:00000001800F945D                 jz      loc_1800F98BF
+  .text:00000001800F9463                 mov     [rsp+678h+arg_0], rbx
+  .text:00000001800F946B                 lea     rcx, off_1806B8970
+  .text:00000001800F9472                 mov     [rsp+678h+arg_8], rbp
+  .text:00000001800F947A                 mov     [rsp+678h+var_18], r15
+  .text:00000001800F9482                 call    cs:SteamInternal_ContextInit
+  .text:00000001800F9488                 cmp     qword ptr [rax], 0
+  .text:00000001800F948C                 jz      short loc_1800F949F
+  .text:00000001800F948E                 cmp     dword ptr [rsi+0C0h], 1
+  .text:00000001800F9495                 jl      short loc_1800F949F
+  .text:00000001800F9497                 mov     rcx, rsi
+  .text:00000001800F949A                 call    CSteam3ServerS1_ShutdownGameServer
+  .text:00000001800F949F                 mov     rcx, rsi
+  .text:00000001800F94A2                 mov     dword ptr [rsi+130h], 0
+  .text:00000001800F94AC                 call    sub_1800F90C0
+  .text:00000001800F94B1                 mov     rcx, cs:g_pVApplication
+  .text:00000001800F94B8                 mov     [rsi+0C0h], eax
+  .text:00000001800F94BE                 mov     rax, [rcx]
+  .text:00000001800F94C1                 call    qword ptr [rax+0D8h]
+  .text:00000001800F94C7                 mov     rbx, rax
+  .text:00000001800F94CA                 call    cs:Plat_GetGameDirectory
+  .text:00000001800F94D0                 mov     r9d, 104h
+  .text:00000001800F94D6                 lea     r8, [rsp+678h+var_638]
+  .text:00000001800F94DB                 mov     rcx, rax
+  .text:00000001800F94DE                 mov     rdx, rbx
+  .text:00000001800F94E1                 call    cs:_V_ComposeFileName
+  .text:00000001800F94E7                 mov     r8d, 104h
+  .text:00000001800F94ED                 lea     rdx, [rsp+678h+var_528]
+  .text:00000001800F94F5                 lea     rcx, [rsp+678h+var_638]
+  .text:00000001800F94FA                 call    cs:_V_FileBase
+  .text:00000001800F9500                 mov     rcx, cs:g_pNetworkSystem
+  .text:00000001800F9507                 mov     edx, cs:dword_1806B93B8
+  .text:00000001800F950D                 mov     rax, [rcx]
+  .text:00000001800F9510                 ; 0x118 = 280LL = INetworkSystem_GetUDPPortWithFallback
+  .text:00000001800F9510                 call    qword ptr [rax+118h]; 0x118 = 280LL = INetworkSystem_GetUDPPortWithFallback
+  .text:00000001800F9516                 mov     rcx, cs:g_pNetworkSystem
+  .text:00000001800F951D                 movzx   ebx, ax
+  .text:00000001800F9520                 mov     rdx, [rcx]
+  .text:00000001800F9523                 mov     r8, [rdx+110h]
+  .text:00000001800F952A                 mov     edx, cs:dword_1806B93C0
+  .text:00000001800F9530                 ; 0x110 = 272LL = INetworkSystem_GetFakeLag
+  .text:00000001800F9530                 call    r8; 0x110 = 272LL = INetworkSystem_GetFakeLag
+  .text:00000001800F9533                 mov     rcx, cs:g_pNetworkServerService
+  .text:00000001800F953A                 movzx   r15d, ax
+  .text:00000001800F953E                 mov     rdx, [rcx]
+  .text:00000001800F9541                 ; 0xC0 = 192LL = INetworkServerService_IsActiveInGame
+  .text:00000001800F9541                 call    qword ptr [rdx+0C0h]; 0xC0 = 192LL = INetworkServerService_IsActiveInGame
+  .text:00000001800F9547                 movzx   ecx, r15w
+  .text:00000001800F954B                 mov     edx, 2
+  .text:00000001800F9550                 test    al, al
+  .text:00000001800F9552                 cmovnz  cx, bx
+  .text:00000001800F9556                 mov     [rsi+134h], cx
+  .text:00000001800F955D                 mov     ecx, cs:dword_180977CE8
+  .text:00000001800F9563                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:00000001800F9569                 test    al, al
+  .text:00000001800F956B                 jz      short loc_1800F9585
+  .text:00000001800F956D                 mov     ecx, cs:dword_180977CE8
+  .text:00000001800F9573                 lea     r8, aSteamgameserve_0; "SteamGameServer_Init()\n"
+  .text:00000001800F957A                 mov     edx, 2
+  .text:00000001800F957F                 call    cs:LoggingSystem_Log
+  .text:00000001800F9585                 xor     ecx, ecx
+  .text:00000001800F9587                 call    cs:SteamAPI_SetTryCatchCallbacks
+  .text:00000001800F958D                 xor     edx, edx
+  .text:00000001800F958F                 lea     rcx, [rsp+678h+var_418]
+  .text:00000001800F9597                 mov     r8d, 400h
+  .text:00000001800F959D                 call    sub_180501B50
+  .text:00000001800F95A2                 mov     rax, cs:qword_1809BB168
+  .text:00000001800F95A9                 lea     rbp, unk_1805C5E4F
+  .text:00000001800F95B0                 mov     r9d, [rsi+0C0h]
+  .text:00000001800F95B7                 test    rax, rax
+  .text:00000001800F95BA                 mov     rcx, rbp
+  .text:00000001800F95BD                 mov     r8d, 0FFFFh
+  .text:00000001800F95C3                 cmovnz  rcx, rax
+  .text:00000001800F95C7                 movzx   edx, bx
+  .text:00000001800F95CA                 lea     rax, [rsp+678h+var_418]
+  .text:00000001800F95D2                 mov     [rsp+678h+var_648], rax
+  .text:00000001800F95D7                 lea     rax, aSteamutils010_0; "SteamUtils010"
+  .text:00000001800F95DE                 mov     [rsp+678h+var_650], rax
+  .text:00000001800F95E3                 mov     [rsp+678h+var_658], rcx
+  .text:00000001800F95E8                 mov     ecx, [rsi+130h]
+  .text:00000001800F95EE                 call    cs:SteamInternal_GameServer_Init_V2
+  .text:00000001800F95F4                 test    eax, eax
+  .text:00000001800F95F6                 jnz     short loc_1800F962C
+  .text:00000001800F95F8                 call    sub_180420360
+  .text:00000001800F95FD                 movzx   ecx, al
+  .text:00000001800F9600                 call    sub_180206910
+  .text:00000001800F9605                 lea     rcx, off_1806B8970
+  .text:00000001800F960C                 call    cs:SteamInternal_ContextInit
+  .text:00000001800F9612                 cmp     qword ptr [rax], 0
+  .text:00000001800F9616                 jnz     short loc_1800F9642
+  .text:00000001800F9618                 lea     rdx, aNoSteamgameser; "No SteamGameServer"
+  .text:00000001800F961F                 lea     rcx, [rsp+678h+var_418]
+  .text:00000001800F9627                 call    sub_1800FC0F0
+  .text:00000001800F962C                 lea     rdx, [rsp+678h+var_418]
+  .text:00000001800F9634                 lea     rcx, aFailedToInitia; "Failed to initialize Steamworks SDK for"...
+  .text:00000001800F963B                 call    cs:Plat_FatalError
+  .text:00000001800F9641                 ; Trap to Debugger
+  .text:00000001800F9641                 int     3; Trap to Debugger
+  .text:00000001800F9642                 mov     ecx, cs:dword_180977CE8
+  .text:00000001800F9648                 mov     edx, 2
+  .text:00000001800F964D                 mov     [rsp+678h+arg_10], rdi
+  .text:00000001800F9655                 call    cs:LoggingSystem_IsChannelEnabled
+  .text:00000001800F965B                 test    al, al
+  .text:00000001800F965D                 jz      short loc_1800F9677
+  .text:00000001800F965F                 mov     ecx, cs:dword_180977CE8
+  .text:00000001800F9665                 lea     r8, aSteamgameserve_1; "SteamGameServer_Init() OK, logging on t"...
+  .text:00000001800F966C                 mov     edx, 2
+  .text:00000001800F9671                 call    cs:LoggingSystem_Log
+  .text:00000001800F9677                 lea     rcx, off_1806B8970
+  .text:00000001800F967E                 call    cs:SteamInternal_ContextInit
+  .text:00000001800F9684                 mov     rdx, rbp
+  .text:00000001800F9687                 mov     rcx, [rax]
+  .text:00000001800F968A                 mov     rax, [rcx]
+  .text:00000001800F968D                 mov     r8, [rax+8]
+  .text:00000001800F9691                 mov     rax, cs:qword_1809C44D0
+  .text:00000001800F9698                 test    rax, rax
+  .text:00000001800F969B                 cmovnz  rdx, rax
+  .text:00000001800F969F                 call    r8
+  .text:00000001800F96A2                 lea     rcx, off_1806B8970
+  .text:00000001800F96A9                 call    cs:SteamInternal_ContextInit
+  .text:00000001800F96AF                 mov     rcx, cs:qword_1809BCFA0
+  .text:00000001800F96B6                 mov     rdi, [rax]
+  .text:00000001800F96B9                 mov     rax, [rdi]
+  .text:00000001800F96BC                 mov     rbx, [rax+10h]
+  .text:00000001800F96C0                 mov     rax, [rcx]
+  .text:00000001800F96C3                 call    qword ptr [rax+58h]
+  .text:00000001800F96C6                 mov     rdx, rax
+  .text:00000001800F96C9                 mov     rcx, rdi
+  .text:00000001800F96CC                 call    rbx
+  .text:00000001800F96CE                 lea     rcx, off_1806B8970
+  .text:00000001800F96D5                 call    cs:SteamInternal_ContextInit
+  .text:00000001800F96DB                 mov     rdi, [rax]
+  .text:00000001800F96DE                 mov     rax, [rdi]
+  .text:00000001800F96E1                 mov     rbx, [rax+20h]
+  .text:00000001800F96E5                 call    sub_180420360
+  .text:00000001800F96EA                 movzx   edx, al
+  .text:00000001800F96ED                 mov     rcx, rdi
+  .text:00000001800F96F0                 call    rbx
+  .text:00000001800F96F2                 lea     rcx, off_1806B8970
+  .text:00000001800F96F9                 call    cs:SteamInternal_ContextInit
+  .text:00000001800F96FF                 lea     rdx, [rsp+678h+var_528]
+  .text:00000001800F9707                 mov     rcx, [rax]
+  .text:00000001800F970A                 mov     rax, [rcx]
+  .text:00000001800F970D                 call    qword ptr [rax+18h]
+  .text:00000001800F9710                 lea     rcx, off_1806B8970
+  .text:00000001800F9717                 call    cs:SteamInternal_ContextInit
+  .text:00000001800F971D                 movzx   edx, r15w
+  .text:00000001800F9721                 mov     rcx, [rax]
+  .text:00000001800F9724                 mov     rax, [rcx]
+  .text:00000001800F9727                 call    qword ptr [rax+88h]
+  .text:00000001800F972D                 mov     rcx, cs:g_pVApplication
+  .text:00000001800F9734                 mov     rax, [rcx]
+  .text:00000001800F9737                 call    qword ptr [rax+90h]
+  .text:00000001800F973D                 xor     r8d, r8d
+  .text:00000001800F9740                 lea     rdx, aGmsRequirelogi; "GMS/RequireLoginForDedicatedServers"
+  .text:00000001800F9747                 mov     rcx, rax
+  .text:00000001800F974A                 call    cs:?GetInt@KeyValues@@QEBAHPEBDH@Z; KeyValues::GetInt(char const *,int)
+  .text:00000001800F9750                 mov     rdi, [rsp+678h+arg_10]
+  .text:00000001800F9758                 test    eax, eax
+  .text:00000001800F975A                 jz      loc_1800F9875
+  .text:00000001800F9760                 mov     rdx, [rsi+138h]
+  .text:00000001800F9767                 test    rdx, rdx
+  .text:00000001800F976A                 jz      short loc_1800F97AE
+  .text:00000001800F976C                 cmp     byte ptr [rdx], 0
+  .text:00000001800F976F                 jz      short loc_1800F97AE
+  .text:00000001800F9771                 lea     rcx, aLoggingIntoSte; "Logging into Steam gameserver account w"...
+  .text:00000001800F9778                 call    cs:Msg
+  .text:00000001800F977E                 lea     rcx, off_1806B8970
+  .text:00000001800F9785                 call    cs:SteamInternal_ContextInit
+  .text:00000001800F978B                 mov     rcx, [rax]
+  .text:00000001800F978E                 mov     rax, [rcx]
+  .text:00000001800F9791                 mov     r8, [rax+28h]
+  .text:00000001800F9795                 mov     rax, [rsi+138h]
+  .text:00000001800F979C                 test    rax, rax
+  .text:00000001800F979F                 cmovnz  rbp, rax
+  .text:00000001800F97A3                 mov     rdx, rbp
+  .text:00000001800F97A6                 call    r8
+  .text:00000001800F97A9                 jmp     loc_1800F988B
+  .text:00000001800F97AE                 mov     rcx, cs:g_pSource2Server
+  .text:00000001800F97B5                 mov     rax, [rcx]
+  .text:00000001800F97B8                 call    qword ptr [rax+58h]
+  .text:00000001800F97BB                 test    al, al
+  .text:00000001800F97BD                 jz      short loc_1800F97CB
+  .text:00000001800F97BF                 lea     rcx, aLoggingInAsOff; "Logging in as official server anonymous"...
+  .text:00000001800F97C6                 jmp     loc_1800F986F
+  .text:00000001800F97CB                 mov     rcx, cs:g_pVApplication
+  .text:00000001800F97D2                 mov     rax, [rcx]
+  .text:00000001800F97D5                 call    qword ptr [rax+118h]
+  .text:00000001800F97DB                 cmp     eax, 2
+  .text:00000001800F97DE                 jnz     loc_1800F9868
+  .text:00000001800F97E4                 lea     rcx, asc_1805E8F40; "***************************************"...
+  .text:00000001800F97EB                 call    cs:Warning
+  .text:00000001800F97F1                 lea     rcx, asc_1805E8F08; "*                                      "...
+  .text:00000001800F97F8                 call    cs:Warning
+  .text:00000001800F97FE                 lea     rcx, aNoSteamAccount; "*  No Steam account token was specified"...
+  .text:00000001800F9805                 call    cs:Warning
+  .text:00000001800F980B                 lea     rcx, aLoggingIntoAno; "*  Logging into anonymous game server a"...
+  .text:00000001800F9812                 call    cs:Warning
+  .text:00000001800F9818                 lea     rcx, aConnectionsWil; "*  Connections will be restricted to LA"...
+  .text:00000001800F981F                 call    cs:Warning
+  .text:00000001800F9825                 lea     rcx, asc_1805E8F08; "*                                      "...
+  .text:00000001800F982C                 call    cs:Warning
+  .text:00000001800F9832                 lea     rcx, aToCreateAGameS; "*  To create a game server account go t"...
+  .text:00000001800F9839                 call    cs:Warning
+  .text:00000001800F983F                 lea     rcx, aHttpSteamcommu; "*  http://steamcommunity.com/dev/manage"...
+  .text:00000001800F9846                 call    cs:Warning
+  .text:00000001800F984C                 lea     rcx, asc_1805E8F08; "*                                      "...
+  .text:00000001800F9853                 call    cs:Warning
+  .text:00000001800F9859                 lea     rcx, asc_1805E8F40; "***************************************"...
+  .text:00000001800F9860                 call    cs:Warning
+  .text:00000001800F9866                 jmp     short loc_1800F9875
+  .text:00000001800F9868                 lea     rcx, aLoggingIntoAno_0; "Logging into anonymous listen server ac"...
+  .text:00000001800F986F                 call    cs:Msg
+  .text:00000001800F9875                 lea     rcx, off_1806B8970
+  .text:00000001800F987C                 call    cs:SteamInternal_ContextInit
+  .text:00000001800F9882                 mov     rcx, [rax]
+  .text:00000001800F9885                 mov     rax, [rcx]
+  .text:00000001800F9888                 call    qword ptr [rax+30h]
+  .text:00000001800F988B                 mov     rcx, cs:g_pNetworkSystem
+  .text:00000001800F9892                 mov     rax, [rcx]
+  .text:00000001800F9895                 call    qword ptr [rax+58h]
+  .text:00000001800F9898                 test    r14b, r14b
+  .text:00000001800F989B                 jz      short loc_1800F98A7
+  .text:00000001800F989D                 xor     edx, edx
+  .text:00000001800F989F                 mov     rcx, rsi
+  .text:00000001800F98A2                 call    CSteam3Server_SendUpdatedServerDetails
+  .text:00000001800F98A7                 mov     rbp, [rsp+678h+arg_8]
+  .text:00000001800F98AF                 mov     rbx, [rsp+678h+arg_0]
+  .text:00000001800F98B7                 mov     r15, [rsp+678h+var_18]
+  .text:00000001800F98BF                 add     rsp, 668h
+  .text:00000001800F98C6                 pop     r14
+  .text:00000001800F98C8                 pop     rsi
+  .text:00000001800F98C9                 retn
 procedure: |-
-  __int64 __fastcall sub_1800F8120(__int64 a1, char a2)
+  __int64 __fastcall CSteam3ServerS1_InitGameServer(__int64 a1, char a2)
   {
     __int64 result; // rax
     int v5; // eax
@@ -280,43 +280,43 @@ procedure: |-
     _BYTE v37[272]; // [rsp+150h] [rbp-528h] BYREF
     char v38[1024]; // [rsp+260h] [rbp-418h] BYREF
 
-    result = ((__int64 (*)(void))sub_1800F7DA0)();
-    if ( (_DWORD)result != *(_DWORD *)(a1 + 160) )
+    result = ((__int64 (*)(void))sub_1800F90C0)();
+    if ( (_DWORD)result != *(_DWORD *)(a1 + 192) )
     {
-      if ( *(_QWORD *)SteamInternal_ContextInit(&off_18060E650) && *(int *)(a1 + 160) >= 1 )
-        sub_1800F85B0(a1);
-      *(_DWORD *)(a1 + 272) = 0;
-      v5 = sub_1800F7DA0(a1);
+      if ( *(_QWORD *)SteamInternal_ContextInit(&off_1806B8970) && *(int *)(a1 + 192) >= 1 )
+        CSteam3ServerS1_ShutdownGameServer(a1);
+      *(_DWORD *)(a1 + 304) = 0;
+      v5 = sub_1800F90C0(a1);
       v6 = g_pVApplication;
-      *(_DWORD *)(a1 + 160) = v5;
+      *(_DWORD *)(a1 + 192) = v5;
       v7 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)v6 + 216LL))(v6);
-      GameDirectory = Plat_GetGameDirectory(0);
+      GameDirectory = Plat_GetGameDirectory();
       V_ComposeFileName(GameDirectory, v7, v36, 260);
       V_FileBase(v36, v37, 260);
-      v9 = (*(__int64 (__fastcall **)(__int64, _QWORD))(*(_QWORD *)g_pNetworkSystem + 280LL))(// 0x118 = 280LL = INetworkSystem_GetUDPPort
+      v9 = (*(__int64 (__fastcall **)(__int64, _QWORD))(*(_QWORD *)g_pNetworkSystem + 280LL))(
              g_pNetworkSystem,
-             (unsigned int)dword_18060EFC0);
-      v10 = (*(__int64 (__fastcall **)(__int64, _QWORD))(*(_QWORD *)g_pNetworkSystem + 272LL))(
+             (unsigned int)dword_1806B93B8);      // 0x118 = 280LL = INetworkSystem_GetUDPPortWithFallback
+      v10 = (*(__int64 (__fastcall **)(__int64, _QWORD))(*(_QWORD *)g_pNetworkSystem + 272LL))(// 0x110 = 272LL = INetworkSystem_GetFakeLag
               g_pNetworkSystem,
-              (unsigned int)dword_18060EFB8);
-      v11 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pNetworkServerService + 192LL))(g_pNetworkServerService);// 0x0C0 = 192LL = INetworkServerService_IsActiveInGame
+              (unsigned int)dword_1806B93C0);
+      v11 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pNetworkServerService + 192LL))(g_pNetworkServerService);// 0xC0 = 192LL = INetworkServerService_IsActiveInGame
       v12 = v10;
       if ( v11 )
         v12 = v9;
-      *(_WORD *)(a1 + 276) = v12;
-      if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_1808CC6B8, 2) )
-        LoggingSystem_Log((unsigned int)dword_1808CC6B8, 2, "SteamGameServer_Init()\n");
+      *(_WORD *)(a1 + 308) = v12;
+      if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_180977CE8, 2) )
+        LoggingSystem_Log((unsigned int)dword_180977CE8, 2, "SteamGameServer_Init()\n");
       SteamAPI_SetTryCatchCallbacks(0);
-      sub_1804722B0(v38, 0, 1024);
-      v13 = &unk_180528AFF;
-      v14 = &unk_180528AFF;
-      if ( qword_18090FA48 )
-        v14 = (void *)qword_18090FA48;
+      sub_180501B50(v38, 0, 1024);
+      v13 = &unk_1805C5E4F;
+      v14 = &unk_1805C5E4F;
+      if ( qword_1809BB168 )
+        v14 = (void *)qword_1809BB168;
       if ( (unsigned int)SteamInternal_GameServer_Init_V2(
-                           *(unsigned int *)(a1 + 272),
+                           *(unsigned int *)(a1 + 304),
                            v9,
                            0xFFFF,
-                           *(unsigned int *)(a1 + 160),
+                           *(unsigned int *)(a1 + 192),
                            v14,
                            "SteamUtils010",
                            v38) )
@@ -325,44 +325,44 @@ procedure: |-
         Plat_FatalError("Failed to initialize Steamworks SDK for gameserver.  %s", v38);
         __debugbreak();
       }
-      v17 = sub_180415A00(v16, v15);
-      sub_180202E70(v17);
-      if ( !*(_QWORD *)SteamInternal_ContextInit(&off_18060E650) )
+      v17 = sub_180420360(v16, v15);
+      sub_180206910(v17);
+      if ( !*(_QWORD *)SteamInternal_ContextInit(&off_1806B8970) )
       {
-        sub_1800FAAE0(v38, "No SteamGameServer");
+        sub_1800FC0F0(v38, "No SteamGameServer");
         goto LABEL_14;
       }
-      if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_1808CC6B8, 2) )
-        LoggingSystem_Log((unsigned int)dword_1808CC6B8, 2, "SteamGameServer_Init() OK, logging on to Steam\n");
-      v18 = (_QWORD *)SteamInternal_ContextInit(&off_18060E650);
-      v19 = &unk_180528AFF;
-      if ( qword_180918DD0 )
-        v19 = (void *)qword_180918DD0;
+      if ( (unsigned __int8)LoggingSystem_IsChannelEnabled((unsigned int)dword_180977CE8, 2) )
+        LoggingSystem_Log((unsigned int)dword_180977CE8, 2, "SteamGameServer_Init() OK, logging on to Steam\n");
+      v18 = (_QWORD *)SteamInternal_ContextInit(&off_1806B8970);
+      v19 = &unk_1805C5E4F;
+      if ( qword_1809C44D0 )
+        v19 = (void *)qword_1809C44D0;
       (*(void (__fastcall **)(_QWORD, void *))(*(_QWORD *)*v18 + 8LL))(*v18, v19);
-      v20 = SteamInternal_ContextInit(&off_18060E650);
+      v20 = SteamInternal_ContextInit(&off_1806B8970);
       v21 = *(_QWORD *)v20;
       v22 = *(void (__fastcall **)(__int64, __int64))(**(_QWORD **)v20 + 16LL);
-      v23 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)qword_180911898 + 88LL))(qword_180911898);
+      v23 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)qword_1809BCFA0 + 88LL))(qword_1809BCFA0);
       v22(v21, v23);
-      v24 = SteamInternal_ContextInit(&off_18060E650);
+      v24 = SteamInternal_ContextInit(&off_1806B8970);
       v25 = *(_QWORD *)v24;
       v26 = *(void (__fastcall **)(__int64, _QWORD))(**(_QWORD **)v24 + 32LL);
-      v29 = sub_180415A00(v28, v27);
+      v29 = sub_180420360(v28, v27);
       v26(v25, v29);
-      v30 = (_QWORD *)SteamInternal_ContextInit(&off_18060E650);
+      v30 = (_QWORD *)SteamInternal_ContextInit(&off_1806B8970);
       (*(void (__fastcall **)(_QWORD, _BYTE *))(*(_QWORD *)*v30 + 24LL))(*v30, v37);
-      v31 = (_QWORD *)SteamInternal_ContextInit(&off_18060E650);
+      v31 = (_QWORD *)SteamInternal_ContextInit(&off_1806B8970);
       (*(void (__fastcall **)(_QWORD, _QWORD))(*(_QWORD *)*v31 + 136LL))(*v31, v10);
       v32 = (KeyValues *)(*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pVApplication + 144LL))(g_pVApplication);
       if ( KeyValues::GetInt(v32, "GMS/RequireLoginForDedicatedServers", 0) )
       {
-        v33 = *(const char **)(a1 + 280);
+        v33 = *(const char **)(a1 + 312);
         if ( v33 && *v33 )
         {
           Msg("Logging into Steam gameserver account with logon token '%.8sxxxxxxxxxxxxxxxxxxxxxxxx'\n", v33);
-          v34 = (_QWORD *)SteamInternal_ContextInit(&off_18060E650);
-          if ( *(_QWORD *)(a1 + 280) )
-            v13 = *(void **)(a1 + 280);
+          v34 = (_QWORD *)SteamInternal_ContextInit(&off_1806B8970);
+          if ( *(_QWORD *)(a1 + 312) )
+            v13 = *(void **)(a1 + 312);
           (*(void (__fastcall **)(_QWORD, void *))(*(_QWORD *)*v34 + 40LL))(*v34, v13);
           goto LABEL_31;
         }
@@ -388,7 +388,7 @@ procedure: |-
           Msg("Logging into anonymous listen server account.\n");
         }
       }
-      v35 = (_QWORD *)SteamInternal_ContextInit(&off_18060E650);
+      v35 = (_QWORD *)SteamInternal_ContextInit(&off_1806B8970);
       (*(void (__fastcall **)(_QWORD))(*(_QWORD *)*v35 + 48LL))(*v35);
   LABEL_31:
       result = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pNetworkSystem + 88LL))(g_pNetworkSystem);
