@@ -10,6 +10,16 @@
 
 稳定 required checks 为 `source-artifact-required` 与 `pr-validate`。Merge Queue 还必须通过 GitHub ruleset Required Workflow（或独立 trust root）安装验证，防止 prospective workflow change 自行伪造同名 check。
 
+## Workflow artifacts 保留策略
+
+临时计划、bump/bootstrap 候选包、分析日志、失败诊断及 PR C++ inputs/evidence 使用 `retention-days: 3`，由 GitHub 在上传后 3 天自动过期。
+Release 待验证资产包和最终 bundle 保留 30 天；Release C++ inputs/results/evidence 保留 14 天；Pages 临时 artifacts 保留 1 天。
+这里控制的是 workflow artifacts，GitHub Release 附件及 S3 binary/IDB cache 使用各自的生命周期。变更只影响新上传的 artifacts，已有文件维持原过期时间。
+
+`pr-self-runner.yml` 的三处下载固定到 `actions/download-artifact` v6 的完整 commit SHA，包含上游
+[下载超时未拒绝 Promise 的修复](https://github.com/actions/toolkit/pull/2124)。旧实现可能留下不完整文件却把下载步骤标为成功。
+这类默认分支 CI 修复合并到 `main` 后，需触发使用新 workflow revision 的验证；重跑旧 run 仍会使用旧实现。
+
 ## anchor drift 契约
 
 `LLM_DECOMPILE` producer 由模型自行挑选一条参考指令，再由确定性签名生成器从该指令展开签名，因此两次同样合规的运行可能对同一符号采样到不同指令。PR 与 Release validation 因此按同一条规则比较重建产物与 Git truth：符号身份与已解析的地址/偏移必须逐字节一致，只有描述“如何定位该符号”的字段允许不同。

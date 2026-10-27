@@ -10,6 +10,19 @@ Source/config/reference PRs therefore include their computed `bin_artifacts` cha
 
 The stable required checks are `source-artifact-required` and `pr-validate`. Merge Queue validation must additionally be installed as a GitHub ruleset Required Workflow (or another external trust root) so a prospective workflow change cannot self-report the required check.
 
+## Workflow artifact retention
+
+Temporary plans, bump/bootstrap candidates, analysis logs, failure diagnostics, and PR C++ inputs/evidence use
+`retention-days: 3`, so GitHub expires them three days after upload. Prepared Release assets and finalized bundles
+retain their 30-day lifetime; Release C++ inputs/results/evidence retain 14 days; temporary Pages artifacts retain one day.
+This policy covers workflow artifacts. GitHub Release assets and S3 binary/IDB caches have separate lifecycles.
+The new retention periods apply only to new uploads; existing artifacts keep their original expiry dates.
+
+The three downloads in `pr-self-runner.yml` pin `actions/download-artifact` v6 by full commit SHA, including the
+upstream [download-timeout promise rejection fix](https://github.com/actions/toolkit/pull/2124). The old implementation
+could leave an incomplete file while reporting a successful download step. After merging this default-branch CI fix,
+trigger validation using the new workflow revision; rerunning an old run continues to use its old implementation.
+
 ## Anchor drift contract
 
 An `LLM_DECOMPILE` producer asks the model to pick one reference instruction and then expands a deterministic

@@ -203,7 +203,7 @@ jobs:
           name: cpp-input-bridge-pr-${{ inputs.gamever }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ steps.downstream.outputs.cpp-input-root }}
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 3
       - name: Upload bound rebuild evidence
         uses: actions/upload-artifact@v4
         with:
@@ -214,7 +214,7 @@ jobs:
             ${{ steps.prepare-rebuild.outputs.verification }}
             ${{ steps.prepare-rebuild.outputs.actual-root }}
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 3
     outputs:
       cpp_artifact_id: ${{ steps.cpp-validation.outputs.artifact-id }}
       cpp_artifact_digest: ${{ steps.cpp-validation.outputs.artifact-digest }}
@@ -271,7 +271,7 @@ jobs:
           name: trusted-hosted-validation-${{ github.run_id }}-${{ github.run_attempt }}-${{ inputs.gamever }}
           path: ${{ runner.temp }}/trusted-hosted-validation.json
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 3
   cpp-validation:
     needs: validate
     uses: ./.github/workflows/cpp-validation.yml

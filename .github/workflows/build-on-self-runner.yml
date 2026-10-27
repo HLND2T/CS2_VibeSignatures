@@ -371,7 +371,7 @@ jobs:
             ${{ runner.temp }}/release-platform-analysis-${{ github.run_id }}-${{ github.run_attempt }}-${{ env.GAMEVER }}/summary.json
             ${{ runner.temp }}/release-platform-analysis-${{ github.run_id }}-${{ github.run_attempt }}-${{ env.GAMEVER }}/**/worker.json
           if-no-files-found: warn
-          retention-days: 30
+          retention-days: 3
       - name: Verify fresh artifacts reproduce immutable Git truth
         id: verify-artifact-rebuild
         if: inputs.source_artifact_mode != 'tracked'
@@ -387,7 +387,7 @@ jobs:
           path: ${{ env.RELEASE_REBUILD_DIAGNOSTICS }}
           if-no-files-found: warn
           include-hidden-files: true
-          retention-days: 30
+          retention-days: 3
       - name: Bind tracked source-owned artifacts
         id: bind-tracked
         if: inputs.source_artifact_mode == 'tracked'
