@@ -47,6 +47,25 @@ the same name, because both compilers then emit the pair before
 server-info slot from 48 to 50 on MSVC, so the shared name is part of the ABI, not
 a naming shortcut.
 
+The client engine interface needed the same treatment once `cpp_tests` began
+comparing it against `CEngineClient_vtable` through `IVEngineClient2`. Four slots
+carried labels that do not match their bodies, and one Linux slot was resolved from
+a sibling thunk:
+
+| Legacy key | Corrected `func_name` | Evidence in 14192 |
+|---|---|---|
+| `CEngineClient_ExecuteClientCmd` / `IVEngineClient2_ExecuteClientCmd` | `CEngineClient_ServerCmd` / `IVEngineClient2_ServerCmd` | Windows `0x180075d30` / Linux `0x5096d0`, slot 50: clamps the split-screen slot to 0..3 and dispatches to the network client's `SendStringCmd`, i.e. `ServerCmd( CSplitScreenSlot, const char * )`. |
+| `CEngineClient_ClientCmd_Unrestricted` | `CEngineClient_ClientCommand` | Windows `0x180075d60`, slot 51: takes the `( slot, cmd, bool, double, uint64 )` signature, tests the input time with `V_isnand`, wraps a non-NAN time in `__beginseq`/`__endseq`, and sends the `"%s\n"` text — the SDK's `ClientCommand`. |
+| `CEngineClient_DumpNetStats` | `CEngineClient_PrintNetworkSummaryReport` | Windows `0x180075ca0` / Linux `0x507640`, slot 184: no arguments, 0x11 bytes, delegates to `CNetworkGameClient_PrintNetStats`. The real `DumpNetStats( void *, void ( * )( const char * ) )` sits at slot 29. |
+| `IVEngineClient2_GetNetworkClient` | `IVEngineClient2_GetNetChannel` | Windows `0x180076530`, slot 41: indexes the per-split-screen channel array at `netclient + 24 * slot + 240`; the caller in `SendViolationReport` uses the result as a net channel. |
+
+The Linux `CEngineClient_ServerCmd` slot was recorded as index 101
+(`0x506eb0`) because the finder matched a byte signature against a sibling
+forwarder. Both ABIs keep this override at the inherited slot 50, and the client
+artifact already said 50, so the Linux entry now points at slot 50 (`0x5096d0`).
+The Linux-only signature branch was removed; the shared inherit path resolves both
+platforms.
+
 ## 14191b corrections
 
 SDK source: `HLND2T/s2sdk`, commit
