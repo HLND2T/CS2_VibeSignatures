@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """Preprocess script for find-CServerSideClientBase_GetPlayerInfo skill.
 
-Resolves ``CServerSideClientBase_GetPlayerInfo`` (a vfunc of
-``CServerSideClientBase_vtable``) from the exact ``"userinfo"`` string reference.
+Resolves the vfunc behind the historical ``CServerSideClientBase_GetPlayerInfo``
+artifact key, which the SDK declares as ``CServerSideClientBase::Create``, from the
+exact ``"userinfo"`` string reference. Slot 9 clears the client, applies the SteamID
+and name without connecting, and returns its slot; the real ``GetPlayerInfo`` is the
+sibling ``return this + 400`` accessor at slot 54.
+
 Its vtable-mate ``CServerSideClientBase_Connect`` also references ``"userinfo"``, so
-the ``"CServerSideClientBase::Connect"`` string is excluded to keep only
-``GetPlayerInfo``.
+the ``"CServerSideClientBase::Connect"`` string is excluded to keep only ``Create``.
 """
 
 from ida_analyze_util import preprocess_common_skill
@@ -13,6 +16,13 @@ from ida_analyze_util import preprocess_common_skill
 TARGET_FUNCTION_NAMES = [
     "CServerSideClientBase_GetPlayerInfo",
 ]
+
+# The artifact key is historical: slot 9 clears the client, applies the SteamID
+# and name without connecting, then returns its slot, which the SDK declares as
+# Create. The real GetPlayerInfo is the sibling "return this + 400" accessor.
+OUTPUT_NAME_MAP = {
+    "CServerSideClientBase_GetPlayerInfo": "CServerSideClientBase_Create",
+}
 
 FUNC_XREFS = [
     {
@@ -79,4 +89,5 @@ async def preprocess_skill(
         func_vtable_relations=FUNC_VTABLE_RELATIONS,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
+        output_name_map=OUTPUT_NAME_MAP,
     )
