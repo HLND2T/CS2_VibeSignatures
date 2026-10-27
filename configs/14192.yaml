@@ -5264,7 +5264,7 @@ modules:
       - name: CServerSideClientBase_ProcessChangeSplitscreenUser
         category: vfunc
         alias:
-          - CServerSideClientBase::ProcessChangeSplitscreenUser
+          - CServerSideClientBase::ProcessSplitscreenUserChanged
       - name: CServerSideClientBase_UpdateUserSettings
         category: vfunc
         alias:
@@ -5355,7 +5355,7 @@ modules:
       - name: CServerSideClientBase_GetPlayerInfo
         category: vfunc
         alias:
-          - CServerSideClientBase::GetPlayerInfo
+          - CServerSideClientBase::Create
       - name: CNetworkGameServer_GetPlayerNetworkIDString
         category: vfunc
         alias:
@@ -17593,6 +17593,59 @@ cpp_tests:
       - fdump-vtable-layouts
     reference_modules:
       - engine  # bin_artifacts/{gamever}/engine/CHostStateMgr_*.{platform}.yaml
+  - name: CServerSideClientBase_MSVC
+    symbol: CServerSideClientBaseVTableProbe
+    alias_symbols:
+      - CServerSideClientBase
+    cpp: cpp_tests/serversideclientbase.cpp
+    headers:
+      - s2sdk/public/engine2/serversideclientbase.h  # Used by the fix-cppheaders SKILL
+    target: x86_64-pc-windows-msvc
+    include_directories:
+      - cpp_tests/stubs
+      - s2sdk/game/shared
+      - s2sdk/public
+      - s2sdk/public/tier0
+      - s2sdk/public/tier1
+      - s2sdk/public/mathlib
+      - s2sdk/common
+    defines:
+      - COMPILER_MSVC=1
+      - COMPILER_MSVC64=1
+      - _MSVC_STL_USE_ABORT_AS_DOOM_FUNCTION
+    additional_compiler_options:
+      - fms-extensions
+      - fms-compatibility
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - engine  # bin_artifacts/{gamever}/engine/CServerSideClientBase_*.{platform}.yaml
+  - name: CServerSideClientBase_GCC
+    symbol: CServerSideClientBaseVTableProbe
+    alias_symbols:
+      - CServerSideClientBase
+    cpp: cpp_tests/serversideclientbase.cpp
+    headers:
+      - s2sdk/public/engine2/serversideclientbase.h  # Used by the fix-cppheaders SKILL
+    target: x86_64-pc-linux-gnu
+    include_directories:
+      - cpp_tests/stubs
+      - s2sdk/game/shared
+      - s2sdk/public
+      - s2sdk/public/tier0
+      - s2sdk/public/tier1
+      - s2sdk/public/mathlib
+      - s2sdk/common
+    defines:
+      - COMPILER_GCC=1
+      - POSIX=1
+      - LINUX=1
+      - stricmp=strcasecmp
+    additional_compiler_options:
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - engine  # bin_artifacts/{gamever}/engine/CServerSideClientBase_*.{platform}.yaml
   - name: CServerSideClient_MSVC
     symbol: CServerSideClientVTableProbe
     alias_symbols:

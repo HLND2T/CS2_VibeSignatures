@@ -27,6 +27,26 @@ Without this option, the existing exact size/count comparison is unchanged.
 The option requires `fdump-vtable-layouts`; zero, negative, boolean, fractional,
 or string boundaries are invalid test definitions.
 
+## 14192 corrections
+
+The same convention applies to three `CServerSideClientBase` vfuncs. Only the
+human-readable `func_name` changed; artifact paths, addresses, signatures, and
+slots are unchanged, and the finders declare `OUTPUT_NAME_MAP` so regeneration
+keeps the corrected names.
+
+| Legacy key | Corrected `func_name` | Evidence in 14192 |
+|---|---|---|
+| `CServerSideClientBase_GetPlayerInfo` | `CServerSideClientBase_Create` | Windows `0x1800cbee0` / Linux `0x5427b0`, slot 9: clears the client, applies the SteamID and name without connecting, creates the `userinfo` `KeyValues`, sets signon to `SIGNONSTATE_CONNECTED`, and returns its slot. The real `GetPlayerInfo` is the sibling `return this + 400` accessor at slot 54. |
+| `CServerSideClientBase_ProcessChangeSplitscreenUser` | `CServerSideClientBase_ProcessSplitscreenUserChanged` | Windows `0x1800cc620` / Linux `0x543530`, slot 43/45: reports `Unable to set SetActiveChannel to user in slot %d`; the SDK spells the same function `ProcessSplitscreenUserChanged`. |
+| `CServerSideClientBase_SendServerInfo` | unchanged | Windows `0x1800c7030` / Linux `0x5497d0`, slot 48/52: serializes `SV_SendServerinfo->msg` and the `BuildServerInfoMessageAsync_t` message chain, so the artifact name is already correct. |
+
+The `CServerSideClientBase_SendServerInfo` slot depends on overload placement:
+the SDK deliberately gives the spawn-group collector and the server-info sender
+the same name, because both compilers then emit the pair before
+`SendInitialSpawnGroups`, matching the engine. Renaming only one of them moves the
+server-info slot from 48 to 50 on MSVC, so the shared name is part of the ABI, not
+a naming shortcut.
+
 ## 14191b corrections
 
 SDK source: `HLND2T/s2sdk`, commit

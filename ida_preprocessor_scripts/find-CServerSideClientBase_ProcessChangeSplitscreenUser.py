@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CServerSideClientBase_ProcessChangeSplitscreenUser."""
+"""Preprocess script for find-CServerSideClientBase_ProcessChangeSplitscreenUser.
+
+The artifact key keeps the historical spelling; the emitted ``func_name`` is
+``CServerSideClientBase_ProcessSplitscreenUserChanged``, matching the SDK.
+"""
 
 from ida_analyze_util import preprocess_common_skill
 
@@ -7,6 +11,12 @@ from ida_analyze_util import preprocess_common_skill
 TARGET_FUNCTION_NAMES = [
     "CServerSideClientBase_ProcessChangeSplitscreenUser",
 ]
+
+# The artifact key is historical; the SDK and the engine both spell it
+# ProcessSplitscreenUserChanged.
+OUTPUT_NAME_MAP = {
+    "CServerSideClientBase_ProcessChangeSplitscreenUser": "CServerSideClientBase_ProcessSplitscreenUserChanged",
+}
 
 FUNC_XREFS = [
     {
@@ -68,4 +78,5 @@ async def preprocess_skill(
         func_vtable_relations=FUNC_VTABLE_RELATIONS,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
+        output_name_map=OUTPUT_NAME_MAP,
     )
