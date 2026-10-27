@@ -12,7 +12,15 @@ _LINUX_REFERENCE = "references/client/Global_Static_Init.linux.yaml"
 
 
 async def preprocess_skill(
-    session, skill_name, expected_outputs, old_yaml_map, new_binary_dir, platform, image_base, llm_config=None, debug=False
+    session,
+    skill_name,
+    expected_outputs,
+    old_yaml_map,
+    new_binary_dir,
+    platform,
+    image_base,
+    llm_config=None,
+    debug=False,
 ):
     if platform == "windows":
         reference = _WINDOWS_REFERENCE
