@@ -2,7 +2,9 @@
 
 from ida_analyze_util import preprocess_common_skill
 
-INHERIT_VFUNCS = [("CCvar_GetTotalUserInfoCvarsByteSize", "CCvar", "../engine/ICvar_GetTotalUserInfoCvarsByteSize", True)]
+INHERIT_VFUNCS = [
+    ("CCvar_GetTotalUserInfoCvarsByteSize", "CCvar", "../engine/ICvar_GetTotalUserInfoCvarsByteSize", True)
+]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     (
