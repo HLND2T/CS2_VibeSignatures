@@ -39,6 +39,7 @@ except ImportError:
     yaml = None
 
 from ida_analyze_util import normalize_output_name_map, parse_mcp_result, write_func_yaml
+from ida_preprocessor_scripts._direct_branch_target_common import DirectBranchTargetLocator
 
 
 _SUPPORTED_FIELDS = {
@@ -362,6 +363,7 @@ async def preprocess_indirect_vcall_target_skill(
     expected_target_count=1,
     debug=False,
     output_name_map=None,
+    follow_direct_tail_jump=False,
 ):
     """Scan ``source_yaml_stem`` for its unique indirect vcall and write a slot-only vfunc YAML.
 
@@ -377,6 +379,11 @@ async def preprocess_indirect_vcall_target_skill(
     ``mov rax, [rax+78h]`` / ``jmp rax`` (common on Linux/GCC) yields the same
     slot as the direct ``jmp qword ptr [rax+78h]`` form emitted on Windows --
     even when an early-out guard clobbers the register on its not-taken path.
+
+    With ``follow_direct_tail_jump``, an empty source scan may follow exactly
+    one external direct jump. Scan only tail dispatches in that helper so its
+    unrelated virtual calls cannot be mistaken for the forwarded method.
+    This is a single hop; failed or ambiguous scans never trigger it.
     """
     if yaml is None:
         _debug(debug, "PyYAML is required")
@@ -423,6 +430,27 @@ async def preprocess_indirect_vcall_target_skill(
         allowed_mnemonics=allowed_mnemonics,
         resolve_load_then_branch=resolve_load_then_branch,
     )
+    if targets == [] and follow_direct_tail_jump:
+        direct_locator = DirectBranchTargetLocator(session=session, debug=debug)
+        direct_targets = await direct_locator.collect_targets(
+            source_func_va=source_func_va,
+            allowed_mnemonics=("jmp",),
+        )
+        if not isinstance(direct_targets, list):
+            return False
+        external_targets = [
+            item for item in direct_targets if _parse_int(item["target_va"]) != _parse_int(source_func_va)
+        ]
+        if len(external_targets) != 1:
+            _debug(debug, f"expected 1 external direct tail target, got {len(external_targets)}")
+            return False
+        helper_va = external_targets[0]["target_va"]
+        _debug(debug, f"following direct tail jump {source_func_va} -> {helper_va}")
+        targets = await locator.collect_targets(
+            source_func_va=helper_va,
+            allowed_mnemonics=("jmp",),
+            resolve_load_then_branch=resolve_load_then_branch,
+        )
     if not isinstance(targets, list) or len(targets) != expected_target_count:
         count = len(targets) if isinstance(targets, list) else "N/A"
         _debug(

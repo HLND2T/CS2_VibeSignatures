@@ -66,6 +66,27 @@ artifact already said 50, so the Linux entry now points at slot 50 (`0x5096d0`).
 The Linux-only signature branch was removed; the shared inherit path resolves both
 platforms.
 
+### SendStringCmd finder replay (2026-10-27)
+
+Correcting the Linux ServerCmd anchor exposed a downstream assumption in
+`find-INetworkGameClient_SendStringCmd`: slot 50 at `0x5096d0` tail-jumps directly
+to the helper at `0x4d47a0`, rather than dispatching virtually in its own body.
+The helper loads slot `0x130` and performs a guarded `jmp rax` at `0x4d4914`.
+The finder now opts into following one unique external direct tail jump when its
+initial virtual-call scan is empty. Only tail dispatches in the helper are
+scanned; missing or ambiguous targets still fail without writing an artifact.
+
+Real Windows/Linux IDB replay regenerated all 10 nodes in the required dependency
+chain: the engine vtable, client FireGameEvent anchor, IVEngineClient2 slot,
+CEngineClient override, and INetworkGameClient slot on each platform. Both final
+artifacts retain offset `0x130`, index 38; there are no downstream finder consumers
+in the 14192 config. Source artifact bytes were unchanged. A candidate composed
+from the replay passed the 4073-artifact contract and both native C++ ABI gates:
+28 layout comparisons per platform, including 26 vtable comparisons, all with
+zero differences. Python unit tests ran 1542 cases (18 skipped), and all 124
+repository-contract tests passed. Regression coverage includes ambiguous/missing
+tail targets and virtual slots, failed source scans, and Windows direct dispatch.
+
 ## 14191b corrections
 
 SDK source: `HLND2T/s2sdk`, commit
