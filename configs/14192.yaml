@@ -756,6 +756,10 @@ modules:
         category: vfunc
         alias:
           - CNetworkSystem::GetSteamNetworkingMessages
+      - name: CNetworkSystem_GetSteamGameServerNetworkingSockets
+        category: vfunc
+        alias:
+          - CNetworkSystem::GetSteamGameServerNetworkingSockets
       - name: CNetworkSystem_GetScratchBuffer
         category: vfunc
         alias:
@@ -15673,6 +15677,12 @@ modules:
         expected_input:
           - CNetworkSystem_vtable.{platform}.yaml
           - ../engine/INetworkSystem_GetSteamNetworkingMessages.{platform}.yaml
+      - name: find-CNetworkSystem_GetSteamGameServerNetworkingSockets
+        expected_output:
+          - CNetworkSystem_GetSteamGameServerNetworkingSockets.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_vtable.{platform}.yaml
+          - ../server/INetworkSystem_GetSteamGameServerNetworkingSockets.{platform}.yaml
       - name: find-CNetworkSystem_GetScratchBuffer
         expected_output:
           - CNetworkSystem_GetScratchBuffer.{platform}.yaml
