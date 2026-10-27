@@ -1,0 +1,164 @@
+func_name: UpdateNetworkConfigState
+func_va: '0x1ea1d60'
+disasm_code: |-
+  .text:0000000001EA1D60                 push    rbp
+  .text:0000000001EA1D61                 mov     rbp, rsp
+  .text:0000000001EA1D64                 push    r13
+  .text:0000000001EA1D66                 push    r12
+  .text:0000000001EA1D68                 push    rbx
+  .text:0000000001EA1D69                 mov     rbx, rdi
+  .text:0000000001EA1D6C                 sub     rsp, 228h
+  .text:0000000001EA1D73                 lea     rax, g_pNetworkSystem
+  .text:0000000001EA1D7A                 mov     rdi, [rax]
+  .text:0000000001EA1D7D                 test    rdi, rdi
+  .text:0000000001EA1D80                 jz      loc_1EA1E43
+  .text:0000000001EA1D86                 mov     rax, [rdi]
+  .text:0000000001EA1D89                 ; 0x148 = 328LL = INetworkSystem_GetSteamNetworkUtils
+  .text:0000000001EA1D89                 call    qword ptr [rax+148h]; 0x148 = 328LL = INetworkSystem_GetSteamNetworkUtils
+  .text:0000000001EA1D8F                 mov     rdi, rax
+  .text:0000000001EA1D92                 test    rax, rax
+  .text:0000000001EA1D95                 jz      loc_1EA1E43
+  .text:0000000001EA1D9B                 mov     rax, [rax]
+  .text:0000000001EA1D9E                 lea     rsi, [rbp+var_130]
+  .text:0000000001EA1DA5                 call    qword ptr [rax+8]
+  .text:0000000001EA1DA8                 mov     edx, 2
+  .text:0000000001EA1DAD                 cmp     eax, 0FFFFFFF6h
+  .text:0000000001EA1DB0                 jl      short loc_1EA1DBD
+  .text:0000000001EA1DB2                 xor     edx, edx
+  .text:0000000001EA1DB4                 cmp     eax, 64h ; 'd'
+  .text:0000000001EA1DB7                 jz      loc_1EA1EC0
+  .text:0000000001EA1DBD                 cmp     [rbx+3080h], edx
+  .text:0000000001EA1DC3                 jz      short loc_1EA1E38
+  .text:0000000001EA1DC5                 lea     rax, qword_4BA46D8
+  .text:0000000001EA1DCC                 mov     [rbx+3080h], edx
+  .text:0000000001EA1DD2                 mov     r12, [rax]
+  .text:0000000001EA1DD5                 test    r12, r12
+  .text:0000000001EA1DD8                 jz      short loc_1EA1E38
+  .text:0000000001EA1DDA                 mov     rax, [r12]
+  .text:0000000001EA1DDE                 mov     edi, 18h
+  .text:0000000001EA1DE3                 mov     r13, [rax+180h]
+  .text:0000000001EA1DEA                 call    sub_C70AD0
+  .text:0000000001EA1DEF                 movzx   edx, cs:word_469577C
+  .text:0000000001EA1DF6                 mov     rdi, r12
+  .text:0000000001EA1DF9                 mov     rcx, 0FFFFFFFF00000000h
+  .text:0000000001EA1E03                 mov     [rax+0Ch], rcx
+  .text:0000000001EA1E07                 lea     rcx, off_43E5438
+  .text:0000000001EA1E0E                 mov     [rax], rcx
+  .text:0000000001EA1E11                 lea     rsi, [rbp+var_240]
+  .text:0000000001EA1E18                 mov     [rbp+var_240], rax
+  .text:0000000001EA1E1F                 mov     [rax+8], dx
+  .text:0000000001EA1E23                 call    r13
+  .text:0000000001EA1E26                 mov     rdi, [rbp+var_240]
+  .text:0000000001EA1E2D                 test    rdi, rdi
+  .text:0000000001EA1E30                 jz      short loc_1EA1E38
+  .text:0000000001EA1E32                 mov     rax, [rdi]
+  .text:0000000001EA1E35                 call    qword ptr [rax+8]
+  .text:0000000001EA1E38                 mov     edx, [rbp+var_128]
+  .text:0000000001EA1E3E                 cmp     edx, 0FFFFFFF6h
+  .text:0000000001EA1E41                 jl      short loc_1EA1E58
+  .text:0000000001EA1E43                 add     rsp, 228h
+  .text:0000000001EA1E4A                 pop     rbx
+  .text:0000000001EA1E4B                 pop     r12
+  .text:0000000001EA1E4D                 pop     r13
+  .text:0000000001EA1E4F                 pop     rbp
+  .text:0000000001EA1E50                 retn
+  .text:0000000001EA1E58                 lea     r12, [rbp+var_240]
+  .text:0000000001EA1E5F                 xor     eax, eax
+  .text:0000000001EA1E61                 lea     rsi, aAncD; "ANC[%d]"
+  .text:0000000001EA1E68                 mov     rdi, r12
+  .text:0000000001EA1E6B                 call    sub_C82F90
+  .text:0000000001EA1E70                 lea     rsi, [rbp+var_238]
+  .text:0000000001EA1E77                 test    byte ptr [rbp+var_240+7], 40h
+  .text:0000000001EA1E7E                 jnz     short loc_1EA1E9A
+  .text:0000000001EA1E80                 lea     rsi, byte_B90A15
+  .text:0000000001EA1E87                 test    dword ptr [rbp+var_240+4], 3FFFFFFFh
+  .text:0000000001EA1E91                 jz      short loc_1EA1E9A
+  .text:0000000001EA1E93                 mov     rsi, [rbp+var_238]
+  .text:0000000001EA1E9A                 mov     rdi, rbx
+  .text:0000000001EA1E9D                 call    sub_1EA1A30
+  .text:0000000001EA1EA2                 mov     rdi, r12
+  .text:0000000001EA1EA5                 xor     esi, esi
+  .text:0000000001EA1EA7                 call    sub_C7DF20
+  .text:0000000001EA1EAC                 add     rsp, 228h
+  .text:0000000001EA1EB3                 pop     rbx
+  .text:0000000001EA1EB4                 pop     r12
+  .text:0000000001EA1EB6                 pop     r13
+  .text:0000000001EA1EB8                 pop     rbp
+  .text:0000000001EA1EB9                 retn
+  .text:0000000001EA1EC0                 mov     eax, [rbp+var_12C]
+  .text:0000000001EA1EC6                 xor     edx, edx
+  .text:0000000001EA1EC8                 test    eax, eax
+  .text:0000000001EA1ECA                 setz    dl
+  .text:0000000001EA1ECD                 jmp     loc_1EA1DBD
+procedure: |-
+  __int64 __fastcall sub_1EA1D60(__int64 a1)
+  {
+    __int64 result; // rax
+    int v2; // ecx
+    int v3; // r8d
+    int v4; // r9d
+    int v5; // edx
+    __int64 v6; // r12
+    __int64 (__fastcall *v7)(__int64, __int64 *); // r13
+    __int64 v8; // rax
+    __int16 v9; // dx
+    const char *v10; // rsi
+    __int64 v11; // [rsp+0h] [rbp-240h] BYREF
+    const char *v12; // [rsp+8h] [rbp-238h] BYREF
+    _BYTE v13[4]; // [rsp+110h] [rbp-130h] BYREF
+    unsigned int v14; // [rsp+114h] [rbp-12Ch]
+    int v15; // [rsp+118h] [rbp-128h]
+
+    result = (__int64)&g_pNetworkSystem;
+    if ( g_pNetworkSystem )
+    {
+      result = (*(__int64 (__fastcall **)(_QWORD *))(*g_pNetworkSystem + 328LL))(g_pNetworkSystem);// 0x148 = 328LL = INetworkSystem_GetSteamNetworkUtils
+      if ( result )
+      {
+        result = (*(__int64 (__fastcall **)(__int64, _BYTE *))(*(_QWORD *)result + 8LL))(result, v13);
+        v5 = 2;
+        if ( (int)result >= -10 )
+        {
+          v5 = 0;
+          if ( (_DWORD)result == 100 )
+          {
+            result = v14;
+            v5 = v14 == 0;
+          }
+        }
+        if ( *(_DWORD *)(a1 + 12416) != v5 )
+        {
+          result = (__int64)&qword_4BA46D8;
+          *(_DWORD *)(a1 + 12416) = v5;
+          v6 = qword_4BA46D8;
+          if ( qword_4BA46D8 )
+          {
+            v7 = *(__int64 (__fastcall **)(__int64, __int64 *))(*(_QWORD *)qword_4BA46D8 + 384LL);
+            v8 = sub_C70AD0(24);
+            v9 = word_469577C;
+            *(_QWORD *)(v8 + 12) = 0xFFFFFFFF00000000LL;
+            *(_QWORD *)v8 = off_43E5438;
+            v11 = v8;
+            *(_WORD *)(v8 + 8) = v9;
+            result = v7(v6, &v11);
+            if ( v11 )
+              result = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)v11 + 8LL))(v11);
+          }
+        }
+        if ( v15 < -10 )
+        {
+          sub_C82F90((unsigned int)&v11, (unsigned int)"ANC[%d]", v15, v2, v3, v4);
+          v10 = (const char *)&v12;
+          if ( (v11 & 0x4000000000000000LL) == 0 )
+          {
+            v10 = &byte_B90A15;
+            if ( (v11 & 0x3FFFFFFF00000000LL) != 0 )
+              v10 = v12;
+          }
+          sub_1EA1A30(a1, v10);
+          return sub_C7DF20(&v11, 0);
+        }
+      }
+    }
+    return result;
+  }
