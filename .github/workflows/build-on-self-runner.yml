@@ -545,20 +545,26 @@ jobs:
           CI_ARTIFACT_ID: ${{ needs.build.outputs.prepared_artifact_id }}
           CI_ARTIFACT_DIGEST: ${{ needs.build.outputs.prepared_artifact_digest }}
         run: uv run --project .cache-tools python .cache-tools/ci_runner.py bind-artifact
-      - uses: actions/download-artifact@v5
+      - name: Download exact current-run prepared-release
+        id: download-prepared
+        uses: ./.cache-tools/.github/actions/artifact-download
         with:
-          artifact-ids: ${{ needs.build.outputs.prepared_artifact_id }}
+          artifact-id: ${{ needs.build.outputs.prepared_artifact_id }}
           path: ${{ runner.temp }}/prepared-release
+          token: ${{ github.token }}
       - name: Bind exact current-run cpp-evidence
         shell: bash --noprofile --norc -euo pipefail {0}
         env:
           CI_ARTIFACT_ID: ${{ needs.cpp-validation.outputs.artifact_id }}
           CI_ARTIFACT_DIGEST: ${{ needs.cpp-validation.outputs.artifact_digest }}
         run: uv run --project .cache-tools python .cache-tools/ci_runner.py bind-artifact
-      - uses: actions/download-artifact@v5
+      - name: Download exact current-run cpp-evidence
+        id: download-cpp-evidence
+        uses: ./.cache-tools/.github/actions/artifact-download
         with:
-          artifact-ids: ${{ needs.cpp-validation.outputs.artifact_id }}
+          artifact-id: ${{ needs.cpp-validation.outputs.artifact_id }}
           path: ${{ runner.temp }}/cpp-evidence
+          token: ${{ github.token }}
       - name: Finalize Release with both ABI gates
         id: finalize
         uses: ./.cache-tools/.github/actions/ci-command

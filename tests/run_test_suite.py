@@ -76,6 +76,7 @@ UNIT_MODULES = frozenset(
         "test_cvar_enumeration_preprocessor",
         "test_copy_depot_bin",
         "test_ci_s3_cache",
+        "test_ci_artifacts",
         "test_ci_cpp_validation",
         "test_ci_runner",
         "test_cpp_platform_selection",

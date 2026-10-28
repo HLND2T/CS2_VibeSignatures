@@ -1,0 +1,60 @@
+name: Verified artifact download
+description: Download one workflow artifact with bounded retries, digest verification, and safe extraction
+inputs:
+  name:
+    description: Exact artifact name; mutually exclusive with artifact-id
+    required: false
+    default: ''
+  artifact-id:
+    description: Exact artifact id; mutually exclusive with name
+    required: false
+    default: ''
+  path:
+    description: Destination directory for the extracted artifact
+    required: true
+  run-id:
+    description: Workflow run that produced the artifact; defaults to the current run
+    required: false
+    default: ''
+  repository:
+    description: owner/repo that produced the artifact; defaults to the current repository
+    required: false
+    default: ''
+  token:
+    description: Token with actions read access to the artifact repository
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Download artifact
+      if: runner.os == 'Windows'
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        CI_ARTIFACT_NAME: ${{ inputs.name }}
+        CI_ARTIFACT_ID: ${{ inputs.artifact-id }}
+        CI_ARTIFACT_PATH: ${{ inputs.path }}
+        CI_ARTIFACT_RUN_ID: ${{ inputs.run-id }}
+        CI_ARTIFACT_REPOSITORY: ${{ inputs.repository }}
+      run: |
+        uv run --project "${{ github.action_path }}/../../.." python "${{ github.action_path }}/../../../ci_artifacts.py" download
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    - name: Download artifact
+      if: runner.os == 'Linux'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        CI_ARTIFACT_NAME: ${{ inputs.name }}
+        CI_ARTIFACT_ID: ${{ inputs.artifact-id }}
+        CI_ARTIFACT_PATH: ${{ inputs.path }}
+        CI_ARTIFACT_RUN_ID: ${{ inputs.run-id }}
+        CI_ARTIFACT_REPOSITORY: ${{ inputs.repository }}
+      run: |
+        set -euo pipefail
+        uv run --project "${{ github.action_path }}/../../.." python "${{ github.action_path }}/../../../ci_artifacts.py" download
+    - name: Reject unsupported runner
+      if: runner.os != 'Windows' && runner.os != 'Linux'
+      shell: bash
+      run: |
+        echo "Artifact downloads are only supported on Windows and Linux runners."
+        exit 1

@@ -226,11 +226,21 @@ jobs:
         uses: astral-sh/setup-uv@v9.0.0
       - name: Sync trusted publisher dependencies
         run: uv sync --project publication --locked
+      - name: Checkout artifact transport from workflow source
+        id: artifact-tools
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.workflow_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+          path: .cache-tools
       - name: Download exact credential-free bump candidate
-        uses: actions/download-artifact@v5
+        id: download-candidate
+        uses: ./.cache-tools/.github/actions/artifact-download
         with:
           name: ${{ steps.validate-inputs.outputs.artifact_name }}
           path: candidate
+          token: ${{ github.token }}
       - name: Revalidate candidate and create direct-child bump commit
         id: prepare
         shell: pwsh

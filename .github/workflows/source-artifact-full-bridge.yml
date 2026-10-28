@@ -93,10 +93,12 @@ jobs:
         with:
           command: sync-trusted
       - name: Download bound trusted plan
-        uses: actions/download-artifact@v5
+        id: download-plan
+        uses: ./.cache-tools/.github/actions/artifact-download
         with:
           name: ${{ inputs.plan_artifact_name }}
           path: ${{ runner.temp }}/trusted-pr-plan
+          token: ${{ github.token }}
       - name: Prepare clean job-local cache layout
         id: s3-layout
         uses: ./.cache-tools/.github/actions/ci-command
@@ -243,16 +245,28 @@ jobs:
       - name: Sync trusted verification environment
         shell: bash
         run: uv sync --project .trusted-tools --locked
+      - name: Checkout artifact transport from workflow source
+        id: artifact-tools
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: .cache-tools
+          fetch-depth: 1
+          persist-credentials: false
       - name: Download bound trusted plan
-        uses: actions/download-artifact@v5
+        id: download-plan
+        uses: ./.cache-tools/.github/actions/artifact-download
         with:
           name: ${{ inputs.plan_artifact_name }}
           path: ${{ runner.temp }}/trusted-pr-plan
+          token: ${{ github.token }}
       - name: Download untrusted rebuild evidence
-        uses: actions/download-artifact@v5
+        id: download-rebuild-evidence
+        uses: ./.cache-tools/.github/actions/artifact-download
         with:
           name: trusted-pr-rebuild-${{ github.run_id }}-${{ github.run_attempt }}-${{ inputs.gamever }}
           path: ${{ runner.temp }}/trusted-pr-rebuild-evidence
+          token: ${{ github.token }}
       - name: Verify exported execution evidence and exact Git bytes
         shell: bash
         run: |

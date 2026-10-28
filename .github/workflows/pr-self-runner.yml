@@ -40,10 +40,21 @@ jobs:
           persist-credentials: false
       - uses: astral-sh/setup-uv@v9.0.0
       - run: uv sync --project .trusted-tools --locked
-      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+      - name: Checkout artifact transport from workflow source
+        id: artifact-tools
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: .cache-tools
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Download bound trusted plan
+        id: download-plan
+        uses: ./.cache-tools/.github/actions/artifact-download
         with:
           name: ${{ inputs.plan_artifact_name }}
           path: ${{ runner.temp }}/trusted-pr-plan
+          token: ${{ github.token }}
       - name: Authenticate and rebind prior bootstrap execution
         id: probe
         env:
@@ -145,16 +156,20 @@ jobs:
         with:
           command: sync-trusted
       - name: Download bound trusted plan
-        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        id: download-plan
+        uses: ./.cache-tools/.github/actions/artifact-download
         with:
           name: ${{ inputs.plan_artifact_name }}
           path: ${{ runner.temp }}/trusted-pr-plan
+          token: ${{ github.token }}
       - name: Download hosted bootstrap reuse evidence
+        id: download-bootstrap-reuse
         if: needs.bootstrap-reuse.outputs.reused == 'true'
-        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        uses: ./.cache-tools/.github/actions/artifact-download
         with:
           name: bootstrap-reuse-${{ github.run_id }}-${{ github.run_attempt }}-${{ inputs.gamever }}
           path: ${{ runner.temp }}/trusted-bootstrap-reuse
+          token: ${{ github.token }}
       - name: Prepare clean job-local cache layout
         id: s3-layout
         uses: ./.cache-tools/.github/actions/ci-command

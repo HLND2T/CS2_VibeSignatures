@@ -125,10 +125,12 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
       - name: Download bound trusted plan
-        uses: actions/download-artifact@v5
+        id: download-plan
+        uses: ./.cache-tools/.github/actions/artifact-download
         with:
           name: ${{ inputs.plan_artifact_name }}
           path: ${{ runner.temp }}/source-artifact-plan
+          token: ${{ github.token }}
       - name: Prepare clean job-local cache layout
         id: s3-layout
         uses: ./.cache-tools/.github/actions/ci-command
@@ -277,16 +279,29 @@ jobs:
       - name: Sync trusted publisher dependencies
         run: |-
           uv sync --project trusted-publisher --locked
+      - name: Checkout artifact transport from workflow source
+        id: artifact-tools
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.workflow_sha }}
+          fetch-depth: 1
+          submodules: false
+          persist-credentials: false
+          path: .cache-tools
       - name: Download bound plan and exact bootstrap candidate
-        uses: actions/download-artifact@v5
+        id: download-plan
+        uses: ./.cache-tools/.github/actions/artifact-download
         with:
           name: ${{ inputs.plan_artifact_name }}
           path: evidence/plan
+          token: ${{ github.token }}
       - name: Download exact bootstrap candidate package
-        uses: actions/download-artifact@v5
+        id: download-candidate
+        uses: ./.cache-tools/.github/actions/artifact-download
         with:
           name: ${{ needs.finalize-bootstrap.outputs.candidate-artifact-name }}
           path: evidence/candidate
+          token: ${{ github.token }}
       - name: Revalidate PR, remote head, candidate, and allowed branch
         id: verify
         shell: pwsh
@@ -443,24 +458,33 @@ jobs:
           CI_ARTIFACT_ID: ${{ needs.build-bootstrap-candidate.outputs.prepared_artifact_id }}
           CI_ARTIFACT_DIGEST: ${{ needs.build-bootstrap-candidate.outputs.prepared_artifact_digest }}
         run: uv run --project .cache-tools python .cache-tools/ci_runner.py bind-artifact
-      - uses: actions/download-artifact@v5
+      - name: Download exact current-run prepared-bootstrap
+        id: download-prepared
+        uses: ./.cache-tools/.github/actions/artifact-download
         with:
-          artifact-ids: ${{ needs.build-bootstrap-candidate.outputs.prepared_artifact_id }}
+          artifact-id: ${{ needs.build-bootstrap-candidate.outputs.prepared_artifact_id }}
           path: ${{ runner.temp }}/prepared-bootstrap
+          token: ${{ github.token }}
       - name: Bind exact current-run cpp-evidence
         shell: bash --noprofile --norc -euo pipefail {0}
         env:
           CI_ARTIFACT_ID: ${{ needs.cpp-validation.outputs.artifact_id }}
           CI_ARTIFACT_DIGEST: ${{ needs.cpp-validation.outputs.artifact_digest }}
         run: uv run --project .cache-tools python .cache-tools/ci_runner.py bind-artifact
-      - uses: actions/download-artifact@v5
+      - name: Download exact current-run cpp-evidence
+        id: download-cpp-evidence
+        uses: ./.cache-tools/.github/actions/artifact-download
         with:
-          artifact-ids: ${{ needs.cpp-validation.outputs.artifact_id }}
+          artifact-id: ${{ needs.cpp-validation.outputs.artifact_id }}
           path: ${{ runner.temp }}/cpp-evidence
-      - uses: actions/download-artifact@v5
+          token: ${{ github.token }}
+      - name: Download bound trusted plan evidence
+        id: download-plan-evidence
+        uses: ./.cache-tools/.github/actions/artifact-download
         with:
           name: ${{ inputs.plan_artifact_name }}
           path: ${{ runner.temp }}/source-artifact-plan
+          token: ${{ github.token }}
       - name: Package canonical candidate with hosted ABI evidence
         id: package
         uses: ./.cache-tools/.github/actions/ci-command

@@ -18,10 +18,20 @@ retain their 30-day lifetime; Release C++ inputs/results/evidence retain 14 days
 This policy covers workflow artifacts. GitHub Release assets and S3 binary/IDB caches have separate lifecycles.
 The new retention periods apply only to new uploads; existing artifacts keep their original expiry dates.
 
-The three downloads in `pr-self-runner.yml` pin `actions/download-artifact` v6 by full commit SHA, including the
-upstream [download-timeout promise rejection fix](https://github.com/actions/toolkit/pull/2124). The old implementation
-could leave an incomplete file while reporting a successful download step. After merging this default-branch CI fix,
-trigger validation using the new workflow revision; rerunning an old run continues to use its old implementation.
+## Workflow artifact transport
+
+`actions/download-artifact` makes a single request per API call, so one connection reset while listing or streaming an
+artifact fails the whole job — `pr-self-runner` has lost validation to `ListArtifacts: ECONNRESET` this way. Workflow
+downloads therefore go through `.github/actions/artifact-download`, which runs `ci_artifacts.py` from the trusted
+workflow-revision checkout (`.cache-tools` or `.ci-tools` at `github.workflow_sha`): every request is retried with
+bounded exponential backoff, the archive is checked against the artifact digest GitHub reports, and the expanded tree is
+rejected if any member could escape the destination or is not a regular file. Pinning the action by SHA only fixed the
+upstream [download-timeout promise rejection bug](https://github.com/actions/toolkit/pull/2124) and still left every
+transient reset fatal.
+
+One consequence: the transport script and the workflow that calls it must be the same revision, so a job that downloads
+an artifact checks out `github.workflow_sha` instead of reusing a base-SHA tooling checkout. `deploy-pages.yml` still
+uses `actions/download-artifact` because those jobs run no uv toolchain and are not required checks.
 
 ## Anchor drift contract
 

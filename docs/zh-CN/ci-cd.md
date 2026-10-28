@@ -16,9 +16,18 @@
 Release 待验证资产包和最终 bundle 保留 30 天；Release C++ inputs/results/evidence 保留 14 天；Pages 临时 artifacts 保留 1 天。
 这里控制的是 workflow artifacts，GitHub Release 附件及 S3 binary/IDB cache 使用各自的生命周期。变更只影响新上传的 artifacts，已有文件维持原过期时间。
 
-`pr-self-runner.yml` 的三处下载固定到 `actions/download-artifact` v6 的完整 commit SHA，包含上游
-[下载超时未拒绝 Promise 的修复](https://github.com/actions/toolkit/pull/2124)。旧实现可能留下不完整文件却把下载步骤标为成功。
-这类默认分支 CI 修复合并到 `main` 后，需触发使用新 workflow revision 的验证；重跑旧 run 仍会使用旧实现。
+## Workflow artifact 传输
+
+`actions/download-artifact` 每次 API 调用只发一次请求，因此列取或流式下载 artifact 时的一次连接重置就会让整个 job 失败，
+`pr-self-runner` 就曾因 `ListArtifacts: ECONNRESET` 丢掉整次 validation。因此 workflow 的下载统一走
+`.github/actions/artifact-download`，它在可信的 workflow revision checkout 上运行 `ci_artifacts.py`
+（`.cache-tools` 或 `.ci-tools`，取自 `github.workflow_sha`）：每个请求按有界指数退避重试，归档包与 GitHub 报告的
+artifact digest 比对，展开时若某个成员可能逃出目标目录或不是普通文件则直接拒绝。仅把 action 固定到 SHA 只修好了上游
+[下载超时未拒绝 Promise 的缺陷](https://github.com/actions/toolkit/pull/2124)，任何瞬时重置依然是致命的。
+
+由此带来一个约束：传输脚本与被调用的 workflow 必须属于同一 revision，因此下载 artifact 的 job 要 checkout
+`github.workflow_sha`，而不能复用 base SHA 的工具 checkout。`deploy-pages.yml` 仍直接使用
+`actions/download-artifact`，因为这些 job 没有 uv 工具链，也不是 required check。
 
 ## anchor drift 契约
 

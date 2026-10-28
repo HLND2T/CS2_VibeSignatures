@@ -74,10 +74,13 @@ jobs:
         uses: ./.ci-tools/.github/actions/ci-command
         with:
           command: bind-artifact
-      - uses: actions/download-artifact@v5
+      - name: Download exact current-run cpp input
+        id: download-input
+        uses: ./.ci-tools/.github/actions/artifact-download
         with:
-          artifact-ids: ${{ inputs.artifact_id }}
+          artifact-id: ${{ inputs.artifact_id }}
           path: ${{ runner.temp }}/cpp-input-artifact
+          token: ${{ github.token }}
       - name: Initialize MSVC and Windows SDK
         if: runner.os == 'Windows'
         shell: pwsh
@@ -134,18 +137,27 @@ jobs:
         run: |
           set -euo pipefail
           uv run python ci_cpp_validation.py bind --artifact-id "$INPUT_ARTIFACT_ID" --digest "$INPUT_ARTIFACT_DIGEST"
-      - uses: actions/download-artifact@v5
+      - name: Download exact current-run cpp input
+        id: download-input
+        uses: ./.github/actions/artifact-download
         with:
-          artifact-ids: ${{ inputs.artifact_id }}
+          artifact-id: ${{ inputs.artifact_id }}
           path: ${{ runner.temp }}/cpp-input-artifact
-      - uses: actions/download-artifact@v5
+          token: ${{ github.token }}
+      - name: Download Windows ABI result
+        id: download-windows-result
+        uses: ./.github/actions/artifact-download
         with:
           name: cpp-result-${{ inputs.scope }}-${{ inputs.gamever }}-${{ github.run_id }}-${{ github.run_attempt }}-windows
           path: ${{ runner.temp }}/cpp-results/windows
-      - uses: actions/download-artifact@v5
+          token: ${{ github.token }}
+      - name: Download Linux ABI result
+        id: download-linux-result
+        uses: ./.github/actions/artifact-download
         with:
           name: cpp-result-${{ inputs.scope }}-${{ inputs.gamever }}-${{ github.run_id }}-${{ github.run_attempt }}-linux
           path: ${{ runner.temp }}/cpp-results/linux
+          token: ${{ github.token }}
       - name: Require both ABI results and combine evidence
         shell: bash
         run: |
