@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Preprocess script for find-INetworkGameClient_SendStringCmd skill.
 
-INetworkGameClient::SendStringCmd is an abstract-interface vfunc dispatched by
-CEngineClient::ExecuteClientCmd. Its slot is resolved by scanning the source
-function for its unique register-indirect virtual call.
+INetworkGameClient::SendStringCmd is dispatched by CEngineClient::ServerCmd
+(the historical artifact key is ExecuteClientCmd). Windows dispatches directly;
+Linux may tail-call a helper whose guarded tail dispatch loads the virtual slot.
 """
 
 from ida_preprocessor_scripts._indirect_vcall_target_common import (
@@ -38,7 +38,7 @@ async def preprocess_skill(
     image_base,
     debug=False,
 ):
-    """Scan CEngineClient::ExecuteClientCmd for its unique indirect vcall."""
+    """Resolve the ServerCmd dispatch, following one Linux helper when needed."""
     _ = skill_name, old_yaml_map, image_base
 
     return await preprocess_indirect_vcall_target_skill(
@@ -52,5 +52,6 @@ async def preprocess_skill(
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         # Linux lowers the vtable dispatch to ``mov reg, [reg+disp]`` + ``jmp reg``.
         resolve_load_then_branch=True,
+        follow_direct_tail_jump=platform == "linux",
         debug=debug,
     )

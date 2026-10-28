@@ -700,6 +700,10 @@ modules:
         category: vfunc
         alias:
           - CNetworkSystem::GetUDPPort
+      - name: CNetworkSystem_GetFakeLag
+        category: vfunc
+        alias:
+          - CNetworkSystem::GetFakeLag
       - name: CNetworkSystem_InitNetworkSystem
         category: vfunc
         alias:
@@ -760,6 +764,10 @@ modules:
         category: vfunc
         alias:
           - CNetworkSystem::GetSteamGameServerNetworkingSockets
+      - name: CNetworkSystem_GetSteamNetworkUtils
+        category: vfunc
+        alias:
+          - CNetworkSystem::GetSteamNetworkUtils
       - name: CNetworkSystem_GetScratchBuffer
         category: vfunc
         alias:
@@ -2017,6 +2025,7 @@ modules:
         expected_output:
           - INetworkSystem_GetUDPPort.{platform}.yaml
           - INetworkServerService_IsActiveInGame.{platform}.yaml
+          - INetworkSystem_GetFakeLag.{platform}.yaml
         expected_input:
           - CSteam3ServerS1_InitGameServer.{platform}.yaml
           - CNetworkServerService_vtable.{platform}.yaml
@@ -3404,6 +3413,10 @@ modules:
         category: vfunc
         alias:
           - ICvar::CopyUserInfoCvarDefaults
+      - name: ICvar_GetTotalUserInfoCvarsByteSize
+        category: vfunc
+        alias:
+          - ICvar::GetTotalUserInfoCvarsByteSize
       - name: CNetworkGameServer_vtable
         category: vtable
       - name: CServerSideClient_vtable
@@ -4416,6 +4429,10 @@ modules:
         category: vfunc
         alias:
           - INetworkSystem::GetUDPPort
+      - name: INetworkSystem_GetFakeLag
+        category: vfunc
+        alias:
+          - INetworkSystem::GetFakeLag
       - name: INetworkServerService_IsServerRunning
         category: vfunc
         alias:
@@ -4610,11 +4627,11 @@ modules:
       - name: CEngineClient_DumpNetStats
         category: vfunc
         alias:
-          - CEngineClient::DumpNetStats
+          - CEngineClient::PrintNetworkSummaryReport
       - name: CEngineClient_ExecuteClientCmd
         category: vfunc
         alias:
-          - CEngineClient::ExecuteClientCmd
+          - CEngineClient::ServerCmd
       - name: CEngineClient_IsPlayingDemo
         category: vfunc
         alias:
@@ -4643,7 +4660,7 @@ modules:
         category: vfunc
         platform: windows
         alias:
-          - CEngineClient::ClientCmd_Unrestricted
+          - CEngineClient::ClientCommand
       - name: INetworkGameClient_SendStringCmd
         category: vfunc
         alias:
@@ -6639,6 +6656,40 @@ modules:
           - CScriptConvarAccessor_RegisterConvar.{platform}.yaml
         prerequisite:
           - find-ICvar_RegisterConVar_Impl
+      - name: find-CaptureCubemap_Static_Init-windows
+        platform: windows
+        expected_output:
+          - CaptureCubemap_Static_Init.{platform}.yaml
+      - name: find-Global_Static_Init-linux
+        platform: linux
+        expected_output:
+          - Global_Static_Init.{platform}.yaml
+      - name: find-CaptureCubemap_Static_Cleanup-windows
+        platform: windows
+        expected_output:
+          - CaptureCubemap_Static_Cleanup.{platform}.yaml
+        expected_input:
+          - CaptureCubemap_Static_Init.{platform}.yaml
+      - name: find-ConCommand_Destroy
+        expected_output:
+          - ConCommand_Destroy.{platform}.yaml
+        expected_input_windows:
+          - CaptureCubemap_Static_Cleanup.{platform}.yaml
+        expected_input_linux:
+          - Global_Static_Init.{platform}.yaml
+      - name: find-ICvar_UnregisterConCommandCallbacks
+        expected_output:
+          - ICvar_UnregisterConCommandCallbacks.{platform}.yaml
+        expected_input:
+          - ConCommand_Destroy.{platform}.yaml
+      - name: find-UpdateNetworkConfigState
+        expected_output:
+          - UpdateNetworkConfigState.{platform}.yaml
+      - name: find-INetworkSystem_GetSteamNetworkUtils
+        expected_output:
+          - INetworkSystem_GetSteamNetworkUtils.{platform}.yaml
+        expected_input:
+          - UpdateNetworkConfigState.{platform}.yaml
     symbols:
       - name: CLoopModeGame_RegisterEventMapInternal
         category: func
@@ -7025,7 +7076,7 @@ modules:
       - name: IVEngineClient2_ExecuteClientCmd
         category: vfunc
         alias:
-          - IVEngineClient2::ExecuteClientCmd
+          - IVEngineClient2::ServerCmd
       - name: IGameEventManager2_UnserializeEvent
         category: vfunc
         alias:
@@ -7189,7 +7240,7 @@ modules:
         category: vfunc
         platform: windows
         alias:
-          - IVEngineClient2::GetNetworkClient
+          - IVEngineClient2::GetNetChannel
       - name: INetworkClient_GetLocalAddress
         category: vfunc
         platform: windows
@@ -7891,8 +7942,27 @@ modules:
         category: func
       - name: RegisterConVar
         category: func
+      - name: CaptureCubemap_Static_Init
+        category: func
+        platform: windows
+      - name: CaptureCubemap_Static_Cleanup
+        category: func
+        platform: windows
+      - name: Global_Static_Init
+        category: func
+        platform: linux
+      - name: ConCommand_Destroy
+        category: func
+      - name: ICvar_UnregisterConCommandCallbacks
+        category: vfunc
       - name: ICvar_RegisterConVar
         category: vfunc
+      - name: UpdateNetworkConfigState
+        category: func
+      - name: INetworkSystem_GetSteamNetworkUtils
+        category: vfunc
+        alias:
+          - INetworkSystem::GetSteamNetworkUtils
   - name: server
     path_windows: game/csgo/bin/win64/server.dll
     path_linux: game/csgo/bin/linuxsteamrt64/libserver.so
@@ -15386,9 +15456,11 @@ modules:
         expected_output:
           - ISource2GameClients_ClientSetConVarUserInfoSet.{platform}.yaml
           - ICvar_CopyUserInfoCvarDefaults.{platform}.yaml
+          - ICvar_GetTotalUserInfoCvarsByteSize.{platform}.yaml
         expected_input_windows:
           - CServerSideClientBase_dtor.{platform}.yaml
         expected_input_linux:
+          - CServerSideClientBase_dtor.{platform}.yaml
           - CServerSideClientBase_SetConVarUserInfo.{platform}.yaml
       - name: find-CNetworkClientService_IsPutInServer
         expected_output:
@@ -15683,6 +15755,12 @@ modules:
         expected_input:
           - CNetworkSystem_vtable.{platform}.yaml
           - ../server/INetworkSystem_GetSteamGameServerNetworkingSockets.{platform}.yaml
+      - name: find-CNetworkSystem_GetSteamNetworkUtils
+        expected_output:
+          - CNetworkSystem_GetSteamNetworkUtils.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_vtable.{platform}.yaml
+          - ../client/INetworkSystem_GetSteamNetworkUtils.{platform}.yaml
       - name: find-CNetworkSystem_GetScratchBuffer
         expected_output:
           - CNetworkSystem_GetScratchBuffer.{platform}.yaml
@@ -15701,6 +15779,12 @@ modules:
         expected_input:
           - CNetworkSystem_vtable.{platform}.yaml
           - ../engine/INetworkSystem_GetUDPPort.{platform}.yaml
+      - name: find-CNetworkSystem_GetFakeLag
+        expected_output:
+          - CNetworkSystem_GetFakeLag.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_vtable.{platform}.yaml
+          - ../engine/INetworkSystem_GetFakeLag.{platform}.yaml
       - name: find-CNetworkSystem_PrintNetworkStats
         expected_output:
           - CNetworkSystem_PrintNetworkStats.{platform}.yaml
@@ -15911,6 +15995,12 @@ modules:
         expected_input:
           - ../engine/ICvar_CopyUserInfoCvarDefaults.{platform}.yaml
           - CCvar_vtable.{platform}.yaml
+      - name: find-CCvar_GetTotalUserInfoCvarsByteSize
+        expected_output:
+          - CCvar_GetTotalUserInfoCvarsByteSize.{platform}.yaml
+        expected_input:
+          - ../engine/ICvar_GetTotalUserInfoCvarsByteSize.{platform}.yaml
+          - CCvar_vtable.{platform}.yaml
       - name: find-ICvar_FindFirstConVar
         expected_output:
           - ICvar_FindFirstConVar.{platform}.yaml
@@ -16077,6 +16167,12 @@ modules:
         expected_input:
           - ../engine/ICvar_DispatchConCommand.{platform}.yaml
           - CCvar_vtable.{platform}.yaml
+      - name: find-CCvar_UnregisterConCommandCallbacks
+        expected_output:
+          - CCvar_UnregisterConCommandCallbacks.{platform}.yaml
+        expected_input:
+          - ../client/ICvar_UnregisterConCommandCallbacks.{platform}.yaml
+          - CCvar_vtable.{platform}.yaml
     symbols:
       - name: CCommandLine_vtable
         category: vtable
@@ -16129,6 +16225,10 @@ modules:
         category: vfunc
         alias:
           - CCvar::CopyUserInfoCvarDefaults
+      - name: CCvar_GetTotalUserInfoCvarsByteSize
+        category: vfunc
+        alias:
+          - CCvar::GetTotalUserInfoCvarsByteSize
       - name: ICvar_FindFirstConVar
         category: vfunc
         alias:
@@ -16221,6 +16321,10 @@ modules:
           - CCvar::RemoveCreationListeners
       - name: CCvar_DispatchConCommand
         category: vfunc
+      - name: CCvar_UnregisterConCommandCallbacks
+        category: vfunc
+        alias:
+          - CCvar::UnregisterConCommandCallbacks
   - name: schemasystem
     path_windows: game/bin/win64/schemasystem.dll
     path_linux: game/bin/linuxsteamrt64/libschemasystem.so
@@ -17723,3 +17827,51 @@ cpp_tests:
       - fdump-vtable-layouts
     reference_modules:
       - engine  # bin_artifacts/{gamever}/engine/CServerSideClient_*.{platform}.yaml
+  - name: IVEngineClient2_MSVC
+    symbol: IVEngineClient2VTableProbe
+    alias_symbols:
+      - IVEngineClient2
+      - CEngineClient
+    cpp: cpp_tests/ivengineclient2.cpp
+    headers:
+      - Wend4r_cs2sdk/public/cdll_int.h
+    target: x86_64-pc-windows-msvc
+    include_directories:
+      - Wend4r_cs2sdk/public
+      - Wend4r_cs2sdk/public/tier0
+      - Wend4r_cs2sdk/public/tier1
+    defines:
+      - COMPILER_MSVC=1
+      - COMPILER_MSVC64=1
+      - _MSVC_STL_USE_ABORT_AS_DOOM_FUNCTION
+    additional_compiler_options:
+      - fms-extensions
+      - fms-compatibility
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - engine  # bin_artifacts/{gamever}/engine/CEngineClient_*.{platform}.yaml
+  - name: IVEngineClient2_GCC
+    symbol: IVEngineClient2VTableProbe
+    alias_symbols:
+      - IVEngineClient2
+      - CEngineClient
+    cpp: cpp_tests/ivengineclient2.cpp
+    headers:
+      - Wend4r_cs2sdk/public/cdll_int.h
+    target: x86_64-pc-linux-gnu
+    include_directories:
+      - Wend4r_cs2sdk/public
+      - Wend4r_cs2sdk/public/tier0
+      - Wend4r_cs2sdk/public/tier1
+    defines:
+      - COMPILER_GCC=1
+      - POSIX=1
+      - LINUX=1
+      - _LINUX=1
+      - stricmp=strcasecmp
+    additional_compiler_options:
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - engine  # bin_artifacts/{gamever}/engine/CEngineClient_*.{platform}.yaml

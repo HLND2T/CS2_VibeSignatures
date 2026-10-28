@@ -1,0 +1,29 @@
+func_name: ConCommand_Destroy
+func_va: '0x2179a60'
+disasm_code: |-
+  .text:0000000002179A60                 cmp     qword ptr [rdi], 0FFFFh
+  .text:0000000002179A67                 jz      short locret_2179A90
+  .text:0000000002179A69                 lea     rax, g_pVEngineCvar
+  .text:0000000002179A70                 mov     rax, [rax]
+  .text:0000000002179A73                 test    rax, rax
+  .text:0000000002179A76                 jz      short locret_2179A90
+  .text:0000000002179A78                 mov     rdx, [rax]
+  .text:0000000002179A7B                 mov     rsi, [rdi]
+  .text:0000000002179A7E                 mov     rdi, rax
+  .text:0000000002179A81                 ; 0x158 = 344LL = ICvar_UnregisterConCommandCallbacks
+  .text:0000000002179A81                 mov     rdx, [rdx+158h]
+  .text:0000000002179A88                 jmp     rdx
+  .text:0000000002179A90                 retn
+procedure: |-
+  _QWORD *__fastcall sub_2179A60(_QWORD *a1)
+  {
+    _QWORD *result; // rax
+
+    if ( *a1 != 0xFFFF )
+    {
+      result = g_pVEngineCvar;
+      if ( g_pVEngineCvar )
+        return (_QWORD *)(*(__int64 (__fastcall **)(_QWORD *, _QWORD))(*g_pVEngineCvar + 344LL))(g_pVEngineCvar, *a1); // ICvar_UnregisterConCommandCallbacks
+    }
+    return result;
+  }

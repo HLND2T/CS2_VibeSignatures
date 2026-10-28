@@ -1,0 +1,42 @@
+func_name: CaptureCubemap_Static_Init
+func_va: '0x180053910'
+disasm_code: |-
+  .text:0000000180053910                 sub     rsp, 58h
+  .text:0000000180053914                 and     byte ptr [rsp+58h+var_28+8], 0F8h
+  .text:0000000180053919                 lea     rax, sub_180233E90
+  .text:0000000180053920                 mov     qword ptr [rsp+58h+var_28], rax
+  .text:0000000180053925                 lea     r9, aCaptureCubemap; "Capture Cubemap"
+  .text:000000018005392C                 xorps   xmm0, xmm0
+  .text:000000018005392F                 lea     rax, [rsp+58h+var_18]
+  .text:0000000180053934                 movups  [rsp+58h+var_18], xmm0
+  .text:0000000180053939                 lea     r8, [rsp+58h+var_28]
+  .text:000000018005393E                 mov     [rsp+58h+var_30], rax
+  .text:0000000180053943                 movaps  xmm0, [rsp+58h+var_28]
+  .text:0000000180053948                 lea     rdx, aCapturecubemap; "capturecubemap"
+  .text:000000018005394F                 lea     rcx, qword_182380710
+  .text:0000000180053956                 mov     [rsp+58h+var_38], 0
+  .text:000000018005395F                 movdqa  [rsp+58h+var_28], xmm0
+  .text:0000000180053965                 call    sub_1819CA610
+  .text:000000018005396A                 ; CaptureCubemap_Static_Cleanup
+  .text:000000018005396A                 lea     rcx, sub_181A685B0; CaptureCubemap_Static_Cleanup
+  .text:0000000180053971                 add     rsp, 58h
+  .text:0000000180053975                 jmp     atexit
+procedure: |-
+  int sub_180053910()
+  {
+    __int64 (__fastcall *v1)(); // [rsp+30h] [rbp-28h] BYREF
+    char v2; // [rsp+38h] [rbp-20h]
+    __int128 v3; // [rsp+40h] [rbp-18h] BYREF
+
+    v2 &= 0xF8u;
+    v1 = sub_180233E90;
+    v3 = 0;
+    sub_1819CA610(
+      (unsigned int)&qword_182380710,
+      (unsigned int)"capturecubemap",
+      (unsigned int)&v1,
+      (unsigned int)"Capture Cubemap",
+      0,
+      (__int64)&v3);
+    return atexit(sub_181A685B0);                 // CaptureCubemap_Static_Cleanup
+  }
