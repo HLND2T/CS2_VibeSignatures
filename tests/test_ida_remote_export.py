@@ -1,4 +1,5 @@
 import json
+import ntpath
 import tempfile
 import unittest
 from pathlib import Path
@@ -47,14 +48,29 @@ class TestBuildRemoteTextExportPyEval(unittest.TestCase):
             self.assertEqual("ok", output_path.read_text(encoding="utf-8"))
 
     def test_build_remote_text_export_py_eval_accepts_posix_absolute_path(self) -> None:
-        with patch("ida_analyze_util.os.path.isabs", return_value=False):
+        # Simulate a non-POSIX host: on POSIX platforms ``os.path`` *is*
+        # ``posixpath``, so patching ``os.path.isabs`` would also disable the
+        # POSIX fallback this test is meant to exercise. Swapping ``os.path``
+        # for ``ntpath`` keeps ``posixpath`` intact; the explicit ``ntpath``
+        # patch keeps the case interpreter-independent (``ntpath.isabs``
+        # stopped treating single-slash paths as absolute in Python 3.13).
+        with (
+            patch("ida_analyze_util.os.path", ntpath),
+            patch("ida_analyze_util.ntpath.isabs", return_value=False),
+        ):
             script = build_remote_text_export_py_eval(
                 output_path="/tmp/vcall-detail.yaml",
                 producer_code="payload_text = 'ok'",
                 content_var="payload_text",
             )
+            self.assertIn("posixpath.isabs(output_path)", script)
 
-        self.assertIn("posixpath.isabs(output_path)", script)
+            with self.assertRaises(ValueError):
+                build_remote_text_export_py_eval(
+                    output_path="relative/detail.yaml",
+                    producer_code="payload_text = 'ok'",
+                    content_var="payload_text",
+                )
 
 
 if __name__ == "__main__":
