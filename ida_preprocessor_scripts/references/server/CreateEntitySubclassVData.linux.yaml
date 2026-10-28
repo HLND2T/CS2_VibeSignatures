@@ -1,0 +1,103 @@
+func_name: CreateEntitySubclassVData
+func_va: '0xf5ffa0'
+disasm_code: |-
+  .text:0000000000F5FFA0                 push    rbp
+  .text:0000000000F5FFA1                 mov     rbp, rsp
+  .text:0000000000F5FFA4                 push    rbx
+  .text:0000000000F5FFA5                 sub     rsp, 8
+  .text:0000000000F5FFA9                 test    rdi, rdi
+  .text:0000000000F5FFAC                 jz      short loc_F60010
+  .text:0000000000F5FFAE                 mov     rbx, rdi
+  .text:0000000000F5FFB1                 call    sub_A01510
+  .text:0000000000F5FFB6                 xor     edx, edx
+  .text:0000000000F5FFB8                 mov     rsi, rax
+  .text:0000000000F5FFBB                 lea     rax, g_pSchemaSystem
+  .text:0000000000F5FFC2                 mov     rdi, [rax]
+  .text:0000000000F5FFC5                 mov     rax, [rdi]
+  .text:0000000000F5FFC8                 ; 0x68 = 104LL = ISchemaSystem_FindTypeScopeForModule
+  .text:0000000000F5FFC8                 call    qword ptr [rax+68h]; 0x68 = 104LL = ISchemaSystem_FindTypeScopeForModule
+  .text:0000000000F5FFCB                 mov     rsi, rbx
+  .text:0000000000F5FFCE                 mov     rdi, rax
+  .text:0000000000F5FFD1                 mov     rax, [rax]
+  .text:0000000000F5FFD4                 call    qword ptr [rax+10h]
+  .text:0000000000F5FFD7                 mov     rdi, rax
+  .text:0000000000F5FFDA                 test    rdi, rdi
+  .text:0000000000F5FFDD                 jz      short loc_F60000
+  .text:0000000000F5FFDF                 mov     eax, [rdi+60h]
+  .text:0000000000F5FFE2                 test    al, 2
+  .text:0000000000F5FFE4                 jnz     short loc_F60000
+  .text:0000000000F5FFE6                 and     eax, 302h
+  .text:0000000000F5FFEB                 cmp     eax, 100h
+  .text:0000000000F5FFF0                 jnz     short loc_F60000
+  .text:0000000000F5FFF2                 mov     rbx, [rbp+var_8]
+  .text:0000000000F5FFF6                 leave
+  .text:0000000000F5FFF7                 jmp     sub_21D1010
+  .text:0000000000F60000                 mov     rbx, [rbp+var_8]
+  .text:0000000000F60004                 xor     eax, eax
+  .text:0000000000F60006                 leave
+  .text:0000000000F60007                 retn
+  .text:0000000000F60010                 movzx   eax, cs:byte_289D130
+  .text:0000000000F60017                 test    al, al
+  .text:0000000000F60019                 jz      short loc_F60060
+  .text:0000000000F6001B                 mov     rdi, cs:qword_289D138
+  .text:0000000000F60022                 test    rdi, rdi
+  .text:0000000000F60025                 jnz     short loc_F5FFDF
+  .text:0000000000F60027                 call    sub_A01510
+  .text:0000000000F6002C                 xor     edx, edx
+  .text:0000000000F6002E                 mov     rsi, rax
+  .text:0000000000F60031                 lea     rax, g_pSchemaSystem
+  .text:0000000000F60038                 mov     rdi, [rax]
+  .text:0000000000F6003B                 mov     rax, [rdi]
+  .text:0000000000F6003E                 call    qword ptr [rax+68h]; 0x68 = 104LL = ISchemaSystem_FindTypeScopeForModule
+  .text:0000000000F60041                 lea     rsi, aCentitysubclas; "CEntitySubclassVDataBase"
+  .text:0000000000F60048                 mov     rdi, rax
+  .text:0000000000F6004B                 mov     rax, [rax]
+  .text:0000000000F6004E                 call    qword ptr [rax+10h]
+  .text:0000000000F60051                 mov     rdi, rax
+  .text:0000000000F60054                 mov     cs:qword_289D138, rax
+  .text:0000000000F6005B                 jmp     loc_F5FFDA
+  .text:0000000000F60060                 lea     rbx, byte_289D130
+  .text:0000000000F60067                 mov     rdi, rbx
+  .text:0000000000F6006A                 call    sub_9F5840
+  .text:0000000000F6006F                 test    eax, eax
+  .text:0000000000F60071                 jz      short loc_F6001B
+  .text:0000000000F60073                 mov     cs:qword_289D138, 0
+  .text:0000000000F6007E                 mov     rdi, rbx
+  .text:0000000000F60081                 call    sub_9F5860
+  .text:0000000000F60086                 jmp     short loc_F6001B
+procedure: |-
+  __int64 __fastcall sub_F5FFA0(__int64 a1)
+  {
+    __int64 v1; // rax
+    __int64 v2; // rax
+    __int64 v3; // rdi
+    __int64 v5; // rax
+    __int64 v6; // rax
+
+    if ( a1 )
+    {
+      v1 = sub_A01510();
+      v2 = (*(__int64 (__fastcall **)(_QWORD *, __int64, _QWORD))(*g_pSchemaSystem + 104LL))(g_pSchemaSystem, v1, 0);// 0x68 = 104LL = ISchemaSystem_FindTypeScopeForModule
+      v3 = (*(__int64 (__fastcall **)(__int64, __int64))(*(_QWORD *)v2 + 16LL))(v2, a1);
+      goto LABEL_3;
+    }
+    if ( !byte_289D130 && (unsigned int)sub_9F5840(&byte_289D130) )
+    {
+      qword_289D138 = 0;
+      sub_9F5860(&byte_289D130);
+    }
+    v3 = qword_289D138;
+    if ( !qword_289D138 )
+    {
+      v5 = sub_A01510();
+      v6 = (*(__int64 (__fastcall **)(_QWORD *, __int64, _QWORD))(*g_pSchemaSystem + 104LL))(g_pSchemaSystem, v5, 0);  // 0x68 = 104LL = ISchemaSystem_FindTypeScopeForModule
+      v3 = (*(__int64 (__fastcall **)(__int64, const char *))(*(_QWORD *)v6 + 16LL))(v6, "CEntitySubclassVDataBase");
+      qword_289D138 = v3;
+  LABEL_3:
+      if ( !v3 )
+        return 0;
+    }
+    if ( (*(_DWORD *)(v3 + 96) & 2) == 0 && (*(_DWORD *)(v3 + 96) & 0x302) == 0x100 )
+      return sub_21D1010();
+    return 0;
+  }

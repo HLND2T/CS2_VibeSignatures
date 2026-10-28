@@ -1,0 +1,129 @@
+func_name: CreateEntitySubclassVData
+func_va: '0x1805a8200'
+disasm_code: |-
+  .text:00000001805A8200                 push    rbx
+  .text:00000001805A8202                 sub     rsp, 20h
+  .text:00000001805A8206                 mov     rbx, rcx
+  .text:00000001805A8209                 test    rcx, rcx
+  .text:00000001805A820C                 jnz     short loc_1805A8286
+  .text:00000001805A820E                 mov     ecx, cs:TlsIndex
+  .text:00000001805A8214                 mov     rax, gs:58h
+  .text:00000001805A821D                 mov     edx, 238h
+  .text:00000001805A8222                 mov     rax, [rax+rcx*8]
+  .text:00000001805A8226                 mov     eax, [rdx+rax]
+  .text:00000001805A8229                 cmp     cs:dword_182091550, eax
+  .text:00000001805A822F                 jg      loc_1805A82EB
+  .text:00000001805A8235                 mov     rcx, cs:qword_182091548
+  .text:00000001805A823C                 test    rcx, rcx
+  .text:00000001805A823F                 jnz     loc_1805A82C7
+  .text:00000001805A8245                 call    sub_180FF77A0
+  .text:00000001805A824A                 mov     rcx, cs:g_pSchemaSystem
+  .text:00000001805A8251                 xor     r8d, r8d
+  .text:00000001805A8254                 mov     rdx, [rcx]
+  .text:00000001805A8257                 mov     r9, [rdx+68h]; 0x68 = 104LL = ISchemaSystem_FindTypeScopeForModule
+  .text:00000001805A825B                 mov     rdx, rax
+  .text:00000001805A825E                 call    r9
+  .text:00000001805A8261                 lea     r8, aCentitysubclas_3; "CEntitySubclassVDataBase"
+  .text:00000001805A8268                 lea     rdx, [rsp+28h+arg_0]
+  .text:00000001805A826D                 mov     rcx, [rax]
+  .text:00000001805A8270                 mov     r9, [rcx+10h]
+  .text:00000001805A8274                 mov     rcx, rax
+  .text:00000001805A8277                 call    r9
+  .text:00000001805A827A                 mov     rcx, [rax]
+  .text:00000001805A827D                 mov     cs:qword_182091548, rcx
+  .text:00000001805A8284                 jmp     short loc_1805A82BA
+  .text:00000001805A8286                 call    sub_180FF77A0
+  .text:00000001805A828B                 mov     rcx, cs:g_pSchemaSystem
+  .text:00000001805A8292                 xor     r8d, r8d
+  .text:00000001805A8295                 mov     rdx, [rcx]
+  .text:00000001805A8298                 mov     r9, [rdx+68h]; 0x68 = 104LL = ISchemaSystem_FindTypeScopeForModule
+  .text:00000001805A829C                 mov     rdx, rax
+  .text:00000001805A829F                 ; 0x68 = 104LL = ISchemaSystem_FindTypeScopeForModule
+  .text:00000001805A829F                 call    r9; 0x68 = 104LL = ISchemaSystem_FindTypeScopeForModule
+  .text:00000001805A82A2                 mov     r8, rbx
+  .text:00000001805A82A5                 lea     rdx, [rsp+28h+arg_0]
+  .text:00000001805A82AA                 mov     rcx, [rax]
+  .text:00000001805A82AD                 mov     r9, [rcx+10h]
+  .text:00000001805A82B1                 mov     rcx, rax
+  .text:00000001805A82B4                 call    r9
+  .text:00000001805A82B7                 mov     rcx, [rax]
+  .text:00000001805A82BA                 test    rcx, rcx
+  .text:00000001805A82BD                 jnz     short loc_1805A82C7
+  .text:00000001805A82BF                 xor     eax, eax
+  .text:00000001805A82C1                 add     rsp, 20h
+  .text:00000001805A82C5                 pop     rbx
+  .text:00000001805A82C6                 retn
+  .text:00000001805A82C7                 mov     edx, [rcx+60h]
+  .text:00000001805A82CA                 mov     eax, edx
+  .text:00000001805A82CC                 shr     eax, 1
+  .text:00000001805A82CE                 test    al, 1
+  .text:00000001805A82D0                 jnz     short loc_1805A82BF
+  .text:00000001805A82D2                 and     edx, 302h
+  .text:00000001805A82D8                 cmp     edx, 100h
+  .text:00000001805A82DE                 jnz     short loc_1805A82BF
+  .text:00000001805A82E0                 call    sub_1816615D0
+  .text:00000001805A82E5                 add     rsp, 20h
+  .text:00000001805A82E9                 pop     rbx
+  .text:00000001805A82EA                 retn
+  .text:00000001805A82EB                 lea     rcx, dword_182091550
+  .text:00000001805A82F2                 call    sub_1816BAE48
+  .text:00000001805A82F7                 cmp     cs:dword_182091550, 0FFFFFFFFh
+  .text:00000001805A82FE                 jnz     loc_1805A8235
+  .text:00000001805A8304                 lea     rcx, dword_182091550
+  .text:00000001805A830B                 mov     cs:qword_182091548, 0
+  .text:00000001805A8316                 call    sub_1816BADDC
+  .text:00000001805A831B                 jmp     loc_1805A8235
+procedure: |-
+  __int64 __fastcall sub_1805A8200(__int64 a1)
+  {
+    __int64 v2; // rcx
+    __int64 v3; // rax
+    __int64 v4; // rax
+    __int64 v5; // rax
+    __int64 v6; // rax
+    int v8; // edx
+    char v9; // [rsp+30h] [rbp+8h] BYREF
+
+    if ( a1 )
+    {
+      v5 = sub_180FF77A0();
+      v6 = (*(__int64 (__fastcall **)(__int64, __int64, _QWORD))(*(_QWORD *)g_pSchemaSystem + 104LL))(// 0x68 = 104LL = ISchemaSystem_FindTypeScopeForModule
+             g_pSchemaSystem,
+             v5,
+             0);
+      v2 = *(_QWORD *)(*(__int64 (__fastcall **)(__int64, char *, __int64))(*(_QWORD *)v6 + 16LL))(v6, &v9, a1);
+    }
+    else
+    {
+      if ( dword_182091550 > *(_DWORD *)(*((_QWORD *)NtCurrentTeb()->ThreadLocalStoragePointer + (unsigned int)TlsIndex)
+                                       + 568LL) )
+      {
+        sub_1816BAE48(&dword_182091550);
+        if ( dword_182091550 == -1 )
+        {
+          qword_182091548 = 0;
+          sub_1816BADDC(&dword_182091550);
+        }
+      }
+      v2 = qword_182091548;
+      if ( qword_182091548 )
+        goto LABEL_8;
+      v3 = sub_180FF77A0();
+      v4 = (*(__int64 (__fastcall **)(__int64, __int64, _QWORD))(*(_QWORD *)g_pSchemaSystem + 104LL))(
+             g_pSchemaSystem,
+             v3,
+             0);  // 0x68 = 104LL = ISchemaSystem_FindTypeScopeForModule
+      v2 = *(_QWORD *)(*(__int64 (__fastcall **)(__int64, char *, const char *))(*(_QWORD *)v4 + 16LL))(
+                        v4,
+                        &v9,
+                        "CEntitySubclassVDataBase");
+      qword_182091548 = v2;
+    }
+    if ( !v2 )
+      return 0;
+  LABEL_8:
+    v8 = *(_DWORD *)(v2 + 96);
+    if ( (v8 & 2) != 0 || (v8 & 0x302) != 0x100 )
+      return 0;
+    return sub_1816615D0();
+  }
