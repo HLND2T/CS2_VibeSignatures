@@ -760,6 +760,10 @@ modules:
         category: vfunc
         alias:
           - CNetworkSystem::GetSteamNetworkingMessages
+      - name: CNetworkSystem_GetSteamGameServerNetworkingSockets
+        category: vfunc
+        alias:
+          - CNetworkSystem::GetSteamGameServerNetworkingSockets
       - name: CNetworkSystem_GetSteamNetworkUtils
         category: vfunc
         alias:
@@ -9083,6 +9087,14 @@ modules:
           - CSource2Server_GameServerSteamAPIDeactivated.{platform}.yaml
         expected_input:
           - CSource2Server_vtable.{platform}.yaml
+      - name: find-PopulateGCServerHandshake
+        expected_output:
+          - PopulateGCServerHandshake.{platform}.yaml
+      - name: find-INetworkSystem_GetSteamGameServerNetworkingSockets
+        expected_output:
+          - INetworkSystem_GetSteamGameServerNetworkingSockets.{platform}.yaml
+        expected_input:
+          - PopulateGCServerHandshake.{platform}.yaml
       - name: find-CSource2Server_OnHostNameChanged
         expected_output:
           - CSource2Server_OnHostNameChanged.{platform}.yaml
@@ -12703,6 +12715,12 @@ modules:
         category: vfunc
         alias:
           - CSource2Server::GameServerSteamAPIDeactivated
+      - name: PopulateGCServerHandshake
+        category: func
+      - name: INetworkSystem_GetSteamGameServerNetworkingSockets
+        category: vfunc
+        alias:
+          - INetworkSystem::GetSteamGameServerNetworkingSockets
       - name: CSource2Server_OnHostNameChanged
         category: vfunc
         alias:
@@ -15731,6 +15749,12 @@ modules:
         expected_input:
           - CNetworkSystem_vtable.{platform}.yaml
           - ../engine/INetworkSystem_GetSteamNetworkingMessages.{platform}.yaml
+      - name: find-CNetworkSystem_GetSteamGameServerNetworkingSockets
+        expected_output:
+          - CNetworkSystem_GetSteamGameServerNetworkingSockets.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_vtable.{platform}.yaml
+          - ../server/INetworkSystem_GetSteamGameServerNetworkingSockets.{platform}.yaml
       - name: find-CNetworkSystem_GetSteamNetworkUtils
         expected_output:
           - CNetworkSystem_GetSteamNetworkUtils.{platform}.yaml

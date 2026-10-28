@@ -1,0 +1,184 @@
+func_name: PopulateGCServerHandshake
+func_va: '0x1801b3e00'
+disasm_code: |-
+  .text:00000001801B3E00                 push    rbx
+  .text:00000001801B3E02                 mov     eax, 19A0h
+  .text:00000001801B3E07                 call    __alloca_probe
+  .text:00000001801B3E0C                 sub     rsp, rax
+  .text:00000001801B3E0F                 mov     edx, cs:TlsIndex
+  .text:00000001801B3E15                 mov     rbx, rcx
+  .text:00000001801B3E18                 mov     rax, gs:58h
+  .text:00000001801B3E21                 mov     ecx, 238h
+  .text:00000001801B3E26                 mov     rax, [rax+rdx*8]
+  .text:00000001801B3E2A                 mov     eax, [rcx+rax]
+  .text:00000001801B3E2D                 cmp     cs:dword_181F5A9FC, eax
+  .text:00000001801B3E33                 jg      loc_1801B3FD6
+  .text:00000001801B3E39                 call    cs:Plat_USTime
+  .text:00000001801B3E3F                 cmp     qword ptr cs:xmmword_181DA3D88, 0
+  .text:00000001801B3E47                 jz      short loc_1801B3E60
+  .text:00000001801B3E49                 mov     rcx, cs:qword_181F5AA00
+  .text:00000001801B3E50                 add     rcx, 11E1A300h
+  .text:00000001801B3E57                 cmp     rcx, rax
+  .text:00000001801B3E5A                 jnb     loc_1801B3F8D
+  .text:00000001801B3E60                 xor     edx, edx
+  .text:00000001801B3E62                 lea     rcx, [rsp+19A8h+var_1960]
+  .text:00000001801B3E67                 call    cs:?SetIP@netadr_t@@QEAAXI@Z; netadr_t::SetIP(uint)
+  .text:00000001801B3E6D                 xor     edx, edx
+  .text:00000001801B3E6F                 lea     rcx, [rsp+19A8h+var_1960]
+  .text:00000001801B3E74                 call    cs:?SetPort@netadr_t@@QEAAXG@Z; netadr_t::SetPort(ushort)
+  .text:00000001801B3E7A                 mov     edx, 3
+  .text:00000001801B3E7F                 lea     rcx, [rsp+19A8h+var_1960]
+  .text:00000001801B3E84                 call    cs:?SetType@netadr_t@@QEAAXW4netadrtype_t@@@Z; netadr_t::SetType(netadrtype_t)
+  .text:00000001801B3E8A                 xor     edx, edx
+  .text:00000001801B3E8C                 lea     rcx, [rsp+19A8h+var_1954]
+  .text:00000001801B3E91                 call    cs:?SetIP@netadr_t@@QEAAXI@Z; netadr_t::SetIP(uint)
+  .text:00000001801B3E97                 xor     edx, edx
+  .text:00000001801B3E99                 lea     rcx, [rsp+19A8h+var_1954]
+  .text:00000001801B3E9E                 call    cs:?SetPort@netadr_t@@QEAAXG@Z; netadr_t::SetPort(ushort)
+  .text:00000001801B3EA4                 mov     edx, 3
+  .text:00000001801B3EA9                 lea     rcx, [rsp+19A8h+var_1954]
+  .text:00000001801B3EAE                 call    cs:?SetType@netadr_t@@QEAAXW4netadrtype_t@@@Z; netadr_t::SetType(netadrtype_t)
+  .text:00000001801B3EB4                 mov     rcx, cs:g_pMatchFramework
+  .text:00000001801B3EBB                 mov     rax, [rcx]
+  .text:00000001801B3EBE                 call    qword ptr [rax+60h]
+  .text:00000001801B3EC1                 lea     rdx, aInetsupport001; "INETSUPPORT_001"
+  .text:00000001801B3EC8                 mov     rcx, [rax]
+  .text:00000001801B3ECB                 mov     r8, [rcx+10h]
+  .text:00000001801B3ECF                 mov     rcx, rax
+  .text:00000001801B3ED2                 call    r8
+  .text:00000001801B3ED5                 test    rax, rax
+  .text:00000001801B3ED8                 jz      loc_1801B3F8D
+  .text:00000001801B3EDE                 mov     rcx, cs:g_pNetworkSystem
+  .text:00000001801B3EE5                 mov     [rsp+19A8h+arg_0], rdi
+  .text:00000001801B3EED                 mov     rax, [rcx]
+  .text:00000001801B3EF0                 ; 0x158 = 344LL = INetworkSystem_GetSteamGameServerNetworkingSockets
+  .text:00000001801B3EF0                 call    qword ptr [rax+158h]; 0x158 = 344LL = INetworkSystem_GetSteamGameServerNetworkingSockets
+  .text:00000001801B3EF6                 mov     rdi, rax
+  .text:00000001801B3EF9                 test    rax, rax
+  .text:00000001801B3EFC                 jz      loc_1801B3F85
+  .text:00000001801B3F02                 mov     rdx, [rax]
+  .text:00000001801B3F05                 mov     rcx, rax
+  .text:00000001801B3F08                 call    qword ptr [rdx+0F8h]
+  .text:00000001801B3F0E                 test    ax, ax
+  .text:00000001801B3F11                 jz      short loc_1801B3F85
+  .text:00000001801B3F13                 xor     edx, edx
+  .text:00000001801B3F15                 lea     rcx, [rsp+19A8h+var_1928]
+  .text:00000001801B3F1D                 mov     r8d, 918h
+  .text:00000001801B3F23                 call    sub_18170F9E0
+  .text:00000001801B3F28                 mov     rax, [rdi]
+  .text:00000001801B3F2B                 lea     r9, [rsp+19A8h+var_1008]
+  .text:00000001801B3F33                 lea     r8, [rsp+19A8h+arg_8]
+  .text:00000001801B3F3B                 mov     [rsp+19A8h+arg_8], 1000h
+  .text:00000001801B3F46                 lea     rdx, [rsp+19A8h+var_1928]
+  .text:00000001801B3F4E                 mov     rcx, rdi
+  .text:00000001801B3F51                 call    qword ptr [rax+118h]
+  .text:00000001801B3F57                 cmp     eax, 1
+  .text:00000001801B3F5A                 jnz     short loc_1801B3F85
+  .text:00000001801B3F5C                 lea     rcx, aGeneratedSteam; "Generated steamdatagram GC login blob\n"
+  .text:00000001801B3F63                 call    cs:Msg
+  .text:00000001801B3F69                 movsxd  r8, [rsp+19A8h+arg_8]
+  .text:00000001801B3F71                 lea     rdx, [rsp+19A8h+var_1008]
+  .text:00000001801B3F79                 lea     rcx, qword_181DA3D78
+  .text:00000001801B3F80                 call    sub_1801B5CA0
+  .text:00000001801B3F85                 mov     rdi, [rsp+19A8h+arg_0]
+  .text:00000001801B3F8D                 cmp     qword ptr cs:xmmword_181DA3D88, 0
+  .text:00000001801B3F95                 jz      short loc_1801B3FBC
+  .text:00000001801B3F97                 or      dword ptr [rbx+10h], 2
+  .text:00000001801B3F9B                 lea     rcx, [rbx+38h]
+  .text:00000001801B3F9F                 mov     r8, [rbx+8]
+  .text:00000001801B3FA3                 and     r8, 0FFFFFFFFFFFFFFFCh
+  .text:00000001801B3FA7                 test    byte ptr [rbx+8], 1
+  .text:00000001801B3FAB                 jz      short loc_1801B3FB0
+  .text:00000001801B3FAD                 mov     r8, [r8]
+  .text:00000001801B3FB0                 lea     rdx, qword_181DA3D78
+  .text:00000001801B3FB7                 call    sub_181128CF0
+  .text:00000001801B3FBC                 mov     eax, cs:dword_181F5A9F8
+  .text:00000001801B3FC2                 test    eax, eax
+  .text:00000001801B3FC4                 jz      short loc_1801B3FCD
+  .text:00000001801B3FC6                 or      dword ptr [rbx+10h], 40h
+  .text:00000001801B3FCA                 mov     [rbx+50h], eax
+  .text:00000001801B3FCD                 add     rsp, 19A0h
+  .text:00000001801B3FD4                 pop     rbx
+  .text:00000001801B3FD5                 retn
+  .text:00000001801B3FD6                 lea     rcx, dword_181F5A9FC
+  .text:00000001801B3FDD                 call    sub_1816BAE48
+  .text:00000001801B3FE2                 cmp     cs:dword_181F5A9FC, 0FFFFFFFFh
+  .text:00000001801B3FE9                 jnz     loc_1801B3E39
+  .text:00000001801B3FEF                 ; void (__cdecl *)()
+  .text:00000001801B3FEF                 lea     rcx, sub_18171CC30; void (__cdecl *)()
+  .text:00000001801B3FF6                 call    atexit
+  .text:00000001801B3FFB                 lea     rcx, dword_181F5A9FC
+  .text:00000001801B4002                 call    sub_1816BADDC
+  .text:00000001801B4007                 jmp     loc_1801B3E39
+procedure: |-
+  __int64 __fastcall sub_1801B3E00(__int64 a1)
+  {
+    unsigned __int64 v2; // rax
+    __int64 v3; // rax
+    __int64 v4; // rax
+    __int64 *v5; // rdi
+    __int64 v6; // rax
+    _QWORD *v7; // r8
+    __int64 result; // rax
+    _BYTE v9[12]; // [rsp+48h] [rbp-1960h] BYREF
+    _BYTE v10[44]; // [rsp+54h] [rbp-1954h] BYREF
+    _BYTE v11[2336]; // [rsp+80h] [rbp-1928h] BYREF
+    _BYTE v12[4104]; // [rsp+9A0h] [rbp-1008h] BYREF
+    int v13; // [rsp+19B8h] [rbp+10h] BYREF
+
+    if ( dword_181F5A9FC > *(_DWORD *)(*((_QWORD *)NtCurrentTeb()->ThreadLocalStoragePointer + (unsigned int)TlsIndex)
+                                     + 568LL) )
+    {
+      sub_1816BAE48(&dword_181F5A9FC);
+      if ( dword_181F5A9FC == -1 )
+      {
+        atexit(sub_18171CC30);
+        sub_1816BADDC(&dword_181F5A9FC);
+      }
+    }
+    v2 = Plat_USTime();
+    if ( !(_QWORD)xmmword_181DA3D88 || qword_181F5AA00 + 300000000 < v2 )
+    {
+      netadr_t::SetIP((netadr_t *)v9, 0);
+      netadr_t::SetPort((netadr_t *)v9, 0);
+      netadr_t::SetType(v9, 3);
+      netadr_t::SetIP((netadr_t *)v10, 0);
+      netadr_t::SetPort((netadr_t *)v10, 0);
+      netadr_t::SetType(v10, 3);
+      v3 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pMatchFramework + 96LL))(g_pMatchFramework);
+      if ( (*(__int64 (__fastcall **)(__int64, const char *))(*(_QWORD *)v3 + 16LL))(v3, "INETSUPPORT_001") )
+      {
+        v4 = (*(__int64 (**)(void))(*(_QWORD *)g_pNetworkSystem + 344LL))();// 0x158 = 344LL = INetworkSystem_GetSteamGameServerNetworkingSockets
+        v5 = (__int64 *)v4;
+        if ( v4 )
+        {
+          if ( (*(unsigned __int16 (__fastcall **)(__int64))(*(_QWORD *)v4 + 248LL))(v4) )
+          {
+            sub_18170F9E0(v11, 0, 2328);
+            v6 = *v5;
+            v13 = 4096;
+            if ( (*(unsigned int (__fastcall **)(__int64 *, _BYTE *, int *, _BYTE *))(v6 + 280))(v5, v11, &v13, v12) == 1 )
+            {
+              Msg("Generated steamdatagram GC login blob\n");
+              sub_1801B5CA0(&qword_181DA3D78, v12, v13);
+            }
+          }
+        }
+      }
+    }
+    if ( (_QWORD)xmmword_181DA3D88 )
+    {
+      *(_DWORD *)(a1 + 16) |= 2u;
+      v7 = (_QWORD *)(*(_QWORD *)(a1 + 8) & 0xFFFFFFFFFFFFFFFCuLL);
+      if ( (*(_BYTE *)(a1 + 8) & 1) != 0 )
+        v7 = (_QWORD *)*v7;
+      sub_181128CF0(a1 + 56, &qword_181DA3D78, v7);
+    }
+    result = (unsigned int)dword_181F5A9F8;
+    if ( dword_181F5A9F8 )
+    {
+      *(_DWORD *)(a1 + 16) |= 0x40u;
+      *(_DWORD *)(a1 + 80) = result;
+    }
+    return result;
+  }
