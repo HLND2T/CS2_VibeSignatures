@@ -1,32 +1,58 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CSchemaSystem_SchemaSystemIsReady skill."""
+"""Resolve the ready getter immediately before VerifySchemaBindingConsistency.
 
-from ida_analyze_util import preprocess_common_skill
+The mismatch string identifies VerifySchemaBindingConsistency, not the ready
+getter. Derive its slot from the current vtable, take the preceding slot in
+ISchemaSystem's declaration order, and require a single byte load from this.
+Do not reuse historical signatures: they identified the consistency checker.
+"""
 
-TARGET_FUNCTION_NAMES = [
-    "CSchemaSystem_SchemaSystemIsReady",
-]
+import inspect
+import json
 
-FUNC_XREFS = [
-    {
-        "func_name": "CSchemaSystem_SchemaSystemIsReady",
-        "xref_strings": [
-            "%s\r\n\tMismatch - %s\r\n\tModule 1 - %s\r\n\tModule 2 - %s\r\n\r\n",
-        ],
-        "xref_gvs": [],
-        "xref_signatures": [],
-        "xref_funcs": [],
-        "exclude_funcs": [],
-        "exclude_strings": [],
-        "exclude_gvs": [],
-        "exclude_signatures": [],
-    },
-]
+from ida_analyze_util import _collect_xref_func_starts_for_string, parse_mcp_result
+from ida_preprocessor_scripts._vtable_slot_anchor_common import (
+    _load_vtable_entries,
+    _write_slot_func_yaml,
+    select_lowest_string_slot,
+)
 
-FUNC_VTABLE_RELATIONS = [
-    # (func_name, vtable_class)
-    ("CSchemaSystem_SchemaSystemIsReady", "CSchemaSystem"),
-]
+TARGET_FUNCTION_NAME = "CSchemaSystem_SchemaSystemIsReady"
+VTABLE_CLASS = "CSchemaSystem"
+VERIFY_STRING = "%s\r\n\tMismatch - %s\r\n\tModule 1 - %s\r\n\tModule 2 - %s\r\n\r\n"
+READY_SLOT_DELTA = -1
+
+
+def _probe_ready_getter(func_va):
+    """Run inside IDA: accept only `return *(byte *)(this + field_offset)`."""
+    import ida_hexrays as hx
+
+    cfunc = hx.decompile(func_va)
+    if cfunc is None or not len(cfunc.argidx) or len(cfunc.body.cblock) != 1:
+        return False
+    statement = cfunc.body.cblock[0]
+    if statement.op != hx.cit_return:
+        return False
+
+    def uncast(expr):
+        while expr.op == hx.cot_cast:
+            expr = expr.x
+        return expr
+
+    value = uncast(statement.creturn.expr)
+    if value.op != hx.cot_ptr or value.type.get_size() != 1:
+        return False
+    address = uncast(value.x)
+    if address.op != hx.cot_add:
+        return False
+    receiver, offset = uncast(address.x), uncast(address.y)
+    return (
+        receiver.op == hx.cot_var
+        and receiver.v.idx == cfunc.argidx[0]
+        and offset.op == hx.cot_num
+        and offset.numval() > 0
+    )
+
 
 GENERATE_YAML_DESIRED_FIELDS = [
     # (symbol_name, generate_yaml_fields)
@@ -56,17 +82,40 @@ async def preprocess_skill(
     image_base,
     debug=False,
 ):
-    """Reuse previous gamever func_sig to locate target function(s) and write YAML."""
-    return await preprocess_common_skill(
+    """Re-derive the ready slot and validate the getter before generating its signature."""
+    _ = skill_name, old_yaml_map
+    entries = _load_vtable_entries(new_binary_dir, VTABLE_CLASS, platform, debug=debug)
+    if entries is None:
+        return False
+    users = await _collect_xref_func_starts_for_string(session, f"FULLMATCH:{VERIFY_STRING}", debug=debug)
+    if not users:
+        return False
+    verify_slot = select_lowest_string_slot(entries, users, expected_slot_count=1)
+    if verify_slot is None or verify_slot + READY_SLOT_DELTA not in entries:
+        return False
+    ready_slot = verify_slot + READY_SLOT_DELTA
+    code = (
+        inspect.getsource(_probe_ready_getter)
+        + f"\nimport json\nresult = json.dumps(_probe_ready_getter({entries[ready_slot]}))\n"
+    )
+    try:
+        result = parse_mcp_result(await session.call_tool(name="py_eval", arguments={"code": code}))
+        if json.loads(result.get("result") or "null") is not True:
+            return False
+    except Exception as exc:
+        if debug:
+            print(f"    Preprocess: ready getter validation failed: {exc}")
+        return False
+
+    return await _write_slot_func_yaml(
         session=session,
         expected_outputs=expected_outputs,
-        old_yaml_map=old_yaml_map,
-        new_binary_dir=new_binary_dir,
         platform=platform,
         image_base=image_base,
-        func_names=TARGET_FUNCTION_NAMES,
-        func_xrefs=FUNC_XREFS,
-        func_vtable_relations=FUNC_VTABLE_RELATIONS,
+        target_name=TARGET_FUNCTION_NAME,
+        vtable_class=VTABLE_CLASS,
+        vtable_entries=entries,
+        slot=ready_slot,
         generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
         debug=debug,
     )

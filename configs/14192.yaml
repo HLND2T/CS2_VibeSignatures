@@ -17894,3 +17894,52 @@ cpp_tests:
       - fdump-vtable-layouts
     reference_modules:
       - engine  # bin_artifacts/{gamever}/engine/CEngineClient_*.{platform}.yaml
+  - name: ISchemaSystem_MSVC
+    symbol: ISchemaSystem
+    alias_symbols:
+      - CSchemaSystem
+    cpp: cpp_tests/ischemasystem.cpp
+    headers:
+      - s2sdk/public/schemasystem/ischemasystem.h  # Used by the fix-cppheaders SKILL
+      - s2sdk/public/appframework/iappsystem.h  # Inherited virtual declarations
+    target: x86_64-pc-windows-msvc
+    include_directories:
+      - s2sdk/game/shared
+      - s2sdk/public
+      - s2sdk/public/tier0
+      - s2sdk/public/tier1
+    defines:
+      - COMPILER_MSVC=1
+      - COMPILER_MSVC64=1
+      - _MSVC_STL_USE_ABORT_AS_DOOM_FUNCTION
+    additional_compiler_options:
+      - fms-extensions
+      - fms-compatibility
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - schemasystem  # bin_artifacts/{gamever}/schemasystem/CSchemaSystem_*.{platform}.yaml
+  - name: ISchemaSystem_GCC
+    symbol: ISchemaSystem
+    alias_symbols:
+      - CSchemaSystem
+    cpp: cpp_tests/ischemasystem.cpp
+    headers:
+      - s2sdk/public/schemasystem/ischemasystem.h  # Used by the fix-cppheaders SKILL
+      - s2sdk/public/appframework/iappsystem.h  # Inherited virtual declarations
+    target: x86_64-pc-linux-gnu
+    include_directories:
+      - s2sdk/game/shared
+      - s2sdk/public
+      - s2sdk/public/tier0
+      - s2sdk/public/tier1
+    defines:
+      - COMPILER_GCC=1
+      - POSIX=1
+      - LINUX=1
+      - stricmp=strcasecmp
+    additional_compiler_options:
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - schemasystem  # bin_artifacts/{gamever}/schemasystem/CSchemaSystem_*.{platform}.yaml
