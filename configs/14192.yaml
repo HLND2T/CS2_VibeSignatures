@@ -11515,33 +11515,9 @@ modules:
           - CGameConfiguration_vtable.{platform}.yaml
         prerequisite:
           - find-CGameConfiguration_ComputeMaxClients-linux
-      # Entity subclass VData chain: ParseSubclass -> CreateEntitySubclassVData -> ISchemaSystem slot
-      - name: find-CEntitySubclassGameSystem_ParseSubclass
-        expected_output:
-          - CEntitySubclassGameSystem_ParseSubclass.{platform}.yaml
-      - name: find-CreateEntitySubclassVData
-        expected_output:
-          - CreateEntitySubclassVData.{platform}.yaml
-        expected_input:
-          - CEntitySubclassGameSystem_ParseSubclass.{platform}.yaml
-      - name: find-ISchemaSystem_FindTypeScopeForModule
-        expected_output:
-          - ISchemaSystem_FindTypeScopeForModule.{platform}.yaml
-        expected_input:
-          - CreateEntitySubclassVData.{platform}.yaml
     symbols:
       - name: Script_RegisterCommandLineFunctions
         category: func
-      - name: CEntitySubclassGameSystem_ParseSubclass
-        category: func
-        alias:
-          - CEntitySubclassGameSystem::ParseSubclass
-      - name: CreateEntitySubclassVData
-        category: func
-      - name: ISchemaSystem_FindTypeScopeForModule
-        category: vfunc
-        alias:
-          - ISchemaSystem::FindTypeScopeForModule
       - name: Script_CommandLineFloat
         category: func
       - name: Script_CommandLineInt
@@ -16419,13 +16395,6 @@ modules:
           - CSchemaSystem_ValidateClasses.{platform}.yaml
         expected_input:
           - CSchemaSystem_vtable.{platform}.yaml
-      # Inherits the ISchemaSystem::FindTypeScopeForModule slot found in server
-      - name: find-CSchemaSystem_FindTypeScopeForModule
-        expected_output:
-          - CSchemaSystem_FindTypeScopeForModule.{platform}.yaml
-        expected_input:
-          - CSchemaSystem_vtable.{platform}.yaml
-          - ../server/ISchemaSystem_FindTypeScopeForModule.{platform}.yaml
       - name: find-CSchemaType_vtable
         expected_output:
           - CSchemaType_vtable.{platform}.yaml
@@ -16478,10 +16447,6 @@ modules:
         category: vfunc
         alias:
           - CSchemaSystem::ValidateClasses
-      - name: CSchemaSystem_FindTypeScopeForModule
-        category: vfunc
-        alias:
-          - CSchemaSystem::FindTypeScopeForModule
       - name: CSchemaType_vtable
         category: vtable
       - name: CSchemaType_ToString

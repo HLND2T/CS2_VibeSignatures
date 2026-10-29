@@ -37,14 +37,32 @@ jobs:
           "source_sha=$($sourceSha.ToLowerInvariant())" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
   release:
     needs: resolve-release
+    runs-on: ubuntu-latest
     permissions:
-      actions: read
-      contents: write
-      pull-requests: read
-    uses: ./.github/workflows/build-on-self-runner.yml
-    with:
-      gamever: ${{ needs.resolve-release.outputs.gamever }}
-      source_sha: ${{ needs.resolve-release.outputs.source_sha }}
-      source_pull_request: ${{ github.event.pull_request.number }}
-      publication_mode: publish
-    secrets: inherit
+      actions: write
+    steps:
+      # A reusable workflow retains this PR run's ref. Start a default-branch
+      # run so the release environment can apply its protected-branch policy.
+      - name: Dispatch immutable release from the default branch
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          GAMEVER: ${{ needs.resolve-release.outputs.gamever }}
+          SOURCE_SHA: ${{ needs.resolve-release.outputs.source_sha }}
+          SOURCE_PULL_REQUEST: ${{ github.event.pull_request.number }}
+        run: |
+          $payload = @{
+            ref = $env:DEFAULT_BRANCH
+            inputs = @{
+              gamever = $env:GAMEVER
+              source_sha = $env:SOURCE_SHA
+              source_pull_request = $env:SOURCE_PULL_REQUEST
+              publication_mode = 'publish'
+              source_artifact_mode = 'rebuild'
+            }
+          } | ConvertTo-Json -Depth 3 -Compress
+          $payload | gh api --method POST "repos/$env:GH_REPO/actions/workflows/build-on-self-runner.yml/dispatches" --input -
+          if ($LASTEXITCODE -ne 0) { throw "Failed to dispatch the immutable release build." }
+          Write-Output "Dispatched GAMEVER $env:GAMEVER from $env:SOURCE_SHA on $env:DEFAULT_BRANCH."
