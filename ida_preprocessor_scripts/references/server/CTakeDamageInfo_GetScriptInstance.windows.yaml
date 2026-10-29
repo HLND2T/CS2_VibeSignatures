@@ -1,0 +1,57 @@
+func_name: CTakeDamageInfo_GetScriptInstance
+func_va: '0x180fd04b0'
+disasm_code: |-
+  .text:0000000180FD04B0                 push    rsi
+  .text:0000000180FD04B2                 sub     rsp, 20h
+  .text:0000000180FD04B6                 mov     rax, [rcx+0E0h]  ; 0xE0 = CTakeDamageInfo::m_hScriptInstance (structmember, struct=CTakeDamageInfo, member=m_hScriptInstance)
+  .text:0000000180FD04BD                 mov     rsi, rcx
+  .text:0000000180FD04C0                 test    rax, rax
+  .text:0000000180FD04C3                 jnz     short loc_180FD0525
+  .text:0000000180FD04C5                 mov     [rsp+28h+arg_0], rbx
+  .text:0000000180FD04CA                 mov     [rsp+28h+arg_8], rdi
+  .text:0000000180FD04CF                 mov     rdi, cs:qword_181FF95F8
+  .text:0000000180FD04D6                 mov     rax, [rdi]
+  .text:0000000180FD04D9                 mov     rbx, [rax+0D0h]
+  .text:0000000180FD04E0                 mov     rax, [rcx]
+  .text:0000000180FD04E3                 call    qword ptr [rax+20h]
+  .text:0000000180FD04E6                 mov     r8, rsi
+  .text:0000000180FD04E9                 mov     rcx, rdi
+  .text:0000000180FD04EC                 mov     rdx, rax
+  .text:0000000180FD04EF                 call    rbx
+  .text:0000000180FD04F1                 mov     rdx, [rsi+0E0h]  ; 0xE0 = CTakeDamageInfo::m_hScriptInstance (structmember, struct=CTakeDamageInfo, member=m_hScriptInstance)
+  .text:0000000180FD04F8                 mov     rbx, rax
+  .text:0000000180FD04FB                 mov     rdi, [rsp+28h+arg_8]
+  .text:0000000180FD0500                 test    rdx, rdx
+  .text:0000000180FD0503                 jz      short loc_180FD0516
+  .text:0000000180FD0505                 mov     rcx, cs:qword_181FF95F8
+  .text:0000000180FD050C                 mov     r8, [rcx]
+  .text:0000000180FD050F                 call    qword ptr [r8+0A0h]
+  .text:0000000180FD0516                 mov     [rsi+0E0h], rbx  ; 0xE0 = CTakeDamageInfo::m_hScriptInstance (structmember, struct=CTakeDamageInfo, member=m_hScriptInstance)
+  .text:0000000180FD051D                 mov     rax, rbx
+  .text:0000000180FD0520                 mov     rbx, [rsp+28h+arg_0]
+  .text:0000000180FD0525                 add     rsp, 20h
+  .text:0000000180FD0529                 pop     rsi
+  .text:0000000180FD052A                 retn
+procedure: |
+  __int64 __fastcall sub_180FD04B0(_QWORD *a1)
+  {
+    __int64 result; // rax
+    __int64 v3; // rdi
+    __int64 (__fastcall *v4)(__int64, __int64, _QWORD *); // rbx
+    __int64 v5; // rax
+    __int64 v6; // rbx
+
+    result = a1[28];  // 0xE0 = CTakeDamageInfo::m_hScriptInstance (structmember, struct=CTakeDamageInfo, member=m_hScriptInstance)
+    if ( !result )
+    {
+      v3 = qword_181FF95F8;
+      v4 = *(__int64 (__fastcall **)(__int64, __int64, _QWORD *))(*(_QWORD *)qword_181FF95F8 + 208LL);
+      v5 = (*(__int64 (__fastcall **)(_QWORD *))(*a1 + 32LL))(a1);
+      v6 = v4(v3, v5, a1);
+      if ( a1[28] )  // 0xE0 = CTakeDamageInfo::m_hScriptInstance (structmember, struct=CTakeDamageInfo, member=m_hScriptInstance)
+        (*(void (__fastcall **)(__int64))(*(_QWORD *)qword_181FF95F8 + 160LL))(qword_181FF95F8);
+      a1[28] = v6;  // 0xE0 = CTakeDamageInfo::m_hScriptInstance (structmember, struct=CTakeDamageInfo, member=m_hScriptInstance)
+      return v6;
+    }
+    return result;
+  }
