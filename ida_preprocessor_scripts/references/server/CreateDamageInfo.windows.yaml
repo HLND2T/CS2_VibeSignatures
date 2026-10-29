@@ -1,0 +1,114 @@
+func_name: CreateDamageInfo
+func_va: '0x180587020'
+disasm_code: |-
+  .text:0000000180587020                 mov     [rsp+arg_8], rbp
+  .text:0000000180587025                 mov     [rsp+arg_10], rsi
+  .text:000000018058702A                 mov     [rsp+arg_18], rdi
+  .text:000000018058702F                 push    r12
+  .text:0000000180587031                 push    r14
+  .text:0000000180587033                 push    r15
+  .text:0000000180587035                 sub     rsp, 50h
+  .text:0000000180587039                 mov     rbp, rcx
+  .text:000000018058703C                 mov     r15, r9
+  .text:000000018058703F                 mov     ecx, 118h
+  .text:0000000180587044                 mov     r12, r8
+  .text:0000000180587047                 mov     rsi, rdx
+  .text:000000018058704A                 call    sub_180FF8600
+  .text:000000018058704F                 xor     edi, edi
+  .text:0000000180587051                 mov     r14, rax
+  .text:0000000180587054                 test    rax, rax
+  .text:0000000180587057                 jz      loc_18058710C
+  .text:000000018058705D                 mov     [rsp+68h+arg_0], rbx
+  .text:0000000180587062                 test    rsi, rsi
+  .text:0000000180587065                 jnz     short loc_18058706B
+  .text:0000000180587067                 mov     esi, edi
+  .text:0000000180587069                 jmp     short loc_180587095
+  .text:000000018058706B                 mov     rax, cs:qword_181FF95F8
+  .text:0000000180587072                 mov     rcx, [rax]
+  .text:0000000180587075                 mov     rbx, [rcx+0E8h]
+  .text:000000018058707C                 xor     ecx, ecx
+  .text:000000018058707E                 call    sub_1813AD1A0
+  .text:0000000180587083                 mov     rcx, cs:qword_181FF95F8
+  .text:000000018058708A                 mov     r8, rax
+  .text:000000018058708D                 mov     rdx, rsi
+  .text:0000000180587090                 call    rbx
+  .text:0000000180587092                 mov     rsi, rax
+  .text:0000000180587095                 test    rbp, rbp
+  .text:0000000180587098                 jnz     short loc_18058709F
+  .text:000000018058709A                 mov     rax, rdi
+  .text:000000018058709D                 jmp     short loc_1805870C6
+  .text:000000018058709F                 mov     rax, cs:qword_181FF95F8
+  .text:00000001805870A6                 mov     rcx, [rax]
+  .text:00000001805870A9                 mov     rbx, [rcx+0E8h]
+  .text:00000001805870B0                 xor     ecx, ecx
+  .text:00000001805870B2                 call    sub_1813AD1A0
+  .text:00000001805870B7                 mov     rcx, cs:qword_181FF95F8
+  .text:00000001805870BE                 mov     r8, rax
+  .text:00000001805870C1                 mov     rdx, rbp
+  .text:00000001805870C4                 call    rbx
+  .text:00000001805870C6                 mov     ecx, [rsp+68h+arg_28]
+  .text:00000001805870CD                 xor     r9d, r9d
+  .text:00000001805870D0                 movss   xmm0, [rsp+68h+arg_20]
+  .text:00000001805870D9                 mov     r8, rsi
+  .text:00000001805870DC                 mov     [rsp+68h+var_20], rdi
+  .text:00000001805870E1                 mov     rdx, rax
+  .text:00000001805870E4                 mov     [rsp+68h+var_28], edi
+  .text:00000001805870E8                 mov     [rsp+68h+var_30], ecx
+  .text:00000001805870EC                 mov     rcx, r14
+  .text:00000001805870EF                 movss   [rsp+68h+var_38], xmm0
+  .text:00000001805870F5                 mov     [rsp+68h+var_40], r15
+  .text:00000001805870FA                 mov     [rsp+68h+var_48], r12
+  .text:00000001805870FF                 call    CTakeDamageInfo_ctor
+  .text:0000000180587104                 mov     rbx, [rsp+68h+arg_0]
+  .text:0000000180587109                 mov     rdi, rax
+  .text:000000018058710C                 mov     rcx, rdi
+  .text:000000018058710F                 call    CTakeDamageInfo_GetScriptInstance
+  .text:0000000180587114                 lea     r11, [rsp+68h+var_18]
+  .text:0000000180587119                 mov     rbp, [r11+28h]
+  .text:000000018058711D                 mov     rsi, [r11+30h]
+  .text:0000000180587121                 mov     rdi, [r11+38h]
+  .text:0000000180587125                 mov     rsp, r11
+  .text:0000000180587128                 pop     r15
+  .text:000000018058712A                 pop     r14
+  .text:000000018058712C                 pop     r12
+  .text:000000018058712E                 retn
+procedure: |-
+  __int64 __fastcall sub_180587020(__int64 a1, __int64 a2, __int64 a3, __int64 a4, int a5, int a6)
+  {
+    _QWORD *v10; // rdi
+    __int64 v11; // r14
+    int v12; // esi
+    __int64 (__fastcall *v13)(__int64, __int64, __int64); // rbx
+    __int64 v14; // rax
+    int v15; // eax
+    __int64 (__fastcall *v16)(__int64, __int64, __int64); // rbx
+    __int64 v17; // rax
+
+    v10 = nullptr;
+    v11 = sub_180FF8600(280);
+    if ( v11 )
+    {
+      if ( a2 )
+      {
+        v13 = *(__int64 (__fastcall **)(__int64, __int64, __int64))(*(_QWORD *)qword_181FF95F8 + 232LL);
+        v14 = sub_1813AD1A0(0);
+        v12 = v13(qword_181FF95F8, a2, v14);
+      }
+      else
+      {
+        v12 = 0;
+      }
+      if ( a1 )
+      {
+        v16 = *(__int64 (__fastcall **)(__int64, __int64, __int64))(*(_QWORD *)qword_181FF95F8 + 232LL);
+        v17 = sub_1813AD1A0(0);
+        v15 = v16(qword_181FF95F8, a1, v17);
+      }
+      else
+      {
+        v15 = 0;
+      }
+      v10 = (_QWORD *)CTakeDamageInfo_ctor(v11, v15, v12, 0, a3, a4, a5, a6, 0, 0);
+    }
+    return CTakeDamageInfo_GetScriptInstance(v10);
+  }

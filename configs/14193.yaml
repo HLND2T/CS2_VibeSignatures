@@ -4798,6 +4798,10 @@ modules:
         category: vfunc
         alias:
           - CEngineServer::GetClientSteamID
+      - name: CNetworkGameServerBase_GetGameServerSteamID
+        category: vfunc
+        alias:
+          - CNetworkGameServerBase::GetGameServerSteamID
       - name: CEngineServer_IsLogEnabled
         category: vfunc
         alias:
@@ -6703,6 +6707,14 @@ modules:
           - INetworkSystem_GetSteamNetworkUtils.{platform}.yaml
         expected_input:
           - UpdateNetworkConfigState.{platform}.yaml
+      - name: find-GetRichPresenceStatusString  # by xref_strings "Weapons Course"
+        expected_output:
+          - GetRichPresenceStatusString.{platform}.yaml
+      - name: find-INetworkGameServer_GetGameServerSteamID  # by LLM_DECOMPILE GetRichPresenceStatusString
+        expected_output:
+          - INetworkGameServer_GetGameServerSteamID.{platform}.yaml
+        expected_input:
+          - GetRichPresenceStatusString.{platform}.yaml
     symbols:
       - name: CLoopModeGame_RegisterEventMapInternal
         category: func
@@ -7976,6 +7988,12 @@ modules:
         category: vfunc
         alias:
           - INetworkSystem::GetSteamNetworkUtils
+      - name: GetRichPresenceStatusString
+        category: func
+      - name: INetworkGameServer_GetGameServerSteamID
+        category: vfunc
+        alias:
+          - INetworkGameServer::GetGameServerSteamID
   - name: server
     path_windows: game/csgo/bin/win64/server.dll
     path_linux: game/csgo/bin/linuxsteamrt64/libserver.so
@@ -9284,6 +9302,30 @@ modules:
       - name: find-CTakeDamageInfo_GetWeaponName
         expected_output:
           - CTakeDamageInfo_GetWeaponName.{platform}.yaml
+      - name: find-CreateDamageInfo
+        expected_output:
+          - CreateDamageInfo.{platform}.yaml
+      - name: find-CTakeDamageInfo_GetScriptInstance-AND-CTakeDamageInfo_ctor
+        expected_output:
+          - CTakeDamageInfo_GetScriptInstance.{platform}.yaml
+          - CTakeDamageInfo_ctor.{platform}.yaml
+        expected_input:
+          - CreateDamageInfo.{platform}.yaml
+      - name: find-CTakeDamageInfo_Init
+        expected_output:
+          - CTakeDamageInfo_Init.{platform}.yaml
+        expected_input:
+          - CTakeDamageInfo_ctor.{platform}.yaml
+      - name: find-CTakeDamageInfo_m_hScriptInstance
+        expected_output:
+          - CTakeDamageInfo_m_hScriptInstance.{platform}.yaml
+        expected_input:
+          - CTakeDamageInfo_GetScriptInstance.{platform}.yaml
+      - name: find-CTakeDamageInfo_m_AttackerInfo
+        expected_output:
+          - CTakeDamageInfo_m_AttackerInfo.{platform}.yaml
+        expected_input:
+          - CTakeDamageInfo_Init.{platform}.yaml
       - name: find-FireBullets
         expected_output:
           - FireBullets.{platform}.yaml
@@ -11515,9 +11557,33 @@ modules:
           - CGameConfiguration_vtable.{platform}.yaml
         prerequisite:
           - find-CGameConfiguration_ComputeMaxClients-linux
+      # Entity subclass VData chain: ParseSubclass -> CreateEntitySubclassVData -> ISchemaSystem slot
+      - name: find-CEntitySubclassGameSystem_ParseSubclass
+        expected_output:
+          - CEntitySubclassGameSystem_ParseSubclass.{platform}.yaml
+      - name: find-CreateEntitySubclassVData
+        expected_output:
+          - CreateEntitySubclassVData.{platform}.yaml
+        expected_input:
+          - CEntitySubclassGameSystem_ParseSubclass.{platform}.yaml
+      - name: find-ISchemaSystem_FindTypeScopeForModule
+        expected_output:
+          - ISchemaSystem_FindTypeScopeForModule.{platform}.yaml
+        expected_input:
+          - CreateEntitySubclassVData.{platform}.yaml
     symbols:
       - name: Script_RegisterCommandLineFunctions
         category: func
+      - name: CEntitySubclassGameSystem_ParseSubclass
+        category: func
+        alias:
+          - CEntitySubclassGameSystem::ParseSubclass
+      - name: CreateEntitySubclassVData
+        category: func
+      - name: ISchemaSystem_FindTypeScopeForModule
+        category: vfunc
+        alias:
+          - ISchemaSystem::FindTypeScopeForModule
       - name: Script_CommandLineFloat
         category: func
       - name: Script_CommandLineInt
@@ -12844,6 +12910,20 @@ modules:
         category: struct
       - name: CTakeDamageInfo_GetWeaponName
         category: func
+      - name: CreateDamageInfo
+        category: func
+      - name: CTakeDamageInfo_m_hScriptInstance
+        category: structmember
+        struct: CTakeDamageInfo
+        member: m_hScriptInstance
+        alias:
+          - CTakeDamageInfo::m_hScriptInstance
+      - name: CTakeDamageInfo_m_AttackerInfo
+        category: structmember
+        struct: CTakeDamageInfo
+        member: m_AttackerInfo
+        alias:
+          - CTakeDamageInfo::m_AttackerInfo
       - name: FireBullets
         category: func
       - name: FireBulletImpactEvent
@@ -15272,6 +15352,12 @@ modules:
         expected_input:
           - CEngineServer_vtable.{platform}.yaml
           - ../server/IVEngineServer2_GetClientSteamID.{platform}.yaml
+      - name: find-CNetworkGameServerBase_GetGameServerSteamID  # by INHERIT_VFUNCS ../client/INetworkGameServer_GetGameServerSteamID
+        expected_output:
+          - CNetworkGameServerBase_GetGameServerSteamID.{platform}.yaml
+        expected_input:
+          - CNetworkGameServerBase_vtable.{platform}.yaml
+          - ../client/INetworkGameServer_GetGameServerSteamID.{platform}.yaml
       - name: find-CEngineServer_IsLogEnabled
         expected_output:
           - CEngineServer_IsLogEnabled.{platform}.yaml
@@ -16395,6 +16481,13 @@ modules:
           - CSchemaSystem_ValidateClasses.{platform}.yaml
         expected_input:
           - CSchemaSystem_vtable.{platform}.yaml
+      # Inherits the ISchemaSystem::FindTypeScopeForModule slot found in server
+      - name: find-CSchemaSystem_FindTypeScopeForModule
+        expected_output:
+          - CSchemaSystem_FindTypeScopeForModule.{platform}.yaml
+        expected_input:
+          - CSchemaSystem_vtable.{platform}.yaml
+          - ../server/ISchemaSystem_FindTypeScopeForModule.{platform}.yaml
       - name: find-CSchemaType_vtable
         expected_output:
           - CSchemaType_vtable.{platform}.yaml
@@ -16447,6 +16540,10 @@ modules:
         category: vfunc
         alias:
           - CSchemaSystem::ValidateClasses
+      - name: CSchemaSystem_FindTypeScopeForModule
+        category: vfunc
+        alias:
+          - CSchemaSystem::FindTypeScopeForModule
       - name: CSchemaType_vtable
         category: vtable
       - name: CSchemaType_ToString
@@ -17943,3 +18040,58 @@ cpp_tests:
       - fdump-vtable-layouts
     reference_modules:
       - schemasystem  # bin_artifacts/{gamever}/schemasystem/CSchemaSystem_*.{platform}.yaml
+  - name: ISource2GameClients_MSVC
+    symbol: ISource2GameClients
+    alias_symbols:
+      - CSource2GameClients
+    cpp: cpp_tests/isource2gameclients.cpp
+    headers:
+      - s2sdk/public/engine2/isource2server.h  # Used by the fix-cppheaders SKILL
+      - s2sdk/public/appframework/iappsystem.h  # Inherited virtual declarations
+    target: x86_64-pc-windows-msvc
+    include_directories:
+      - cpp_tests/stubs
+      - s2sdk/game/shared
+      - s2sdk/public
+      - s2sdk/public/tier0
+      - s2sdk/public/tier1
+      - s2sdk/public/mathlib
+    defines:
+      - COMPILER_MSVC=1
+      - COMPILER_MSVC64=1
+      - _MSVC_STL_USE_ABORT_AS_DOOM_FUNCTION
+    additional_compiler_options:
+      - fms-extensions
+      - fms-compatibility
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - engine  # bin_artifacts/{gamever}/engine/ISource2GameClients_*.{platform}.yaml
+      - server  # bin_artifacts/{gamever}/server/CSource2GameClients_*.{platform}.yaml
+  - name: ISource2GameClients_GCC
+    symbol: ISource2GameClients
+    alias_symbols:
+      - CSource2GameClients
+    cpp: cpp_tests/isource2gameclients.cpp
+    headers:
+      - s2sdk/public/engine2/isource2server.h  # Used by the fix-cppheaders SKILL
+      - s2sdk/public/appframework/iappsystem.h  # Inherited virtual declarations
+    target: x86_64-pc-linux-gnu
+    include_directories:
+      - cpp_tests/stubs
+      - s2sdk/game/shared
+      - s2sdk/public
+      - s2sdk/public/tier0
+      - s2sdk/public/tier1
+      - s2sdk/public/mathlib
+    defines:
+      - COMPILER_GCC=1
+      - POSIX=1
+      - LINUX=1
+      - stricmp=strcasecmp
+    additional_compiler_options:
+      - Xclang
+      - fdump-vtable-layouts
+    reference_modules:
+      - engine  # bin_artifacts/{gamever}/engine/ISource2GameClients_*.{platform}.yaml
+      - server  # bin_artifacts/{gamever}/server/CSource2GameClients_*.{platform}.yaml
