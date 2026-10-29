@@ -1,186 +1,195 @@
 func_name: CEntitySystem_ExecuteQueuedPostDataUpdateAndActivates
-func_va: '0x22d57e0'
+func_va: '0x22d6360'
 disasm_code: |-
-  .text:00000000022D57E0                 mov     rax, 8000000000000032h
-  .text:00000000022D57EA                 push    rbp
-  .text:00000000022D57EB                 mov     rbp, rsp
-  .text:00000000022D57EE                 push    r15
-  .text:00000000022D57F0                 mov     r15, rsi
-  .text:00000000022D57F3                 push    r14
-  .text:00000000022D57F5                 push    r13
-  .text:00000000022D57F7                 xor     r13d, r13d
-  .text:00000000022D57FA                 push    r12
-  .text:00000000022D57FC                 mov     r12, rdi
-  .text:00000000022D57FF                 push    rbx
-  .text:00000000022D5800                 sub     rsp, 1C8h
-  .text:00000000022D5807                 mov     edi, [rsi]
-  .text:00000000022D5809                 mov     [rbp+var_1D0], rax
-  .text:00000000022D5810                 lea     rax, [rbp+var_1C8]
-  .text:00000000022D5817                 mov     [rbp+var_1E0], 0
-  .text:00000000022D5821                 mov     [rbp+var_1E8], rax
-  .text:00000000022D5828                 mov     [rbp+var_1D8], rax
-  .text:00000000022D582F                 test    edi, edi
-  .text:00000000022D5831                 jg      short loc_22D5867
-  .text:00000000022D5833                 jmp     loc_22D59A8
-  .text:00000000022D5840                 mov     rax, [rbp+var_1D8]
-  .text:00000000022D5847                 mov     edx, r14d
-  .text:00000000022D584A                 add     edx, 1
-  .text:00000000022D584D                 mov     [rbp+var_1E0], edx
-  .text:00000000022D5853                 mov     [rax+r14*8], rbx
-  .text:00000000022D5857                 mov     edi, [r15]
-  .text:00000000022D585A                 add     r13, 1
-  .text:00000000022D585E                 cmp     edi, r13d
-  .text:00000000022D5861                 jle     loc_22D59A8
-  .text:00000000022D5867                 mov     rax, [r15+8]
-  .text:00000000022D586B                 lea     rax, [rax+r13*4]
-  .text:00000000022D586F                 mov     edx, [rax]
-  .text:00000000022D5871                 cmp     edx, 0FFFFFFFFh
-  .text:00000000022D5874                 jz      short loc_22D585A
-  .text:00000000022D5876                 mov     rsi, cs:g_pEntityList
-  .text:00000000022D587D                 test    rsi, rsi
-  .text:00000000022D5880                 jz      short loc_22D585A
-  .text:00000000022D5882                 cmp     edx, 0FFFFFFFEh
-  .text:00000000022D5885                 jz      short loc_22D585A
-  .text:00000000022D5887                 movzx   eax, word ptr [rax]
-  .text:00000000022D588A                 mov     rcx, rax
-  .text:00000000022D588D                 shr     rcx, 9
-  .text:00000000022D5891                 and     ecx, 3Fh
-  .text:00000000022D5894                 mov     rbx, [rsi+rcx*8]
-  .text:00000000022D5898                 test    rbx, rbx
-  .text:00000000022D589B                 jz      short loc_22D585A
-  .text:00000000022D589D                 and     eax, 1FFh
-  .text:00000000022D58A2                 imul    rax, 70h ; 'p'
-  .text:00000000022D58A6                 add     rbx, rax
-  .text:00000000022D58A9                 cmp     edx, [rbx+10h]
-  .text:00000000022D58AC                 jnz     short loc_22D585A
-  .text:00000000022D58AE                 movsxd  r14, [rbp+var_1E0]
-  .text:00000000022D58B5                 mov     edi, dword ptr [rbp+var_1D0]
-  .text:00000000022D58BB                 and     dword ptr [rbx+30h], 0FFFFFFFBh
-  .text:00000000022D58BF                 cmp     r14d, edi
-  .text:00000000022D58C2                 jnz     loc_22D5840
-  .text:00000000022D58C8                 mov     esi, dword ptr [rbp+var_1D0+4]
-  .text:00000000022D58CE                 cmp     esi, 3FFFFFFFh
-  .text:00000000022D58D4                 jbe     short loc_22D58E8
-  .text:00000000022D58D6                 mov     eax, esi
-  .text:00000000022D58D8                 and     eax, 0C0000000h
-  .text:00000000022D58DD                 cmp     eax, 80000000h
-  .text:00000000022D58E2                 jnz     loc_22D5840
-  .text:00000000022D58E8                 cmp     edi, 7FFFFFFFh
-  .text:00000000022D58EE                 jz      loc_22D5AD0
-  .text:00000000022D58F4                 lea     edx, [rdi+1]
-  .text:00000000022D58F7                 and     esi, 3FFFFFFFh
-  .text:00000000022D58FD                 mov     ecx, 8
-  .text:00000000022D5902                 mov     [rbp+var_1EC], edx
-  .text:00000000022D5908                 call    sub_9FFB40
-  .text:00000000022D590D                 mov     edx, [rbp+var_1EC]
-  .text:00000000022D5913                 mov     r9d, eax
-  .text:00000000022D5916                 cmp     edx, eax
-  .text:00000000022D5918                 jle     short loc_22D5936
-  .text:00000000022D591A                 nop     word ptr [rax+rax+00h]
-  .text:00000000022D5920                 lea     eax, [r9+rdx]
-  .text:00000000022D5924                 mov     r9d, eax
-  .text:00000000022D5927                 shr     r9d, 1Fh
-  .text:00000000022D592B                 add     r9d, eax
-  .text:00000000022D592E                 sar     r9d, 1
-  .text:00000000022D5931                 cmp     edx, r9d
-  .text:00000000022D5934                 jg      short loc_22D5920
-  .text:00000000022D5936                 movsxd  rcx, dword ptr [rbp+var_1D0]
-  .text:00000000022D593D                 movsxd  rdx, r9d
-  .text:00000000022D5940                 xor     esi, esi
-  .text:00000000022D5942                 mov     [rbp+var_1EC], r9d
-  .text:00000000022D5949                 shl     rdx, 3
-  .text:00000000022D594D                 mov     rdi, [rbp+var_1D8]
-  .text:00000000022D5954                 shl     rcx, 3
-  .text:00000000022D5958                 cmp     dword ptr [rbp+var_1D0+4], 3FFFFFFFh
-  .text:00000000022D5962                 setbe   sil
-  .text:00000000022D5966                 call    sub_A00220
-  .text:00000000022D596B                 mov     edx, dword ptr [rbp+var_1D0+4]
-  .text:00000000022D5971                 mov     r9d, [rbp+var_1EC]
-  .text:00000000022D5978                 mov     [rbp+var_1D8], rax
-  .text:00000000022D597F                 cmp     edx, 3FFFFFFFh
-  .text:00000000022D5985                 jbe     short loc_22D5993
-  .text:00000000022D5987                 and     edx, 3FFFFFFFh
-  .text:00000000022D598D                 mov     dword ptr [rbp+var_1D0+4], edx
-  .text:00000000022D5993                 mov     edx, [rbp+var_1E0]
-  .text:00000000022D5999                 mov     dword ptr [rbp+var_1D0], r9d
-  .text:00000000022D59A0                 jmp     loc_22D584A
-  .text:00000000022D59A8                 mov     rdi, [r12+0D10h]
-  .text:00000000022D59B0                 mov     esi, 400h
-  .text:00000000022D59B5                 movss   xmm0, dword ptr [r12+0C5Ch]
-  .text:00000000022D59BF                 mov     rax, [rdi]
-  .text:00000000022D59C2                 call    qword ptr [rax+20h]
-  .text:00000000022D59C5                 mov     esi, [r12+0C80h]  ; 0xC80 = CEntitySystem::m_queuedPostDataUpdates (structmember, struct=CEntitySystem, member=m_queuedPostDataUpdates)
-  .text:00000000022D59CD                 test    esi, esi
-  .text:00000000022D59CF                 jle     loc_22D5A90
-  .text:00000000022D59D5                 mov     rax, [r12]
-  .text:00000000022D59D9                 mov     rdi, r12
-  .text:00000000022D59DC                 mov     rdx, [r12+0C88h]
-  .text:00000000022D59E4                 ; 0xB0 = 176LL = CEntitySystem_PostDataUpdate
-  .text:00000000022D59E4                 call    qword ptr [rax+0B0h]; 0xB0 = 176LL = CEntitySystem_PostDataUpdate
-  .text:00000000022D59EA                 mov     rdi, [r12+0D10h]
-  .text:00000000022D59F2                 mov     rax, [rdi]
-  .text:00000000022D59F5                 call    qword ptr [rax+28h]
-  .text:00000000022D59F8                 mov     esi, [rbp+var_1E0]
-  .text:00000000022D59FE                 mov     dword ptr [r12+0C80h], 0  ; 0xC80 = CEntitySystem::m_queuedPostDataUpdates (structmember, struct=CEntitySystem, member=m_queuedPostDataUpdates)
-  .text:00000000022D5A0A                 test    esi, esi
-  .text:00000000022D5A0C                 jle     short loc_22D5A2E
-  .text:00000000022D5A0E                 movzx   ecx, byte ptr [r12+0C65h]  ; 0xC65 = CEntitySystem::m_bInRestoreActivation (structmember, struct=CEntitySystem, member=m_bInRestoreActivation)
-  .text:00000000022D5A17                 mov     rdi, r12
-  .text:00000000022D5A1A                 mov     rax, [r12]
-  .text:00000000022D5A1E                 mov     rdx, [rbp+var_1D8]
-  .text:00000000022D5A25                 add     ecx, 1
-  .text:00000000022D5A28                 ; 0xA8 = 168LL = CEntitySystem_Activate
-  .text:00000000022D5A28                 call    qword ptr [rax+0A8h]; 0xA8 = 168LL = CEntitySystem_Activate
-  .text:00000000022D5A2E                 mov     [rbp+var_1E0], 0
-  .text:00000000022D5A38                 mov     edx, dword ptr [rbp+var_1D0]
-  .text:00000000022D5A3E                 mov     eax, dword ptr [rbp+var_1D0+4]
-  .text:00000000022D5A44                 test    edx, edx
-  .text:00000000022D5A46                 js      short loc_22D5AB8
-  .text:00000000022D5A48                 mov     rsi, [rbp+var_1D8]
-  .text:00000000022D5A4F                 mov     rbx, [rbp+var_1E8]
-  .text:00000000022D5A56                 cmp     rsi, rbx
-  .text:00000000022D5A59                 jz      loc_22D5AF0
-  .text:00000000022D5A5F                 cmp     eax, 3FFFFFFFh
-  .text:00000000022D5A64                 ja      short loc_22D5A7B
-  .text:00000000022D5A66                 test    rsi, rsi
-  .text:00000000022D5A69                 jz      short loc_22D5A7B
-  .text:00000000022D5A6B                 mov     rax, cs:g_pMemAlloc_ptr
-  .text:00000000022D5A72                 mov     rdi, [rax]
-  .text:00000000022D5A75                 mov     rax, [rdi]
-  .text:00000000022D5A78                 call    qword ptr [rax+20h]
-  .text:00000000022D5A7B                 add     rsp, 1C8h
-  .text:00000000022D5A82                 pop     rbx
-  .text:00000000022D5A83                 pop     r12
-  .text:00000000022D5A85                 pop     r13
-  .text:00000000022D5A87                 pop     r14
-  .text:00000000022D5A89                 pop     r15
-  .text:00000000022D5A8B                 pop     rbp
-  .text:00000000022D5A8C                 retn
-  .text:00000000022D5A90                 mov     rdi, [r12+0D10h]
-  .text:00000000022D5A98                 mov     esi, 80000001h
-  .text:00000000022D5A9D                 movss   xmm0, dword ptr [r12+0C5Ch]
-  .text:00000000022D5AA7                 mov     rax, [rdi]
-  .text:00000000022D5AAA                 call    qword ptr [rax+20h]
-  .text:00000000022D5AAD                 jmp     loc_22D59EA
-  .text:00000000022D5AB8                 cmp     eax, 3FFFFFFFh
-  .text:00000000022D5ABD                 ja      short loc_22D5A7B
-  .text:00000000022D5ABF                 mov     rsi, [rbp+var_1D8]
-  .text:00000000022D5AC6                 test    rsi, rsi
-  .text:00000000022D5AC9                 jnz     short loc_22D5A6B
-  .text:00000000022D5ACB                 jmp     short loc_22D5A7B
-  .text:00000000022D5AD0                 mov     esi, 1
-  .text:00000000022D5AD5                 call    sub_9FFA50
-  .text:00000000022D5ADA                 mov     edi, dword ptr [rbp+var_1D0]
-  .text:00000000022D5AE0                 mov     esi, dword ptr [rbp+var_1D0+4]
-  .text:00000000022D5AE6                 jmp     loc_22D58F4
-  .text:00000000022D5AF0                 cmp     eax, 3FFFFFFFh
-  .text:00000000022D5AF5                 ja      short loc_22D5A7B
-  .text:00000000022D5AF7                 mov     rax, cs:g_pMemAlloc_ptr
-  .text:00000000022D5AFE                 mov     rsi, rbx
-  .text:00000000022D5B01                 mov     rdi, [rax]
-  .text:00000000022D5B04                 mov     rax, [rdi]
-  .text:00000000022D5B07                 call    qword ptr [rax+20h]
-  .text:00000000022D5B0A                 jmp     loc_22D5A7B
+  .text:00000000022D6360                 mov     rax, 8000000000000032h
+  .text:00000000022D636A                 push    rbp
+  .text:00000000022D636B                 mov     rbp, rsp
+  .text:00000000022D636E                 push    r15
+  .text:00000000022D6370                 mov     r15, rsi
+  .text:00000000022D6373                 push    r14
+  .text:00000000022D6375                 push    r13
+  .text:00000000022D6377                 xor     r13d, r13d
+  .text:00000000022D637A                 push    r12
+  .text:00000000022D637C                 mov     r12, rdi
+  .text:00000000022D637F                 push    rbx
+  .text:00000000022D6380                 sub     rsp, 1C8h
+  .text:00000000022D6387                 mov     edi, [rsi]
+  .text:00000000022D6389                 mov     [rbp+var_1D0], rax
+  .text:00000000022D6390                 lea     rax, [rbp+var_1C8]
+  .text:00000000022D6397                 mov     [rbp+var_1E0], 0
+  .text:00000000022D63A1                 mov     [rbp+var_1E8], rax
+  .text:00000000022D63A8                 mov     [rbp+var_1D8], rax
+  .text:00000000022D63AF                 test    edi, edi
+  .text:00000000022D63B1                 jg      short loc_22D63E7
+  .text:00000000022D63B3                 jmp     loc_22D6528
+  .text:00000000022D63C0                 mov     rax, [rbp+var_1D8]
+  .text:00000000022D63C7                 mov     edx, r14d
+  .text:00000000022D63CA                 add     edx, 1
+  .text:00000000022D63CD                 mov     [rbp+var_1E0], edx
+  .text:00000000022D63D3                 mov     [rax+r14*8], rbx
+  .text:00000000022D63D7                 mov     edi, [r15]
+  .text:00000000022D63DA                 add     r13, 1
+  .text:00000000022D63DE                 cmp     edi, r13d
+  .text:00000000022D63E1                 jle     loc_22D6528
+  .text:00000000022D63E7                 mov     rax, [r15+8]
+  .text:00000000022D63EB                 lea     rax, [rax+r13*4]
+  .text:00000000022D63EF                 mov     edx, [rax]
+  .text:00000000022D63F1                 cmp     edx, 0FFFFFFFFh
+  .text:00000000022D63F4                 jz      short loc_22D63DA
+  .text:00000000022D63F6                 mov     rsi, cs:qword_27E1F60
+  .text:00000000022D63FD                 test    rsi, rsi
+  .text:00000000022D6400                 jz      short loc_22D63DA
+  .text:00000000022D6402                 cmp     edx, 0FFFFFFFEh
+  .text:00000000022D6405                 jz      short loc_22D63DA
+  .text:00000000022D6407                 movzx   eax, word ptr [rax]
+  .text:00000000022D640A                 mov     rcx, rax
+  .text:00000000022D640D                 shr     rcx, 9
+  .text:00000000022D6411                 and     ecx, 3Fh
+  .text:00000000022D6414                 mov     rbx, [rsi+rcx*8]
+  .text:00000000022D6418                 test    rbx, rbx
+  .text:00000000022D641B                 jz      short loc_22D63DA
+  .text:00000000022D641D                 and     eax, 1FFh
+  .text:00000000022D6422                 imul    rax, 70h ; 'p'
+  .text:00000000022D6426                 add     rbx, rax
+  .text:00000000022D6429                 cmp     edx, [rbx+10h]
+  .text:00000000022D642C                 jnz     short loc_22D63DA
+  .text:00000000022D642E                 movsxd  r14, [rbp+var_1E0]
+  .text:00000000022D6435                 ; _QWORD
+  .text:00000000022D6435                 mov     edi, dword ptr [rbp+var_1D0]; _QWORD
+  .text:00000000022D643B                 and     dword ptr [rbx+30h], 0FFFFFFFBh
+  .text:00000000022D643F                 cmp     r14d, edi
+  .text:00000000022D6442                 jnz     loc_22D63C0
+  .text:00000000022D6448                 mov     esi, dword ptr [rbp+var_1D0+4]
+  .text:00000000022D644E                 cmp     esi, 3FFFFFFFh
+  .text:00000000022D6454                 jbe     short loc_22D6468
+  .text:00000000022D6456                 mov     eax, esi
+  .text:00000000022D6458                 and     eax, 0C0000000h
+  .text:00000000022D645D                 cmp     eax, 80000000h
+  .text:00000000022D6462                 jnz     loc_22D63C0
+  .text:00000000022D6468                 cmp     edi, 7FFFFFFFh
+  .text:00000000022D646E                 jz      loc_22D6650
+  .text:00000000022D6474                 ; _QWORD
+  .text:00000000022D6474                 lea     edx, [rdi+1]; _QWORD
+  .text:00000000022D6477                 ; _QWORD
+  .text:00000000022D6477                 and     esi, 3FFFFFFFh; _QWORD
+  .text:00000000022D647D                 ; _QWORD
+  .text:00000000022D647D                 mov     ecx, 8; _QWORD
+  .text:00000000022D6482                 mov     [rbp+var_1EC], edx
+  .text:00000000022D6488                 call    _UtlVectorMemory_CalcNewAllocationCount
+  .text:00000000022D648D                 mov     edx, [rbp+var_1EC]
+  .text:00000000022D6493                 mov     r9d, eax
+  .text:00000000022D6496                 cmp     edx, eax
+  .text:00000000022D6498                 jle     short loc_22D64B6
+  .text:00000000022D649A                 nop     word ptr [rax+rax+00h]
+  .text:00000000022D64A0                 lea     eax, [r9+rdx]
+  .text:00000000022D64A4                 mov     r9d, eax
+  .text:00000000022D64A7                 shr     r9d, 1Fh
+  .text:00000000022D64AB                 add     r9d, eax
+  .text:00000000022D64AE                 sar     r9d, 1
+  .text:00000000022D64B1                 cmp     edx, r9d
+  .text:00000000022D64B4                 jg      short loc_22D64A0
+  .text:00000000022D64B6                 movsxd  rcx, dword ptr [rbp+var_1D0]
+  .text:00000000022D64BD                 movsxd  rdx, r9d
+  .text:00000000022D64C0                 xor     esi, esi
+  .text:00000000022D64C2                 mov     [rbp+var_1EC], r9d
+  .text:00000000022D64C9                 ; _QWORD
+  .text:00000000022D64C9                 shl     rdx, 3; _QWORD
+  .text:00000000022D64CD                 ; _QWORD
+  .text:00000000022D64CD                 mov     rdi, [rbp+var_1D8]; _QWORD
+  .text:00000000022D64D4                 ; _QWORD
+  .text:00000000022D64D4                 shl     rcx, 3; _QWORD
+  .text:00000000022D64D8                 cmp     dword ptr [rbp+var_1D0+4], 3FFFFFFFh
+  .text:00000000022D64E2                 ; _QWORD
+  .text:00000000022D64E2                 setbe   sil; _QWORD
+  .text:00000000022D64E6                 call    _UtlVectorMemory_Alloc
+  .text:00000000022D64EB                 mov     edx, dword ptr [rbp+var_1D0+4]
+  .text:00000000022D64F1                 mov     r9d, [rbp+var_1EC]
+  .text:00000000022D64F8                 mov     [rbp+var_1D8], rax
+  .text:00000000022D64FF                 cmp     edx, 3FFFFFFFh
+  .text:00000000022D6505                 jbe     short loc_22D6513
+  .text:00000000022D6507                 and     edx, 3FFFFFFFh
+  .text:00000000022D650D                 mov     dword ptr [rbp+var_1D0+4], edx
+  .text:00000000022D6513                 mov     edx, [rbp+var_1E0]
+  .text:00000000022D6519                 mov     dword ptr [rbp+var_1D0], r9d
+  .text:00000000022D6520                 jmp     loc_22D63CA
+  .text:00000000022D6528                 mov     rdi, [r12+0D10h]
+  .text:00000000022D6530                 mov     esi, 400h
+  .text:00000000022D6535                 movss   xmm0, dword ptr [r12+0C5Ch]
+  .text:00000000022D653F                 mov     rax, [rdi]
+  .text:00000000022D6542                 call    qword ptr [rax+20h]
+  .text:00000000022D6545                 mov     esi, [r12+0C80h]  ; 0xC80 = CEntitySystem::m_queuedPostDataUpdates (structmember, struct=CEntitySystem, member=m_queuedPostDataUpdates)
+  .text:00000000022D654D                 test    esi, esi
+  .text:00000000022D654F                 jle     loc_22D6610
+  .text:00000000022D6555                 mov     rax, [r12]
+  .text:00000000022D6559                 mov     rdi, r12
+  .text:00000000022D655C                 mov     rdx, [r12+0C88h]
+  .text:00000000022D6564                 ; 0xB0 = 176LL = CEntitySystem_PostDataUpdate
+  .text:00000000022D6564                 call    qword ptr [rax+0B0h]; 0xB0 = 176LL = CEntitySystem_PostDataUpdate
+  .text:00000000022D656A                 mov     rdi, [r12+0D10h]
+  .text:00000000022D6572                 mov     rax, [rdi]
+  .text:00000000022D6575                 call    qword ptr [rax+28h]
+  .text:00000000022D6578                 mov     esi, [rbp+var_1E0]
+  .text:00000000022D657E                 mov     dword ptr [r12+0C80h], 0  ; 0xC80 = CEntitySystem::m_queuedPostDataUpdates (structmember, struct=CEntitySystem, member=m_queuedPostDataUpdates)
+  .text:00000000022D658A                 test    esi, esi
+  .text:00000000022D658C                 jle     short loc_22D65AE
+  .text:00000000022D658E                 movzx   ecx, byte ptr [r12+0C65h]  ; 0xC65 = CEntitySystem::m_bInRestoreActivation (structmember, struct=CEntitySystem, member=m_bInRestoreActivation)
+  .text:00000000022D6597                 mov     rdi, r12
+  .text:00000000022D659A                 mov     rax, [r12]
+  .text:00000000022D659E                 mov     rdx, [rbp+var_1D8]
+  .text:00000000022D65A5                 add     ecx, 1
+  .text:00000000022D65A8                 ; 0xA8 = 168LL = CEntitySystem_Activate
+  .text:00000000022D65A8                 call    qword ptr [rax+0A8h]; 0xA8 = 168LL = CEntitySystem_Activate
+  .text:00000000022D65AE                 mov     [rbp+var_1E0], 0
+  .text:00000000022D65B8                 mov     edx, dword ptr [rbp+var_1D0]
+  .text:00000000022D65BE                 mov     eax, dword ptr [rbp+var_1D0+4]
+  .text:00000000022D65C4                 test    edx, edx
+  .text:00000000022D65C6                 js      short loc_22D6638
+  .text:00000000022D65C8                 mov     rsi, [rbp+var_1D8]
+  .text:00000000022D65CF                 mov     rbx, [rbp+var_1E8]
+  .text:00000000022D65D6                 cmp     rsi, rbx
+  .text:00000000022D65D9                 jz      loc_22D6670
+  .text:00000000022D65DF                 cmp     eax, 3FFFFFFFh
+  .text:00000000022D65E4                 ja      short loc_22D65FB
+  .text:00000000022D65E6                 test    rsi, rsi
+  .text:00000000022D65E9                 jz      short loc_22D65FB
+  .text:00000000022D65EB                 mov     rax, cs:g_pMemAlloc_ptr
+  .text:00000000022D65F2                 mov     rdi, [rax]
+  .text:00000000022D65F5                 mov     rax, [rdi]
+  .text:00000000022D65F8                 call    qword ptr [rax+20h]
+  .text:00000000022D65FB                 add     rsp, 1C8h
+  .text:00000000022D6602                 pop     rbx
+  .text:00000000022D6603                 pop     r12
+  .text:00000000022D6605                 pop     r13
+  .text:00000000022D6607                 pop     r14
+  .text:00000000022D6609                 pop     r15
+  .text:00000000022D660B                 pop     rbp
+  .text:00000000022D660C                 retn
+  .text:00000000022D6610                 mov     rdi, [r12+0D10h]
+  .text:00000000022D6618                 mov     esi, 80000001h
+  .text:00000000022D661D                 movss   xmm0, dword ptr [r12+0C5Ch]
+  .text:00000000022D6627                 mov     rax, [rdi]
+  .text:00000000022D662A                 call    qword ptr [rax+20h]
+  .text:00000000022D662D                 jmp     loc_22D656A
+  .text:00000000022D6638                 cmp     eax, 3FFFFFFFh
+  .text:00000000022D663D                 ja      short loc_22D65FB
+  .text:00000000022D663F                 mov     rsi, [rbp+var_1D8]
+  .text:00000000022D6646                 test    rsi, rsi
+  .text:00000000022D6649                 jnz     short loc_22D65EB
+  .text:00000000022D664B                 jmp     short loc_22D65FB
+  .text:00000000022D6650                 ; _QWORD
+  .text:00000000022D6650                 mov     esi, 1; _QWORD
+  .text:00000000022D6655                 call    _UtlVectorMemory_FailedAllocation
+  .text:00000000022D665A                 mov     edi, dword ptr [rbp+var_1D0]
+  .text:00000000022D6660                 mov     esi, dword ptr [rbp+var_1D0+4]
+  .text:00000000022D6666                 jmp     loc_22D6474
+  .text:00000000022D6670                 cmp     eax, 3FFFFFFFh
+  .text:00000000022D6675                 ja      short loc_22D65FB
+  .text:00000000022D6677                 mov     rax, cs:g_pMemAlloc_ptr
+  .text:00000000022D667E                 mov     rsi, rbx
+  .text:00000000022D6681                 mov     rdi, [rax]
+  .text:00000000022D6684                 mov     rax, [rdi]
+  .text:00000000022D6687                 call    qword ptr [rax+20h]
+  .text:00000000022D668A                 jmp     loc_22D65FB
 procedure: |-
   __int64 __fastcall CEntitySystem_ExecuteQueuedPostDataUpdateAndActivates(unsigned __int8 *a1, __int64 a2)
   {
@@ -217,12 +226,12 @@ procedure: |-
       v9 = *(_DWORD *)v8;
       if ( *(_DWORD *)v8 != -1 )
       {
-        if ( g_pEntityList )
+        if ( qword_27E1F60 )
         {
           if ( v9 != -2 )
           {
             v10 = *v8;
-            v11 = *(_QWORD *)(g_pEntityList + 8 * ((v10 >> 9) & 0x3F));
+            v11 = *(_QWORD *)(qword_27E1F60 + 8 * ((v10 >> 9) & 0x3F));
             if ( v11 )
             {
               v12 = 112 * (v10 & 0x1FF) + v11;
@@ -236,16 +245,16 @@ procedure: |-
                 {
                   if ( (_DWORD)v24 == 0x7FFFFFFF )
                   {
-                    sub_9FFA50(0x7FFFFFFF, 1);
+                    UtlVectorMemory_FailedAllocation(0x7FFFFFFF, 1);
                     v14 = 0x7FFFFFFF;
                     v15 = HIDWORD(v24);
                   }
-                  v16 = sub_9FFB40(v14, v15 & 0x3FFFFFFF, (unsigned int)(v14 + 1), 8);
+                  v16 = UtlVectorMemory_CalcNewAllocationCount(v14, v15 & 0x3FFFFFFF, (unsigned int)(v14 + 1), 8);
                   v17 = v14 + 1;
                   for ( j = v16; v17 > j; j = (j + v17) / 2 )
                     ;
                   v21 = j;
-                  v6 = sub_A00220(i, HIDWORD(v24) <= 0x3FFFFFFF, 8LL * j, 8LL * (int)v24);
+                  v6 = UtlVectorMemory_Alloc(i, HIDWORD(v24) <= 0x3FFFFFFF, 8LL * j, 8LL * (int)v24);
                   i = (_BYTE *)v6;
                   if ( HIDWORD(v24) > 0x3FFFFFFF )
                     HIDWORD(v24) &= 0x3FFFFFFFu;
