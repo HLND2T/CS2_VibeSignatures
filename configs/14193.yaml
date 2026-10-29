@@ -8602,9 +8602,11 @@ modules:
           - CEntitySystem_ExecuteQueuedDeletion.{platform}.yaml
         expected_input:
           - CEntitySystem_QueueDestroyEntity.{platform}.yaml
-      - name: find-CEntitySystem_m_nExecuteQueuedDeletionDepth
+      - name: find-CEntitySystem_ExecuteQueuedDeletion-decompiles
         expected_output:
           - CEntitySystem_m_nExecuteQueuedDeletionDepth.{platform}.yaml
+          - CEntitySystem_m_queuedDeletions.{platform}.yaml
+          - CEntitySystem_m_queuedDeallocations.{platform}.yaml
         expected_input:
           - CEntitySystem_ExecuteQueuedDeletion.{platform}.yaml
       - name: find-CFlashbangProjectile_Spawn-decompiles
@@ -9302,6 +9304,30 @@ modules:
       - name: find-CTakeDamageInfo_GetWeaponName
         expected_output:
           - CTakeDamageInfo_GetWeaponName.{platform}.yaml
+      - name: find-CreateDamageInfo
+        expected_output:
+          - CreateDamageInfo.{platform}.yaml
+      - name: find-CTakeDamageInfo_GetScriptInstance-AND-CTakeDamageInfo_ctor
+        expected_output:
+          - CTakeDamageInfo_GetScriptInstance.{platform}.yaml
+          - CTakeDamageInfo_ctor.{platform}.yaml
+        expected_input:
+          - CreateDamageInfo.{platform}.yaml
+      - name: find-CTakeDamageInfo_Init
+        expected_output:
+          - CTakeDamageInfo_Init.{platform}.yaml
+        expected_input:
+          - CTakeDamageInfo_ctor.{platform}.yaml
+      - name: find-CTakeDamageInfo_m_hScriptInstance
+        expected_output:
+          - CTakeDamageInfo_m_hScriptInstance.{platform}.yaml
+        expected_input:
+          - CTakeDamageInfo_GetScriptInstance.{platform}.yaml
+      - name: find-CTakeDamageInfo_m_AttackerInfo
+        expected_output:
+          - CTakeDamageInfo_m_AttackerInfo.{platform}.yaml
+        expected_input:
+          - CTakeDamageInfo_Init.{platform}.yaml
       - name: find-FireBullets
         expected_output:
           - FireBullets.{platform}.yaml
@@ -9466,6 +9492,9 @@ modules:
         expected_output:
           - CEntitySystem_ExecuteQueuedActivates.{platform}.yaml
           - CEntitySystem_ExecuteQueuedPostDataUpdateAndActivates.{platform}.yaml
+          - CEntitySystem_m_queuedCreations.{platform}.yaml
+          - CEntitySystem_m_bInvokePostDataUpdates.{platform}.yaml
+          - CEntitySystem_m_bPerformDeletionPostCreation.{platform}.yaml
         expected_input:
           - CEntitySystem_ExecuteQueuedCreation.{platform}.yaml
       - name: find-CEntitySystem_ExecuteQueuedPostDataUpdateAndActivates-decompiles
@@ -11999,6 +12028,24 @@ modules:
         member: m_queuedDormancyChanges
         alias:
           - CEntitySystem::m_queuedDormancyChanges
+      - name: CEntitySystem_m_queuedCreations
+        category: structmember
+        struct: CEntitySystem
+        member: m_queuedCreations
+        alias:
+          - CEntitySystem::m_queuedCreations
+      - name: CEntitySystem_m_bInvokePostDataUpdates
+        category: structmember
+        struct: CEntitySystem
+        member: m_bInvokePostDataUpdates
+        alias:
+          - CEntitySystem::m_bInvokePostDataUpdates
+      - name: CEntitySystem_m_bPerformDeletionPostCreation
+        category: structmember
+        struct: CEntitySystem
+        member: m_bPerformDeletionPostCreation
+        alias:
+          - CEntitySystem::m_bPerformDeletionPostCreation
       - name: CEntitySystem_SetInPVS
         category: func
         alias:
@@ -12287,6 +12334,18 @@ modules:
         member: m_nExecuteQueuedDeletionDepth
         alias:
           - CEntitySystem::m_nExecuteQueuedDeletionDepth
+      - name: CEntitySystem_m_queuedDeletions
+        category: structmember
+        struct: CEntitySystem
+        member: m_queuedDeletions
+        alias:
+          - CEntitySystem::m_queuedDeletions
+      - name: CEntitySystem_m_queuedDeallocations
+        category: structmember
+        struct: CEntitySystem
+        member: m_queuedDeallocations
+        alias:
+          - CEntitySystem::m_queuedDeallocations
       - name: CBaseModelEntity_SetModel
         category: func
         alias:
@@ -12886,6 +12945,20 @@ modules:
         category: struct
       - name: CTakeDamageInfo_GetWeaponName
         category: func
+      - name: CreateDamageInfo
+        category: func
+      - name: CTakeDamageInfo_m_hScriptInstance
+        category: structmember
+        struct: CTakeDamageInfo
+        member: m_hScriptInstance
+        alias:
+          - CTakeDamageInfo::m_hScriptInstance
+      - name: CTakeDamageInfo_m_AttackerInfo
+        category: structmember
+        struct: CTakeDamageInfo
+        member: m_AttackerInfo
+        alias:
+          - CTakeDamageInfo::m_AttackerInfo
       - name: FireBullets
         category: func
       - name: FireBulletImpactEvent
