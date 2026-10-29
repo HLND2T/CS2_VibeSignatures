@@ -9284,6 +9284,30 @@ modules:
       - name: find-CTakeDamageInfo_GetWeaponName
         expected_output:
           - CTakeDamageInfo_GetWeaponName.{platform}.yaml
+      - name: find-CreateDamageInfo
+        expected_output:
+          - CreateDamageInfo.{platform}.yaml
+      - name: find-CTakeDamageInfo_GetScriptInstance-AND-CTakeDamageInfo_ctor
+        expected_output:
+          - CTakeDamageInfo_GetScriptInstance.{platform}.yaml
+          - CTakeDamageInfo_ctor.{platform}.yaml
+        expected_input:
+          - CreateDamageInfo.{platform}.yaml
+      - name: find-CTakeDamageInfo_Init
+        expected_output:
+          - CTakeDamageInfo_Init.{platform}.yaml
+        expected_input:
+          - CTakeDamageInfo_ctor.{platform}.yaml
+      - name: find-CTakeDamageInfo_m_hScriptInstance
+        expected_output:
+          - CTakeDamageInfo_m_hScriptInstance.{platform}.yaml
+        expected_input:
+          - CTakeDamageInfo_GetScriptInstance.{platform}.yaml
+      - name: find-CTakeDamageInfo_m_AttackerInfo
+        expected_output:
+          - CTakeDamageInfo_m_AttackerInfo.{platform}.yaml
+        expected_input:
+          - CTakeDamageInfo_Init.{platform}.yaml
       - name: find-FireBullets
         expected_output:
           - FireBullets.{platform}.yaml
@@ -12868,6 +12892,20 @@ modules:
         category: struct
       - name: CTakeDamageInfo_GetWeaponName
         category: func
+      - name: CreateDamageInfo
+        category: func
+      - name: CTakeDamageInfo_m_hScriptInstance
+        category: structmember
+        struct: CTakeDamageInfo
+        member: m_hScriptInstance
+        alias:
+          - CTakeDamageInfo::m_hScriptInstance
+      - name: CTakeDamageInfo_m_AttackerInfo
+        category: structmember
+        struct: CTakeDamageInfo
+        member: m_AttackerInfo
+        alias:
+          - CTakeDamageInfo::m_AttackerInfo
       - name: FireBullets
         category: func
       - name: FireBulletImpactEvent
