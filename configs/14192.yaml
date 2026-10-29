@@ -4798,10 +4798,10 @@ modules:
         category: vfunc
         alias:
           - CEngineServer::GetClientSteamID
-      - name: CEngineServer_GetGameServerSteamID
+      - name: CNetworkGameServerBase_GetGameServerSteamID
         category: vfunc
         alias:
-          - CEngineServer::GetGameServerSteamID
+          - CNetworkGameServerBase::GetGameServerSteamID
       - name: CEngineServer_IsLogEnabled
         category: vfunc
         alias:
@@ -6710,9 +6710,9 @@ modules:
       - name: find-GetRichPresenceStatusString  # by xref_strings "Weapons Course"
         expected_output:
           - GetRichPresenceStatusString.{platform}.yaml
-      - name: find-IVEngineServer2_GetGameServerSteamID  # by LLM_DECOMPILE GetRichPresenceStatusString
+      - name: find-INetworkGameServer_GetGameServerSteamID  # by LLM_DECOMPILE GetRichPresenceStatusString
         expected_output:
-          - IVEngineServer2_GetGameServerSteamID.{platform}.yaml
+          - INetworkGameServer_GetGameServerSteamID.{platform}.yaml
         expected_input:
           - GetRichPresenceStatusString.{platform}.yaml
     symbols:
@@ -7990,10 +7990,10 @@ modules:
           - INetworkSystem::GetSteamNetworkUtils
       - name: GetRichPresenceStatusString
         category: func
-      - name: IVEngineServer2_GetGameServerSteamID
+      - name: INetworkGameServer_GetGameServerSteamID
         category: vfunc
         alias:
-          - IVEngineServer2::GetGameServerSteamID
+          - INetworkGameServer::GetGameServerSteamID
   - name: server
     path_windows: game/csgo/bin/win64/server.dll
     path_linux: game/csgo/bin/linuxsteamrt64/libserver.so
@@ -15290,12 +15290,12 @@ modules:
         expected_input:
           - CEngineServer_vtable.{platform}.yaml
           - ../server/IVEngineServer2_GetClientSteamID.{platform}.yaml
-      - name: find-CEngineServer_GetGameServerSteamID  # by INHERIT_VFUNCS ../client/IVEngineServer2_GetGameServerSteamID
+      - name: find-CNetworkGameServerBase_GetGameServerSteamID  # by INHERIT_VFUNCS ../client/INetworkGameServer_GetGameServerSteamID
         expected_output:
-          - CEngineServer_GetGameServerSteamID.{platform}.yaml
+          - CNetworkGameServerBase_GetGameServerSteamID.{platform}.yaml
         expected_input:
-          - CEngineServer_vtable.{platform}.yaml
-          - ../client/IVEngineServer2_GetGameServerSteamID.{platform}.yaml
+          - CNetworkGameServerBase_vtable.{platform}.yaml
+          - ../client/INetworkGameServer_GetGameServerSteamID.{platform}.yaml
       - name: find-CEngineServer_IsLogEnabled
         expected_output:
           - CEngineServer_IsLogEnabled.{platform}.yaml

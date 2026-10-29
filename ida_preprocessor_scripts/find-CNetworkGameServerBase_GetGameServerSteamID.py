@@ -1,23 +1,23 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-CEngineServer_GetGameServerSteamID skill."""
+"""Preprocess script for find-CNetworkGameServerBase_GetGameServerSteamID skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 INHERIT_VFUNCS = [
     # (target_func_name, inherit_vtable_class, base_vfunc_name, generate_func_sig)
-    # GetGameServerSteamID is a small slot-indexed getter (windows body is 0x17
+    # GetGameServerSteamID is a cached-CSteamID getter (linux body is 0x16
     # bytes), so a func_sig is not stable enough to retain.
     (
-        "CEngineServer_GetGameServerSteamID",
-        "CEngineServer",
-        "../client/IVEngineServer2_GetGameServerSteamID",
+        "CNetworkGameServerBase_GetGameServerSteamID",
+        "CNetworkGameServerBase",
+        "../client/INetworkGameServer_GetGameServerSteamID",
         False,
     ),
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
     (
-        "CEngineServer_GetGameServerSteamID",
+        "CNetworkGameServerBase_GetGameServerSteamID",
         [
             "func_name",
             "func_va",
@@ -41,7 +41,7 @@ async def preprocess_skill(
     image_base,
     debug=False,
 ):
-    """Inherit the GetGameServerSteamID slot from IVEngineServer2."""
+    """Inherit the GetGameServerSteamID slot from INetworkGameServer."""
     _ = skill_name
     return await preprocess_common_skill(
         session=session,

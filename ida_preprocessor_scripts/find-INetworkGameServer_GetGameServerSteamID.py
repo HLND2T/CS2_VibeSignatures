@@ -1,24 +1,24 @@
 #!/usr/bin/env python3
-"""Preprocess script for find-IVEngineServer2_GetGameServerSteamID skill."""
+"""Preprocess script for find-INetworkGameServer_GetGameServerSteamID skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_FUNCTION_NAMES = [
-    "IVEngineServer2_GetGameServerSteamID",
+    "INetworkGameServer_GetGameServerSteamID",
 ]
 
 FUNC_VTABLE_RELATIONS = [
-    # IVEngineServer2 is an abstract interface; vtable_name is metadata only.
-    ("IVEngineServer2_GetGameServerSteamID", "IVEngineServer2"),
+    # INetworkGameServer is an abstract interface; vtable_name is metadata only.
+    ("INetworkGameServer_GetGameServerSteamID", "INetworkGameServer"),
 ]
 
 LLM_DECOMPILE = [
     {
-        # GetRichPresenceStatusString fetches the steam id of the game server the
-        # client is connected to. Windows hoists the slot into a register
-        # (`mov r8, [rcx+1E8h]` / `call r8`); linux calls it in place
-        # (`call qword ptr [rax+1E8h]`). `found_vcall` covers both forms.
-        "symbol_name": "IVEngineServer2_GetGameServerSteamID",
+        # GetRichPresenceStatusString resolves the network game server object
+        # (second interface hop) and fetches its steam id. Windows hoists the
+        # slot into a register (`mov r8, [rcx+1E8h]` / `call r8`); linux calls
+        # it in place (`call qword ptr [rax+1E8h]`). `found_vcall` covers both.
+        "symbol_name": "INetworkGameServer_GetGameServerSteamID",
         "prompt_path": "prompt/call_llm_decompile.md",
         "reference_yaml_paths": ["references/client/GetRichPresenceStatusString.{platform}.yaml"],
         "expected_result_sections": ["found_vcall"],
@@ -28,7 +28,7 @@ LLM_DECOMPILE = [
 
 GENERATE_YAML_DESIRED_FIELDS = [
     (
-        "IVEngineServer2_GetGameServerSteamID",
+        "INetworkGameServer_GetGameServerSteamID",
         [
             "func_name",
             "vfunc_sig",
@@ -51,7 +51,7 @@ async def preprocess_skill(
     llm_config=None,
     debug=False,
 ):
-    """Find IVEngineServer2::GetGameServerSteamID from GetRichPresenceStatusString."""
+    """Find INetworkGameServer::GetGameServerSteamID from GetRichPresenceStatusString."""
     _ = skill_name
     return await preprocess_common_skill(
         session=session,
