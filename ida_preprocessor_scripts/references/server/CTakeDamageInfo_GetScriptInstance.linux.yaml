@@ -1,0 +1,67 @@
+func_name: CTakeDamageInfo_GetScriptInstance
+func_va: '0x1bf60f0'
+disasm_code: |-
+  .text:0000000001BF60F0                 mov     rax, [rdi+0E0h]  ; 0xE0 = CTakeDamageInfo::m_hScriptInstance (structmember, struct=CTakeDamageInfo, member=m_hScriptInstance) Entry read: generic early-return path; use the later read for offset_sig.
+  .text:0000000001BF60F7                 test    rax, rax
+  .text:0000000001BF60FA                 jz      short loc_1BF6100
+  .text:0000000001BF60FC                 retn
+  .text:0000000001BF6100                 push    rbp
+  .text:0000000001BF6101                 mov     rbp, rsp
+  .text:0000000001BF6104                 push    r14
+  .text:0000000001BF6106                 push    r13
+  .text:0000000001BF6108                 push    r12
+  .text:0000000001BF610A                 push    rbx
+  .text:0000000001BF610B                 mov     rbx, rdi
+  .text:0000000001BF610E                 sub     rsp, 10h
+  .text:0000000001BF6112                 lea     r12, qword_28A11E8
+  .text:0000000001BF6119                 mov     r13, [r12]
+  .text:0000000001BF611D                 mov     rax, [r13+0]
+  .text:0000000001BF6121                 mov     r14, [rax+0D8h]
+  .text:0000000001BF6128                 mov     rax, [rdi]
+  .text:0000000001BF612B                 call    qword ptr [rax+20h]
+  .text:0000000001BF612E                 mov     rdx, rbx
+  .text:0000000001BF6131                 mov     rdi, r13
+  .text:0000000001BF6134                 mov     rsi, rax
+  .text:0000000001BF6137                 call    r14
+  .text:0000000001BF613A                 mov     rsi, [rbx+0E0h]  ; 0xE0 = CTakeDamageInfo::m_hScriptInstance (structmember, struct=CTakeDamageInfo, member=m_hScriptInstance) Preferred offset_sig locator: read after VM registration, before old-handle release.
+  .text:0000000001BF6141                 test    rsi, rsi
+  .text:0000000001BF6144                 jz      short loc_1BF615B
+  .text:0000000001BF6146                 mov     rdi, [r12]
+  .text:0000000001BF614A                 mov     [rbp-28h], rax
+  .text:0000000001BF614E                 mov     rdx, [rdi]
+  .text:0000000001BF6151                 call    qword ptr [rdx+0A8h]
+  .text:0000000001BF6157                 mov     rax, [rbp-28h]
+  .text:0000000001BF615B                 mov     [rbx+0E0h], rax  ; 0xE0 = CTakeDamageInfo::m_hScriptInstance (structmember, struct=CTakeDamageInfo, member=m_hScriptInstance)
+  .text:0000000001BF6162                 add     rsp, 10h
+  .text:0000000001BF6166                 pop     rbx
+  .text:0000000001BF6167                 pop     r12
+  .text:0000000001BF6169                 pop     r13
+  .text:0000000001BF616B                 pop     r14
+  .text:0000000001BF616D                 pop     rbp
+  .text:0000000001BF616E                 retn
+procedure: |
+  __int64 __fastcall sub_1BF60F0(_QWORD *a1)
+  {
+    __int64 result; // rax
+    __int64 v2; // r13
+    __int64 (__fastcall *v3)(__int64, __int64, _QWORD *); // r14
+    __int64 v4; // rax
+    __int64 v5; // [rsp-30h] [rbp-30h]
+
+    result = a1[28];  // 0xE0 = CTakeDamageInfo::m_hScriptInstance (structmember, struct=CTakeDamageInfo, member=m_hScriptInstance) Entry read: generic early-return path; use the later read for offset_sig.
+    if ( !result )
+    {
+      v2 = qword_28A11E8;
+      v3 = *(__int64 (__fastcall **)(__int64, __int64, _QWORD *))(*(_QWORD *)qword_28A11E8 + 216LL);
+      v4 = (*(__int64 (__fastcall **)(_QWORD *))(*a1 + 32LL))(a1);
+      result = v3(v2, v4, a1);
+      if ( a1[28] )  // 0xE0 = CTakeDamageInfo::m_hScriptInstance (structmember, struct=CTakeDamageInfo, member=m_hScriptInstance) Preferred offset_sig locator: read after VM registration, before old-handle release.
+      {
+        v5 = result;
+        (*(void (__fastcall **)(__int64))(*(_QWORD *)qword_28A11E8 + 168LL))(qword_28A11E8);
+        result = v5;
+      }
+      a1[28] = result;  // 0xE0 = CTakeDamageInfo::m_hScriptInstance (structmember, struct=CTakeDamageInfo, member=m_hScriptInstance)
+    }
+    return result;
+  }
