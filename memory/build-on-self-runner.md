@@ -105,3 +105,10 @@ immutable main SHA preflight
 - Bootstrap gate schema 3 contains snapshot/gamedata/C++ digests only; candidate schema 4 invalidates prior temporary candidates for rebuild.
 - Verification: Release bundle/publish, Pages mixed-schema hydration, bootstrap, IDB, and cache regression tests. Dedicated old-state suffix filters only prevent cache contamination.
 - Scope: repository code and local disposable state; system packages, remote repositories, and published Releases are unchanged.
+
+## Automatic release dispatch and protected environments
+- Trigger: run `40803833831`, publish job `123249111994`, failed before any steps with `Branch "refs/pull/1221/merge" is not allowed to deploy to release due to environment protection rules`.
+- Root cause/constraint: the merged-PR entry called the build as a reusable workflow, retaining the caller's run context. The `release` environment allows protected branches only; checking out the merge SHA inside a job does not change the ref used by the pre-run environment gate.
+- Correct approach: `tag-bump-after-merge.yml` dispatches `build-on-self-runner.yml` on the repository default branch using job-scoped `actions: write`. Its structured request carries the exact bump merge SHA, GAMEVER, source PR, `publish`, and `rebuild`. The receiver accepts optional `source_pull_request` on workflow_dispatch, reads it through an environment variable, and validates the merged PR's repository, target branch, bump version, and merge SHA whenever supplied. Manual dispatches without a source PR remain supported; existing immutable source, rebuild, ABI, and environment gates still apply.
+- Verification: local actionlint and inline PowerShell syntax checks, mocked dispatch success/failure, 13 source-PR validation cases, repository formatting, and git diff checks passed. No remote workflow was dispatched during local validation; a hosted run after merge is still required to confirm environment admission.
+- Scope: the automatic merged-bump entry and release preflight only. Rerunning an older PR-context run retains that run's context and does not adopt this new dispatch entry.
