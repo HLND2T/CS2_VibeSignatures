@@ -1,0 +1,96 @@
+func_name: CTakeDamageInfo_ctor
+func_va: '0x1bf8070'
+disasm_code: |-
+  .text:0000000001BF8070                 mov     r11, 3F80000000000000h
+  .text:0000000001BF807A                 push    rbp
+  .text:0000000001BF807B                 mov     rbp, rsp
+  .text:0000000001BF807E                 sub     rsp, 10h
+  .text:0000000001BF8082                 lea     r10, _ZTV15CTakeDamageInfo; `vtable for'CTakeDamageInfo
+  .text:0000000001BF8089                 mov     [rdi+7Ch], r11
+  .text:0000000001BF808D                 mov     rax, [rbp+arg_10]
+  .text:0000000001BF8091                 mov     dword ptr [rdi+40h], 0FFFFFFFFh
+  .text:0000000001BF8098                 mov     r11, 0FFFFFFFF00000001h
+  .text:0000000001BF80A2                 mov     byte ptr [rdi+54h], 0FFh
+  .text:0000000001BF80A6                 mov     qword ptr [rdi+70h], 0
+  .text:0000000001BF80AE                 add     r10, 10h
+  .text:0000000001BF80B2                 mov     byte ptr [rdi+84h], 0
+  .text:0000000001BF80B9                 mov     [rdi], r10
+  .text:0000000001BF80BC                 mov     r10, qword ptr cs:xmmword_8CF110+8
+  .text:0000000001BF80C3                 mov     qword ptr [rdi+88h], 0
+  .text:0000000001BF80CE                 mov     qword ptr [rdi+90h], 0
+  .text:0000000001BF80D9                 mov     dword ptr [rdi+98h], 0
+  .text:0000000001BF80E3                 mov     [rdi+38h], r10
+  .text:0000000001BF80E7                 mov     [rdi+0F0h], r10
+  .text:0000000001BF80EE                 mov     r10, qword ptr cs:xmmword_8CF490
+  .text:0000000001BF80F5                 mov     byte ptr [rdi+0DCh], 0
+  .text:0000000001BF80FC                 mov     qword ptr [rdi+0E0h], 0
+  .text:0000000001BF8107                 mov     [rdi+0E8h], r11
+  .text:0000000001BF810E                 mov     dword ptr [rdi+0F8h], 0FFFFFFFFh
+  .text:0000000001BF8118                 mov     qword ptr [rdi+100h], 0
+  .text:0000000001BF8123                 mov     qword ptr [rdi+108h], 0
+  .text:0000000001BF812E                 mov     [rbp+var_10], r10
+  .text:0000000001BF8132                 test    rax, rax
+  .text:0000000001BF8135                 jz      short loc_1BF8160
+  .text:0000000001BF8137                 mov     r10, [rax]
+  .text:0000000001BF813A                 mov     eax, [rax+8]
+  .text:0000000001BF813D                 mov     [rbp+var_10], r10
+  .text:0000000001BF8141                 mov     [rbp+var_8], eax
+  .text:0000000001BF8144                 mov     eax, [rbp+arg_8]
+  .text:0000000001BF8147                 sub     rsp, 8
+  .text:0000000001BF814B                 push    rax
+  .text:0000000001BF814C                 mov     eax, [rbp+arg_0]
+  .text:0000000001BF814F                 push    rax
+  .text:0000000001BF8150                 lea     rax, [rbp+var_10]
+  .text:0000000001BF8154                 push    rax
+  .text:0000000001BF8155                 call    CTakeDamageInfo_Init
+  .text:0000000001BF815A                 add     rsp, 20h
+  .text:0000000001BF815E                 leave
+  .text:0000000001BF815F                 retn
+  .text:0000000001BF8160                 mov     [rbp+var_8], 7F7FFFFFh
+  .text:0000000001BF8167                 jmp     short loc_1BF8144
+procedure: |-
+  __int64 __fastcall sub_1BF8070(
+          __int64 a1,
+          __int64 a2,
+          __int64 a3,
+          __int64 a4,
+          __int64 a5,
+          __int64 a6,
+          unsigned int a7,
+          unsigned int a8,
+          __int64 a9)
+  {
+    int v9; // eax
+    __int64 v11; // [rsp+0h] [rbp-10h] BYREF
+    int v12; // [rsp+8h] [rbp-8h]
+
+    *(_QWORD *)(a1 + 124) = 0x3F80000000000000LL;
+    *(_DWORD *)(a1 + 64) = -1;
+    *(_BYTE *)(a1 + 84) = -1;
+    *(_QWORD *)(a1 + 112) = 0;
+    *(_BYTE *)(a1 + 132) = 0;
+    *(_QWORD *)a1 = CTakeDamageInfo_vtable;
+    *(_QWORD *)(a1 + 136) = 0;
+    *(_QWORD *)(a1 + 144) = 0;
+    *(_DWORD *)(a1 + 152) = 0;
+    *(_QWORD *)(a1 + 56) = -1;
+    *(_QWORD *)(a1 + 240) = -1;
+    *(_BYTE *)(a1 + 220) = 0;
+    *(_QWORD *)(a1 + 224) = 0;
+    *(_QWORD *)(a1 + 232) = 0xFFFFFFFF00000001LL;
+    *(_DWORD *)(a1 + 248) = -1;
+    *(_QWORD *)(a1 + 256) = 0;
+    *(_QWORD *)(a1 + 264) = 0;
+    v11 = 0x7F7FFFFF7F7FFFFFLL;
+    if ( a9 )
+    {
+      v9 = *(_DWORD *)(a9 + 8);
+      v11 = *(_QWORD *)a9;
+      v12 = v9;
+    }
+    else
+    {
+      v12 = 2139095039;
+    }
+    return CTakeDamageInfo_Init(a1, a2, a3, a4, a5, a6, &v11, a7, a8);
+  }

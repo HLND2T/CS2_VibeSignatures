@@ -1,0 +1,262 @@
+func_name: CTakeDamageInfo_Init
+func_va: '0x1bf7d30'
+disasm_code: |-
+  .text:0000000001BF7D30                 movsldup xmm0, xmm0
+  .text:0000000001BF7D34                 push    rbp
+  .text:0000000001BF7D35                 mov     r10, rsi
+  .text:0000000001BF7D38                 mov     rsi, rdx
+  .text:0000000001BF7D3B                 mov     rbp, rsp
+  .text:0000000001BF7D3E                 push    r15
+  .text:0000000001BF7D40                 mov     r15, rcx
+  .text:0000000001BF7D43                 push    r14
+  .text:0000000001BF7D45                 push    r13
+  .text:0000000001BF7D47                 mov     r13, r8
+  .text:0000000001BF7D4A                 push    r12
+  .text:0000000001BF7D4C                 mov     r12, r9
+  .text:0000000001BF7D4F                 push    rbx
+  .text:0000000001BF7D50                 mov     rbx, rdi
+  .text:0000000001BF7D53                 sub     rsp, 18h
+  .text:0000000001BF7D57                 mov     r14, [rbp+10h]
+  .text:0000000001BF7D5B                 test    r10, r10
+  .text:0000000001BF7D5E                 jz      short loc_1BF7DD0
+  .text:0000000001BF7D60                 mov     rdx, [r10+10h]
+  .text:0000000001BF7D64                 test    rdx, rdx
+  .text:0000000001BF7D67                 jz      short loc_1BF7DD0
+  .text:0000000001BF7D69                 mov     eax, [rdx+10h]
+  .text:0000000001BF7D6C                 mov     ecx, [rdx+30h]
+  .text:0000000001BF7D6F                 shr     eax, 0Fh
+  .text:0000000001BF7D72                 and     ecx, 1
+  .text:0000000001BF7D75                 sub     eax, ecx
+  .text:0000000001BF7D77                 cmp     dword ptr [rdx+10h], 0FFFFFFFFh
+  .text:0000000001BF7D7B                 jz      loc_1BF7F30
+  .text:0000000001BF7D81                 movzx   edx, word ptr [rdx+10h]
+  .text:0000000001BF7D85                 and     dx, 7FFFh
+  .text:0000000001BF7D8A                 shl     eax, 0Fh
+  .text:0000000001BF7D8D                 movzx   edx, dx
+  .text:0000000001BF7D90                 or      eax, edx
+  .text:0000000001BF7D92                 mov     [rbx+38h], eax
+  .text:0000000001BF7D95                 test    rsi, rsi
+  .text:0000000001BF7D98                 jnz     short loc_1BF7DDC
+  .text:0000000001BF7D9A                 lea     rdi, [rbx+3Ch]
+  .text:0000000001BF7D9E                 mov     rsi, r10
+  .text:0000000001BF7DA1                 movlps  qword ptr [rbp-38h], xmm0
+  .text:0000000001BF7DA5                 call    sub_1BD6D10
+  .text:0000000001BF7DAA                 lea     rdi, [rbx+0E8h]  ; 0xE8 = CTakeDamageInfo::m_AttackerInfo (structmember, struct=CTakeDamageInfo, member=m_AttackerInfo)
+  .text:0000000001BF7DB1                 call    sub_1BF7C00
+  .text:0000000001BF7DB6                 movq    xmm0, qword ptr [rbp-38h]
+  .text:0000000001BF7DBB                 test    r15, r15
+  .text:0000000001BF7DBE                 jnz     short loc_1BF7E2F
+  .text:0000000001BF7DC0                 mov     dword ptr [rbx+40h], 0FFFFFFFFh
+  .text:0000000001BF7DC7                 jmp     loc_1BF7E64
+  .text:0000000001BF7DD0                 mov     dword ptr [rbx+38h], 0FFFFFFFFh
+  .text:0000000001BF7DD7                 test    rsi, rsi
+  .text:0000000001BF7DDA                 jz      short loc_1BF7D9A
+  .text:0000000001BF7DDC                 mov     rdx, [rsi+10h]
+  .text:0000000001BF7DE0                 test    rdx, rdx
+  .text:0000000001BF7DE3                 jz      loc_1BF7F20
+  .text:0000000001BF7DE9                 mov     eax, [rdx+10h]
+  .text:0000000001BF7DEC                 mov     ecx, [rdx+30h]
+  .text:0000000001BF7DEF                 shr     eax, 0Fh
+  .text:0000000001BF7DF2                 and     ecx, 1
+  .text:0000000001BF7DF5                 sub     eax, ecx
+  .text:0000000001BF7DF7                 cmp     dword ptr [rdx+10h], 0FFFFFFFFh
+  .text:0000000001BF7DFB                 jz      loc_1BF7F50
+  .text:0000000001BF7E01                 movzx   edx, word ptr [rdx+10h]
+  .text:0000000001BF7E05                 and     dx, 7FFFh
+  .text:0000000001BF7E0A                 shl     eax, 0Fh
+  .text:0000000001BF7E0D                 movzx   edx, dx
+  .text:0000000001BF7E10                 or      eax, edx
+  .text:0000000001BF7E12                 mov     [rbx+3Ch], eax
+  .text:0000000001BF7E15                 lea     rdi, [rbx+0E8h]  ; 0xE8 = CTakeDamageInfo::m_AttackerInfo (structmember, struct=CTakeDamageInfo, member=m_AttackerInfo)
+  .text:0000000001BF7E1C                 movlps  qword ptr [rbp-38h], xmm0
+  .text:0000000001BF7E20                 call    sub_1BF7C00
+  .text:0000000001BF7E25                 movq    xmm0, qword ptr [rbp-38h]
+  .text:0000000001BF7E2A                 test    r15, r15
+  .text:0000000001BF7E2D                 jz      short loc_1BF7DC0
+  .text:0000000001BF7E2F                 mov     rdx, [r15+10h]
+  .text:0000000001BF7E33                 test    rdx, rdx
+  .text:0000000001BF7E36                 jz      short loc_1BF7DC0
+  .text:0000000001BF7E38                 mov     eax, [rdx+10h]
+  .text:0000000001BF7E3B                 mov     ecx, [rdx+30h]
+  .text:0000000001BF7E3E                 shr     eax, 0Fh
+  .text:0000000001BF7E41                 and     ecx, 1
+  .text:0000000001BF7E44                 sub     eax, ecx
+  .text:0000000001BF7E46                 cmp     dword ptr [rdx+10h], 0FFFFFFFFh
+  .text:0000000001BF7E4A                 jz      loc_1BF7F40
+  .text:0000000001BF7E50                 movzx   edx, word ptr [rdx+10h]
+  .text:0000000001BF7E54                 and     dx, 7FFFh
+  .text:0000000001BF7E59                 shl     eax, 0Fh
+  .text:0000000001BF7E5C                 movzx   edx, dx
+  .text:0000000001BF7E5F                 or      eax, edx
+  .text:0000000001BF7E61                 mov     [rbx+40h], eax
+  .text:0000000001BF7E64                 mov     eax, [rbp+18h]
+  .text:0000000001BF7E67                 movlps  qword ptr [rbx+44h], xmm0
+  .text:0000000001BF7E6B                 mov     rsi, [rbx+0E0h]
+  .text:0000000001BF7E72                 mov     [rbx+4Ch], eax
+  .text:0000000001BF7E75                 mov     eax, [rbp+20h]
+  .text:0000000001BF7E78                 mov     [rbx+50h], eax
+  .text:0000000001BF7E7B                 mov     rax, [r13+0]
+  .text:0000000001BF7E7F                 mov     [rbx+8], rax
+  .text:0000000001BF7E83                 mov     eax, [r13+8]
+  .text:0000000001BF7E87                 mov     [rbx+10h], eax
+  .text:0000000001BF7E8A                 mov     rax, [r12]
+  .text:0000000001BF7E8E                 mov     [rbx+14h], rax
+  .text:0000000001BF7E92                 mov     eax, [r12+8]
+  .text:0000000001BF7E97                 mov     [rbx+1Ch], eax
+  .text:0000000001BF7E9A                 mov     rax, [r14]
+  .text:0000000001BF7E9D                 mov     [rbx+20h], rax
+  .text:0000000001BF7EA1                 mov     eax, [r14+8]
+  .text:0000000001BF7EA5                 mov     dword ptr [rbx+34h], 0
+  .text:0000000001BF7EAC                 mov     qword ptr [rbx+2Ch], 0
+  .text:0000000001BF7EB4                 mov     byte ptr [rbx+54h], 0FFh
+  .text:0000000001BF7EB8                 mov     [rbx+28h], eax
+  .text:0000000001BF7EBB                 mov     dword ptr [rbx+60h], 0
+  .text:0000000001BF7EC2                 mov     qword ptr [rbx+58h], 0
+  .text:0000000001BF7ECA                 mov     qword ptr [rbx+70h], 0
+  .text:0000000001BF7ED2                 mov     qword ptr [rbx+68h], 0
+  .text:0000000001BF7EDA                 mov     dword ptr [rbx+78h], 0FFFFFFFFh
+  .text:0000000001BF7EE1                 test    rsi, rsi
+  .text:0000000001BF7EE4                 jz      short loc_1BF7F04
+  .text:0000000001BF7EE6                 lea     rax, qword_28A11E8
+  .text:0000000001BF7EED                 mov     rdi, [rax]
+  .text:0000000001BF7EF0                 mov     rax, [rdi]
+  .text:0000000001BF7EF3                 call    qword ptr [rax+0A8h]
+  .text:0000000001BF7EF9                 mov     qword ptr [rbx+0E0h], 0
+  .text:0000000001BF7F04                 xor     eax, eax
+  .text:0000000001BF7F06                 mov     byte ptr [rbx+110h], 0
+  .text:0000000001BF7F0D                 mov     [rbx+64h], ax
+  .text:0000000001BF7F11                 add     rsp, 18h
+  .text:0000000001BF7F15                 pop     rbx
+  .text:0000000001BF7F16                 pop     r12
+  .text:0000000001BF7F18                 pop     r13
+  .text:0000000001BF7F1A                 pop     r14
+  .text:0000000001BF7F1C                 pop     r15
+  .text:0000000001BF7F1E                 pop     rbp
+  .text:0000000001BF7F1F                 retn
+  .text:0000000001BF7F20                 mov     dword ptr [rbx+3Ch], 0FFFFFFFFh
+  .text:0000000001BF7F27                 jmp     loc_1BF7E15
+  .text:0000000001BF7F30                 mov     edx, 7FFFh
+  .text:0000000001BF7F35                 jmp     loc_1BF7D8A
+  .text:0000000001BF7F40                 mov     edx, 7FFFh
+  .text:0000000001BF7F45                 jmp     loc_1BF7E59
+  .text:0000000001BF7F50                 mov     edx, 7FFFh
+  .text:0000000001BF7F55                 jmp     loc_1BF7E0A
+procedure: |
+  __int64 __fastcall sub_1BF7D30(
+          __int64 a1,
+          __int64 a2,
+          __int64 a3,
+          __int64 a4,
+          __int64 a5,
+          __int64 a6,
+          __m128 a7,
+          __int64 a8,
+          int a9,
+          int a10)
+  {
+    __m128 v10; // xmm0
+    __int64 v16; // rdx
+    int v17; // eax
+    unsigned __int16 v18; // dx
+    __int64 v19; // rsi
+    __m128 v20; // xmm0
+    __int64 v21; // rdx
+    int v22; // eax
+    unsigned __int16 v23; // dx
+    __int64 v24; // rdx
+    int v25; // eax
+    unsigned __int16 v26; // dx
+    __int64 v27; // rsi
+    int v28; // eax
+    __m128i v30[4]; // [rsp-40h] [rbp-40h] BYREF
+
+    v10 = _mm_moveldup_ps(a7);
+    if ( a2 && (v16 = *(_QWORD *)(a2 + 16)) != 0 )
+    {
+      v17 = (*(_DWORD *)(v16 + 16) >> 15) - (*(_DWORD *)(v16 + 48) & 1);
+      if ( *(_DWORD *)(v16 + 16) == -1 )
+        v18 = 0x7FFF;
+      else
+        v18 = *(_WORD *)(v16 + 16) & 0x7FFF;
+      *(_DWORD *)(a1 + 56) = v18 | (v17 << 15);
+      if ( !a3 )
+      {
+  LABEL_6:
+        v19 = a2;
+        _mm_storel_ps((double *)v30[0].m128i_i64, v10);
+        sub_1BD6D10(a1 + 60, a2);
+        sub_1BF7C00(a1 + 232, v19);  // 0xE8 = CTakeDamageInfo::m_AttackerInfo (structmember, struct=CTakeDamageInfo, member=m_AttackerInfo)
+        v20 = (__m128)_mm_loadl_epi64(v30);
+        if ( !a4 )
+          goto LABEL_7;
+        goto LABEL_14;
+      }
+    }
+    else
+    {
+      *(_DWORD *)(a1 + 56) = -1;
+      if ( !a3 )
+        goto LABEL_6;
+    }
+    v21 = *(_QWORD *)(a3 + 16);
+    if ( v21 )
+    {
+      v22 = (*(_DWORD *)(v21 + 16) >> 15) - (*(_DWORD *)(v21 + 48) & 1);
+      if ( *(_DWORD *)(v21 + 16) == -1 )
+        v23 = 0x7FFF;
+      else
+        v23 = *(_WORD *)(v21 + 16) & 0x7FFF;
+      *(_DWORD *)(a1 + 60) = v23 | (v22 << 15);
+    }
+    else
+    {
+      *(_DWORD *)(a1 + 60) = -1;
+    }
+    _mm_storel_ps((double *)v30[0].m128i_i64, v10);
+    sub_1BF7C00(a1 + 232, a3);  // 0xE8 = CTakeDamageInfo::m_AttackerInfo (structmember, struct=CTakeDamageInfo, member=m_AttackerInfo)
+    v20 = (__m128)_mm_loadl_epi64(v30);
+    if ( !a4 )
+      goto LABEL_7;
+  LABEL_14:
+    v24 = *(_QWORD *)(a4 + 16);
+    if ( v24 )
+    {
+      v25 = (*(_DWORD *)(v24 + 16) >> 15) - (*(_DWORD *)(v24 + 48) & 1);
+      if ( *(_DWORD *)(v24 + 16) == -1 )
+        v26 = 0x7FFF;
+      else
+        v26 = *(_WORD *)(v24 + 16) & 0x7FFF;
+      *(_DWORD *)(a1 + 64) = v26 | (v25 << 15);
+      goto LABEL_18;
+    }
+  LABEL_7:
+    *(_DWORD *)(a1 + 64) = -1;
+  LABEL_18:
+    _mm_storel_ps((double *)(a1 + 68), v20);
+    v27 = *(_QWORD *)(a1 + 224);
+    *(_DWORD *)(a1 + 76) = a9;
+    *(_DWORD *)(a1 + 80) = a10;
+    *(_QWORD *)(a1 + 8) = *(_QWORD *)a5;
+    *(_DWORD *)(a1 + 16) = *(_DWORD *)(a5 + 8);
+    *(_QWORD *)(a1 + 20) = *(_QWORD *)a6;
+    *(_DWORD *)(a1 + 28) = *(_DWORD *)(a6 + 8);
+    *(_QWORD *)(a1 + 32) = *(_QWORD *)a8;
+    v28 = *(_DWORD *)(a8 + 8);
+    *(_DWORD *)(a1 + 52) = 0;
+    *(_QWORD *)(a1 + 44) = 0;
+    *(_BYTE *)(a1 + 84) = -1;
+    *(_DWORD *)(a1 + 40) = v28;
+    *(_DWORD *)(a1 + 96) = 0;
+    *(_QWORD *)(a1 + 88) = 0;
+    *(_QWORD *)(a1 + 112) = 0;
+    *(_QWORD *)(a1 + 104) = 0;
+    *(_DWORD *)(a1 + 120) = -1;
+    if ( v27 )
+    {
+      (*(void (__fastcall **)(__int64))(*(_QWORD *)qword_28A11E8 + 168LL))(qword_28A11E8);
+      *(_QWORD *)(a1 + 224) = 0;
+    }
+    *(_BYTE *)(a1 + 272) = 0;
+    *(_WORD *)(a1 + 100) = 0;
+    return 0;
+  }
