@@ -1,0 +1,190 @@
+func_name: CEntitySystem_Activate
+func_va: '0x181380680'
+disasm_code: |-
+  .text:0000000181380680                 mov     [rsp+arg_8], rbx
+  .text:0000000181380685                 mov     [rsp+arg_10], rbp
+  .text:000000018138068A                 mov     [rsp+arg_18], rsi
+  .text:000000018138068F                 push    r12
+  .text:0000000181380691                 push    r14
+  .text:0000000181380693                 push    r15
+  .text:0000000181380695                 sub     rsp, 20h
+  .text:0000000181380699                 mov     rsi, rcx
+  .text:000000018138069C                 movsxd  rbx, edx
+  .text:000000018138069F                 mov     rcx, cs:g_pResourceSystem
+  .text:00000001813806A6                 mov     r15d, r9d
+  .text:00000001813806A9                 mov     r14, r8
+  .text:00000001813806AC                 test    rcx, rcx
+  .text:00000001813806AF                 jz      short loc_1813806CC
+  .text:00000001813806B1                 mov     rax, [rcx]
+  .text:00000001813806B4                 call    qword ptr [rax+1E8h]
+  .text:00000001813806BA                 mov     rcx, rax
+  .text:00000001813806BD                 mov     r9, [rax]
+  .text:00000001813806C0                 call    qword ptr [r9+28h]
+  .text:00000001813806C4                 test    al, al
+  .text:00000001813806C6                 jz      short loc_1813806CC
+  .text:00000001813806C8                 mov     al, 1
+  .text:00000001813806CA                 jmp     short loc_1813806CE
+  .text:00000001813806CC                 xor     al, al
+  .text:00000001813806CE                 mov     r12d, [rsi+1FC0h]
+  .text:00000001813806D5                 mov     rbp, rbx
+  .text:00000001813806D8                 mov     [rsi+0C64h], al  ; 0xC64 = CEntitySystem::m_bProfilingResourceSystem (structmember, struct=CEntitySystem, member=m_bProfilingResourceSystem)
+  .text:00000001813806DE                 test    ebx, ebx
+  .text:00000001813806E0                 jle     loc_1813807FB
+  .text:00000001813806E6                 mov     [rsp+38h+arg_0], rdi
+  .text:00000001813806EB                 xor     ebx, ebx
+  .text:00000001813806ED                 nop     dword ptr [rax]
+  .text:00000001813806F0                 cmp     byte ptr [rsi+0C64h], 0  ; 0xC64 = CEntitySystem::m_bProfilingResourceSystem (structmember, struct=CEntitySystem, member=m_bProfilingResourceSystem)
+  .text:00000001813806F7                 lea     rdi, ds:0[rbx*8]
+  .text:00000001813806FF                 jz      short loc_18138075F
+  .text:0000000181380701                 mov     rcx, cs:g_pResourceSystem
+  .text:0000000181380708                 mov     rax, [rcx]
+  .text:000000018138070B                 call    qword ptr [rax+1E8h]
+  .text:0000000181380711                 mov     rcx, [rdi+r14]
+  .text:0000000181380715                 mov     r10, rax
+  .text:0000000181380718                 mov     rax, [rax]
+  .text:000000018138071B                 mov     r9d, [rcx+10h]
+  .text:000000018138071F                 mov     edx, r9d
+  .text:0000000181380722                 mov     r8d, [rcx+30h]
+  .text:0000000181380726                 mov     ecx, r9d
+  .text:0000000181380729                 and     r8d, 1
+  .text:000000018138072D                 shr     edx, 0Fh
+  .text:0000000181380730                 sub     edx, r8d
+  .text:0000000181380733                 and     ecx, 7FFFh
+  .text:0000000181380739                 shl     edx, 0Fh
+  .text:000000018138073C                 mov     r8d, 7FFFh
+  .text:0000000181380742                 cmp     r9d, 0FFFFFFFFh
+  .text:0000000181380746                 mov     r9d, 1
+  .text:000000018138074C                 cmovnz  r8d, ecx
+  .text:0000000181380750                 mov     rcx, r10
+  .text:0000000181380753                 or      edx, r8d
+  .text:0000000181380756                 mov     r8d, 16h
+  .text:000000018138075C                 call    qword ptr [rax+18h]
+  .text:000000018138075F                 mov     rax, [r14+rdi]
+  .text:0000000181380763                 mov     edx, r15d
+  .text:0000000181380766                 mov     ecx, [rax+34h]
+  .text:0000000181380769                 mov     [rsi+1FC0h], ecx
+  .text:000000018138076F                 mov     rax, [r14+rdi]
+  .text:0000000181380773                 mov     rcx, [rax]
+  .text:0000000181380776                 mov     cs:byte_1823359E7, 0
+  .text:000000018138077D                 mov     rax, [rcx]
+  .text:0000000181380780                 call    qword ptr [rax+68h]
+  .text:0000000181380783                 cmp     byte ptr [rsi+0C64h], 0  ; 0xC64 = CEntitySystem::m_bProfilingResourceSystem (structmember, struct=CEntitySystem, member=m_bProfilingResourceSystem)
+  .text:000000018138078A                 jz      short loc_1813807EA
+  .text:000000018138078C                 mov     rcx, cs:g_pResourceSystem
+  .text:0000000181380793                 mov     rax, [rcx]
+  .text:0000000181380796                 call    qword ptr [rax+1E8h]
+  .text:000000018138079C                 mov     rcx, [r14+rdi]
+  .text:00000001813807A0                 mov     r10, rax
+  .text:00000001813807A3                 mov     rax, [rax]
+  .text:00000001813807A6                 mov     r9d, [rcx+10h]
+  .text:00000001813807AA                 mov     edx, r9d
+  .text:00000001813807AD                 mov     r8d, [rcx+30h]
+  .text:00000001813807B1                 mov     ecx, r9d
+  .text:00000001813807B4                 and     r8d, 1
+  .text:00000001813807B8                 shr     edx, 0Fh
+  .text:00000001813807BB                 sub     edx, r8d
+  .text:00000001813807BE                 and     ecx, 7FFFh
+  .text:00000001813807C4                 shl     edx, 0Fh
+  .text:00000001813807C7                 mov     r8d, 7FFFh
+  .text:00000001813807CD                 cmp     r9d, 0FFFFFFFFh
+  .text:00000001813807D1                 mov     r9d, 2
+  .text:00000001813807D7                 cmovnz  r8d, ecx
+  .text:00000001813807DB                 mov     rcx, r10
+  .text:00000001813807DE                 or      edx, r8d
+  .text:00000001813807E1                 mov     r8d, 16h
+  .text:00000001813807E7                 call    qword ptr [rax+18h]
+  .text:00000001813807EA                 inc     rbx
+  .text:00000001813807ED                 cmp     rbx, rbp
+  .text:00000001813807F0                 jl      loc_1813806F0
+  .text:00000001813807F6                 mov     rdi, [rsp+38h+arg_0]
+  .text:00000001813807FB                 mov     rbx, [rsp+38h+arg_8]
+  .text:0000000181380800                 mov     rbp, [rsp+38h+arg_10]
+  .text:0000000181380805                 mov     [rsi+1FC0h], r12d
+  .text:000000018138080C                 mov     rsi, [rsp+38h+arg_18]
+  .text:0000000181380811                 add     rsp, 20h
+  .text:0000000181380815                 pop     r15
+  .text:0000000181380817                 pop     r14
+  .text:0000000181380819                 pop     r12
+  .text:000000018138081B                 retn
+procedure: |-
+  char __fastcall CEntitySystem_Activate(__int64 a1, int a2, __int64 a3, unsigned int a4)
+  {
+    __int64 v5; // rbx
+    __int64 v8; // rax
+    char result; // al
+    int v10; // r12d
+    __int64 v11; // rbp
+    __int64 v12; // rbx
+    _QWORD *v13; // rax
+    __int64 v14; // rcx
+    _QWORD *v15; // r10
+    __int64 v16; // rax
+    unsigned int v17; // r9d
+    int v18; // r8d
+    __int64 v19; // rcx
+    _QWORD *v20; // rax
+    __int64 v21; // rcx
+    _QWORD *v22; // r10
+    __int64 v23; // rax
+    unsigned int v24; // r9d
+    int v25; // r8d
+
+    v5 = a2;
+    result = false;
+    if ( g_pResourceSystem )
+    {
+      v8 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pResourceSystem + 488LL))(g_pResourceSystem);
+      if ( (*(unsigned __int8 (__fastcall **)(__int64))(*(_QWORD *)v8 + 40LL))(v8) )
+        result = true;
+    }
+    v10 = *(_DWORD *)(a1 + 8128);
+    v11 = v5;
+    *(_BYTE *)(a1 + 3172) = result;  // 3172 = 0xC64 = CEntitySystem::m_bProfilingResourceSystem (structmember, struct=CEntitySystem, member=m_bProfilingResourceSystem)
+    if ( (int)v5 > 0 )
+    {
+      v12 = 0;
+      do
+      {
+        if ( *(_BYTE *)(a1 + 3172) )  // 3172 = 0xC64 = CEntitySystem::m_bProfilingResourceSystem (structmember, struct=CEntitySystem, member=m_bProfilingResourceSystem)
+        {
+          v13 = (_QWORD *)(*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pResourceSystem + 488LL))(g_pResourceSystem);
+          v14 = *(_QWORD *)(8 * v12 + a3);
+          v15 = v13;
+          v16 = *v13;
+          v17 = *(_DWORD *)(v14 + 16);
+          v18 = 0x7FFF;
+          if ( v17 != -1 )
+            v18 = v17 & 0x7FFF;
+          (*(void (__fastcall **)(_QWORD *, _QWORD, __int64, __int64))(v16 + 24))(
+            v15,
+            v18 | (((v17 >> 15) - (*(_DWORD *)(v14 + 48) & 1)) << 15),
+            22,
+            1);
+        }
+        *(_DWORD *)(a1 + 8128) = *(_DWORD *)(*(_QWORD *)(a3 + 8 * v12) + 52LL);
+        v19 = **(_QWORD **)(a3 + 8 * v12);
+        byte_1823359E7 = 0;
+        result = (*(__int64 (__fastcall **)(__int64, _QWORD))(*(_QWORD *)v19 + 104LL))(v19, a4);
+        if ( *(_BYTE *)(a1 + 3172) )  // 3172 = 0xC64 = CEntitySystem::m_bProfilingResourceSystem (structmember, struct=CEntitySystem, member=m_bProfilingResourceSystem)
+        {
+          v20 = (_QWORD *)(*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pResourceSystem + 488LL))(g_pResourceSystem);
+          v21 = *(_QWORD *)(a3 + 8 * v12);
+          v22 = v20;
+          v23 = *v20;
+          v24 = *(_DWORD *)(v21 + 16);
+          v25 = 0x7FFF;
+          if ( v24 != -1 )
+            v25 = v24 & 0x7FFF;
+          result = (*(__int64 (__fastcall **)(_QWORD *, _QWORD, __int64, __int64))(v23 + 24))(
+                     v22,
+                     v25 | (((v24 >> 15) - (*(_DWORD *)(v21 + 48) & 1)) << 15),
+                     22,
+                     2);
+        }
+        ++v12;
+      }
+      while ( v12 < v11 );
+    }
+    *(_DWORD *)(a1 + 8128) = v10;
+    return result;
+  }
