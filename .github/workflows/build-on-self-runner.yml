@@ -39,6 +39,10 @@ on:
         description: Full immutable commit SHA reachable from the default branch
         required: true
         type: string
+      source_pull_request:
+        description: Merged bump PR to validate for automatic release dispatches
+        required: false
+        type: string
       publication_mode:
         description: Verify candidates without publishing, or run the protected publishers
         required: true
@@ -83,10 +87,11 @@ jobs:
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
+          SOURCE_PULL_REQUEST: ${{ inputs.source_pull_request || github.event.client_payload.source_pull_request }}
         run: |
           $gamever = "${{ inputs.gamever || github.event.client_payload.gamever }}"
           $sourceSha = "${{ inputs.source_sha || github.event.client_payload.source_sha }}"
-          $sourcePullRequest = "${{ inputs.source_pull_request || github.event.client_payload.source_pull_request }}"
+          $sourcePullRequest = $env:SOURCE_PULL_REQUEST
           $sourceArtifactMode = "${{ inputs.source_artifact_mode || 'rebuild' }}"
           if ($sourceArtifactMode -notin @('rebuild', 'full-rebuild', 'tracked')) {
             throw "Unsupported source artifact mode: $sourceArtifactMode"
@@ -115,10 +120,10 @@ jobs:
               $preflight.source_publish_time -notmatch '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$') {
             throw "Immutable release source preflight output is invalid."
           }
-          if ("${{ github.event_name }}" -in @('repository_dispatch', 'workflow_call') -and `
-              "${{ inputs.source_artifact_mode }}" -ne 'tracked') {
+          if (("${{ github.event_name }}" -in @('repository_dispatch', 'workflow_call') -and `
+              "${{ inputs.source_artifact_mode }}" -ne 'tracked') -or $sourcePullRequest) {
             if ($sourcePullRequest -notmatch '^[1-9][0-9]*$') {
-              throw "repository_dispatch requires a numeric source_pull_request."
+              throw "Release dispatch requires a numeric source_pull_request."
             }
             $pullJson = gh api "repos/${{ github.repository }}/pulls/$sourcePullRequest"
             if ($LASTEXITCODE -ne 0) { throw "Failed to query source pull request #$sourcePullRequest." }

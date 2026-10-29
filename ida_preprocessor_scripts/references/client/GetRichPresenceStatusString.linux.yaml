@@ -1589,8 +1589,8 @@ disasm_code: |-
   .text:00000000013BF1E1                 test    rax, rax
   .text:00000000013BF1E4                 jz      loc_13C02D0
   .text:00000000013BF1EA                 mov     rax, [rax]
-  .text:00000000013BF1ED                 ; 0x1E8 = 488LL = IVEngineServer2_GetGameServerSteamID
-  .text:00000000013BF1ED                 call    qword ptr [rax+1E8h]; 0x1E8 = 488LL = IVEngineServer2_GetGameServerSteamID
+  .text:00000000013BF1ED                 ; 0x1E8 = 488LL = INetworkGameServer_GetGameServerSteamID
+  .text:00000000013BF1ED                 call    qword ptr [rax+1E8h]; 0x1E8 = 488LL = INetworkGameServer_GetGameServerSteamID
   .text:00000000013BF1F3                 mov     [rbp+var_3C0], rax
   .text:00000000013BF1FA                 movzx   eax, byte ptr [rbp+var_3C0+6]
   .text:00000000013BF201                 cmp     al, 0Fh
@@ -4505,7 +4505,7 @@ procedure: |-
         if ( g_pNetworkServerService
           && (v75 = (*(__int64 (__fastcall **)(_QWORD *))(*g_pNetworkServerService + 192LL))(g_pNetworkServerService)) != 0 )
         {
-          v191[0] = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)v75 + 488LL))(v75);// 0x1E8 = 488LL = IVEngineServer2_GetGameServerSteamID
+          v191[0] = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)v75 + 488LL))(v75);// 0x1E8 = 488LL = INetworkGameServer_GetGameServerSteamID
         }
         else if ( v170 )
         {
