@@ -1,0 +1,117 @@
+func_name: CGameResourceService_LockGameResourceManifest
+func_va: '0x3df360'
+disasm_code: |-
+  .text:00000000003DF360                 mov     rax, [rdx+8]
+  .text:00000000003DF364                 test    rax, rax
+  .text:00000000003DF367                 jz      loc_3DF438
+  .text:00000000003DF36D                 mov     rdi, [rdi+50h]
+  .text:00000000003DF371                 test    rdi, rdi
+  .text:00000000003DF374                 jz      loc_3DF438
+  .text:00000000003DF37A                 push    rbp
+  .text:00000000003DF37B                 mov     rbp, rsp
+  .text:00000000003DF37E                 push    rbx
+  .text:00000000003DF37F                 mov     rbx, rdx
+  .text:00000000003DF382                 sub     rsp, 18h
+  .text:00000000003DF386                 mov     rax, [rax+0A0h]
+  .text:00000000003DF38D                 lea     rdx, [rax+8]
+  .text:00000000003DF391                 test    rax, rax
+  .text:00000000003DF394                 cmovnz  rax, rdx
+  .text:00000000003DF398                 movzx   edx, byte ptr [rbx+0B8h]
+  .text:00000000003DF39F                 test    sil, sil
+  .text:00000000003DF3A2                 jz      short loc_3DF410
+  .text:00000000003DF3A4                 test    dl, dl
+  .text:00000000003DF3A6                 jnz     short loc_3DF407
+  .text:00000000003DF3A8                 movdqa  xmm1, xmmword ptr [rbx+20h]
+  .text:00000000003DF3AD                 mov     [rbx+60h], rdi
+  .text:00000000003DF3B1                 mov     esi, 1
+  .text:00000000003DF3B6                 mov     edx, [rbx+10h]
+  .text:00000000003DF3B9                 mov     byte ptr [rbx+0B9h], 0
+  .text:00000000003DF3C0                 movaps  xmmword ptr [rbx+70h], xmm1
+  .text:00000000003DF3C4                 movdqa  xmm1, xmmword ptr [rbx+30h]
+  .text:00000000003DF3C9                 movq    xmm0, qword ptr [rbx+50h]
+  .text:00000000003DF3CE                 mov     [rbp-18h], rax
+  .text:00000000003DF3D2                 movaps  xmmword ptr [rbx+80h], xmm1
+  .text:00000000003DF3D9                 movdqa  xmm1, xmmword ptr [rbx+40h]
+  .text:00000000003DF3DE                 mov     [rbx+0A0h], edx
+  .text:00000000003DF3E4                 pinsrq  xmm0, rax, 1
+  .text:00000000003DF3EB                 lea     rdx, [rbx+60h]
+  .text:00000000003DF3EF                 movaps  xmmword ptr [rbx+90h], xmm1
+  .text:00000000003DF3F6                 movups  xmmword ptr [rbx+0A8h], xmm0
+  .text:00000000003DF3FD                 mov     rcx, [rdi]
+  .text:00000000003DF400                 ; 0x48 = 72LL = IEntityResourceManifestBuilder_LockResourceManifest
+  .text:00000000003DF400                 call    qword ptr [rcx+48h]; 0x48 = 72LL = IEntityResourceManifestBuilder_LockResourceManifest
+  .text:00000000003DF403                 mov     rax, [rbp-18h]
+  .text:00000000003DF407                 mov     rbx, [rbp-8]
+  .text:00000000003DF40B                 leave
+  .text:00000000003DF40C                 retn
+  .text:00000000003DF410                 test    dl, dl
+  .text:00000000003DF412                 jz      short loc_3DF42B
+  .text:00000000003DF414                 mov     rdi, [rbx+60h]
+  .text:00000000003DF418                 lea     rdx, [rbx+60h]
+  .text:00000000003DF41C                 xor     esi, esi
+  .text:00000000003DF41E                 mov     rax, [rdi]
+  .text:00000000003DF421                 call    qword ptr [rax+48h]; 0x48 = 72LL = IEntityResourceManifestBuilder_LockResourceManifest
+  .text:00000000003DF424                 mov     byte ptr [rbx+0B8h], 0
+  .text:00000000003DF42B                 mov     rbx, [rbp-8]
+  .text:00000000003DF42F                 xor     eax, eax
+  .text:00000000003DF431                 leave
+  .text:00000000003DF432                 retn
+  .text:00000000003DF438                 xor     eax, eax
+  .text:00000000003DF43A                 retn
+procedure: |-
+  signed __int64 __fastcall CGameResourceService_LockGameResourceManifest(__int64 a1, char a2, __int64 a3)
+  {
+    __int64 v3; // rax
+    __int64 v4; // rdi
+    signed __int64 result; // rax
+    char v7; // dl
+    __m128i si128; // xmm1
+    int v9; // edx
+    __m128i v10; // xmm0
+    __m128i v11; // xmm1
+    signed __int64 v12; // [rsp-20h] [rbp-20h]
+
+    v3 = *(_QWORD *)(a3 + 8);
+    if ( !v3 )
+      return 0;
+    v4 = *(_QWORD *)(a1 + 80);
+    if ( !v4 )
+      return 0;
+    result = *(_QWORD *)(v3 + 160);
+    if ( result )
+      result += 8LL;
+    v7 = *(_BYTE *)(a3 + 184);
+    if ( a2 )
+    {
+      if ( !v7 )
+      {
+        si128 = _mm_load_si128((const __m128i *)(a3 + 32));
+        *(_QWORD *)(a3 + 96) = v4;
+        v9 = *(_DWORD *)(a3 + 16);
+        *(_BYTE *)(a3 + 185) = 0;
+        *(__m128i *)(a3 + 112) = si128;
+        v10 = _mm_loadl_epi64((const __m128i *)(a3 + 80));
+        v12 = result;
+        *(__m128i *)(a3 + 128) = _mm_load_si128((const __m128i *)(a3 + 48));
+        v11 = _mm_load_si128((const __m128i *)(a3 + 64));
+        *(_DWORD *)(a3 + 160) = v9;
+        *(__m128i *)(a3 + 144) = v11;
+        *(__m128i *)(a3 + 168) = _mm_insert_epi64(v10, result, 1);
+        (*(void (__fastcall **)(__int64, __int64, __int64))(*(_QWORD *)v4 + 72LL))(v4, 1, a3 + 96);// 0x48 = 72LL = IEntityResourceManifestBuilder_LockResourceManifest
+        return v12;
+      }
+    }
+    else
+    {
+      if ( v7 )
+      {
+        (*(void (__fastcall **)(_QWORD, _QWORD, __int64))(**(_QWORD **)(a3 + 96) + 72LL))(
+          *(_QWORD *)(a3 + 96),
+          0,
+          a3 + 96);// 0x48 = 72LL = IEntityResourceManifestBuilder_LockResourceManifest
+        *(_BYTE *)(a3 + 184) = 0;
+      }
+      return 0;
+    }
+    return result;
+  }
