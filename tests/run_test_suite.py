@@ -81,6 +81,7 @@ UNIT_MODULES = frozenset(
         "test_cpp_platform_selection",
         "test_cs2ac_gamedata",
         "test_cs2ac_preprocessors",
+        "test_damage_info_preprocessors",
         "test_cs2fow_gamedata",
         "test_define_inputfunc_preprocessor",
         "test_download_depot",

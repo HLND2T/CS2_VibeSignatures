@@ -8,6 +8,11 @@ TARGET_FUNCTION_NAMES = [
     "CEntitySystem_PostDataUpdate",
 ]
 
+TARGET_STRUCT_MEMBER_NAMES = [
+    "CEntitySystem_m_bInRestoreActivation",
+    "CEntitySystem_m_queuedPostDataUpdates",
+]
+
 LLM_DECOMPILE = [
     {
         "symbol_name": "CEntitySystem_Activate",
@@ -27,6 +32,28 @@ LLM_DECOMPILE = [
             "references/server/CEntitySystem_ExecuteQueuedPostDataUpdateAndActivates.{platform}.yaml",
         ],
         "expected_result_sections": ["found_vcall"],
+        "dependency_policy": {
+            "CEntitySystem_ExecuteQueuedPostDataUpdateAndActivates.{platform}.yaml": "required",
+        },
+    },
+    {
+        "symbol_name": "CEntitySystem_m_bInRestoreActivation",
+        "prompt_path": "prompt/call_llm_decompile.md",
+        "reference_yaml_paths": [
+            "references/server/CEntitySystem_ExecuteQueuedPostDataUpdateAndActivates.{platform}.yaml",
+        ],
+        "expected_result_sections": ["found_struct_offset"],
+        "dependency_policy": {
+            "CEntitySystem_ExecuteQueuedPostDataUpdateAndActivates.{platform}.yaml": "required",
+        },
+    },
+    {
+        "symbol_name": "CEntitySystem_m_queuedPostDataUpdates",
+        "prompt_path": "prompt/call_llm_decompile.md",
+        "reference_yaml_paths": [
+            "references/server/CEntitySystem_ExecuteQueuedPostDataUpdateAndActivates.{platform}.yaml",
+        ],
+        "expected_result_sections": ["found_struct_offset"],
         "dependency_policy": {
             "CEntitySystem_ExecuteQueuedPostDataUpdateAndActivates.{platform}.yaml": "required",
         },
@@ -67,6 +94,28 @@ GENERATE_YAML_DESIRED_FIELDS = [
             "vtable_name",
         ],
     ),
+    (
+        "CEntitySystem_m_bInRestoreActivation",
+        [
+            "struct_name",
+            "member_name",
+            "offset",
+            "size",
+            "offset_sig",
+            "offset_sig_disp",
+        ],
+    ),
+    (
+        "CEntitySystem_m_queuedPostDataUpdates",
+        [
+            "struct_name",
+            "member_name",
+            "offset",
+            "size",
+            "offset_sig",
+            "offset_sig_disp",
+        ],
+    ),
 ]
 
 
@@ -81,7 +130,7 @@ async def preprocess_skill(
     llm_config=None,
     debug=False,
 ):
-    """Reuse previous gamever vfunc_sig to locate target vfunction(s) and write YAML."""
+    """Locate the activation vfuncs and queued post-data-update members via LLM decompile."""
     return await preprocess_common_skill(
         session=session,
         expected_outputs=expected_outputs,
@@ -90,6 +139,7 @@ async def preprocess_skill(
         platform=platform,
         image_base=image_base,
         func_names=TARGET_FUNCTION_NAMES,
+        struct_member_names=TARGET_STRUCT_MEMBER_NAMES,
         func_vtable_relations=FUNC_VTABLE_RELATIONS,
         llm_decompile_specs=LLM_DECOMPILE,
         llm_config=llm_config,

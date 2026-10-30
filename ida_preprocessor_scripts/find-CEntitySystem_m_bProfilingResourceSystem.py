@@ -1,29 +1,30 @@
 #!/usr/bin/env python3
-"""Preprocess the CEntitySystem_m_nExecuteQueuedDeletionDepth skill."""
+"""Preprocess script for find-CEntitySystem_m_bProfilingResourceSystem skill."""
 
 from ida_analyze_util import preprocess_common_skill
 
 TARGET_STRUCT_MEMBER_NAMES = [
-    "CEntitySystem_m_nExecuteQueuedDeletionDepth",
+    "CEntitySystem_m_bProfilingResourceSystem",
 ]
 
 LLM_DECOMPILE = [
     {
-        "symbol_name": "CEntitySystem_m_nExecuteQueuedDeletionDepth",
+        "symbol_name": "CEntitySystem_m_bProfilingResourceSystem",
         "prompt_path": "prompt/call_llm_decompile.md",
         "reference_yaml_paths": [
-            "references/server/CEntitySystem_ExecuteQueuedDeletion.{platform}.yaml",
+            "references/server/CEntitySystem_Activate.{platform}.yaml",
         ],
         "expected_result_sections": ["found_struct_offset"],
         "dependency_policy": {
-            "CEntitySystem_ExecuteQueuedDeletion.{platform}.yaml": "required",
+            "CEntitySystem_Activate.{platform}.yaml": "required",
         },
     },
 ]
 
 GENERATE_YAML_DESIRED_FIELDS = [
+    # (symbol_name, generate_yaml_fields)
     (
-        "CEntitySystem_m_nExecuteQueuedDeletionDepth",
+        "CEntitySystem_m_bProfilingResourceSystem",
         [
             "struct_name",
             "member_name",
@@ -47,7 +48,7 @@ async def preprocess_skill(
     llm_config=None,
     debug=False,
 ):
-    """Locate the deletion-depth member from ExecuteQueuedDeletion."""
+    """Locate the resource-system profiling flag from CEntitySystem_Activate."""
     return await preprocess_common_skill(
         session=session,
         expected_outputs=expected_outputs,
