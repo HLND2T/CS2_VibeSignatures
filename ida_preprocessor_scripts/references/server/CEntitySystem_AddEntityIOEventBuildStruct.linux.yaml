@@ -1,158 +1,158 @@
 func_name: CEntitySystem_AddEntityIOEventBuildStruct
-func_va: '0x22d6ad0'
+func_va: '0x22d7650'
 disasm_code: |-
-  .text:00000000022D6AD0                 push    rbp
-  .text:00000000022D6AD1                 mov     rbp, rsp
-  .text:00000000022D6AD4                 push    r15
-  .text:00000000022D6AD6                 xor     r15d, r15d
-  .text:00000000022D6AD9                 push    r14
-  .text:00000000022D6ADB                 push    r13
-  .text:00000000022D6ADD                 push    r12
-  .text:00000000022D6ADF                 mov     r12, r8
-  .text:00000000022D6AE2                 push    rbx
-  .text:00000000022D6AE3                 mov     rbx, rdi
-  .text:00000000022D6AE6                 sub     rsp, 48h
-  .text:00000000022D6AEA                 mov     rax, [rbp+arg_0]
-  .text:00000000022D6AEE                 mov     [rbp+var_48], esi
-  .text:00000000022D6AF1                 mov     r13, [rbp+arg_8]
-  .text:00000000022D6AF5                 mov     [rbp+var_50], rdx
-  .text:00000000022D6AF9                 mov     [rbp+var_58], rcx
-  .text:00000000022D6AFD                 mov     [rbp+var_40], r9
-  .text:00000000022D6B01                 movss   [rbp+var_5C], xmm0
-  .text:00000000022D6B06                 mov     [rbp+var_38], rax
-  .text:00000000022D6B0A                 test    r8, r8
-  .text:00000000022D6B0D                 jz      short loc_22D6B17
-  .text:00000000022D6B0F                 mov     rax, [r8+10h]
-  .text:00000000022D6B13                 mov     r15d, [rax+38h]
-  .text:00000000022D6B17                 mov     rax, [rbx]
-  .text:00000000022D6B1A                 lea     rdx, sub_22CD490
-  .text:00000000022D6B21                 mov     rax, [rax+60h]  ; 60h = CEntitySystem_GetCurTime
-  .text:00000000022D6B25                 cmp     rax, rdx
-  .text:00000000022D6B28                 jnz     loc_22D6CE0
-  .text:00000000022D6B2E                 call    cs:qword_2BB6F80
-  .text:00000000022D6B34                 movss   [rbp+var_44], xmm0
-  .text:00000000022D6B39                 mov     edi, 0F8h
-  .text:00000000022D6B3E                 call    sub_9F4CE0
-  .text:00000000022D6B43                 pxor    xmm0, xmm0
-  .text:00000000022D6B47                 xor     esi, esi
-  .text:00000000022D6B49                 mov     r14, rax
-  .text:00000000022D6B4C                 movups  xmmword ptr [rax+10h], xmm0
-  .text:00000000022D6B50                 mov     qword ptr [rax], 0
-  .text:00000000022D6B57                 mov     qword ptr [rax+20h], 0FFFFFFFFFFFFFFFFh
-  .text:00000000022D6B5F                 mov     eax, 0FFFFFFFFh
-  .text:00000000022D6B64                 mov     [r14+28h], rax
-  .text:00000000022D6B68                 lea     rax, [r14+40h]
-  .text:00000000022D6B6C                 mov     rdi, rax
-  .text:00000000022D6B6F                 mov     qword ptr [r14+30h], 0
-  .text:00000000022D6B77                 mov     qword ptr [r14+38h], 0
-  .text:00000000022D6B7F                 mov     [rbp+var_68], rax
-  .text:00000000022D6B83                 call    sub_21D2850
-  .text:00000000022D6B88                 mov     edx, 8
-  .text:00000000022D6B8D                 mov     esi, 1
-  .text:00000000022D6B92                 lea     rax, [r14+0D0h]
-  .text:00000000022D6B99                 mov     rdi, rax
-  .text:00000000022D6B9C                 mov     [rbp+var_70], rax
-  .text:00000000022D6BA0                 call    sub_1DBC7C0
-  .text:00000000022D6BA5                 mov     eax, [rbp+var_48]
-  .text:00000000022D6BA8                 mov     [r14], r15d
-  .text:00000000022D6BAB                 mov     rcx, [rbp+var_58]
-  .text:00000000022D6BAF                 mov     byte ptr [r14+0E0h], 0
-  .text:00000000022D6BB7                 movss   xmm0, [rbp+var_5C]
-  .text:00000000022D6BBC                 mov     dword ptr [r14+8], 6
-  .text:00000000022D6BC4                 addss   xmm0, [rbp+var_44]
-  .text:00000000022D6BC9                 mov     qword ptr [r14+10h], 0
-  .text:00000000022D6BD1                 mov     [r14+28h], eax
-  .text:00000000022D6BD5                 mov     rax, [rbp+var_50]
-  .text:00000000022D6BD9                 movss   dword ptr [r14+4], xmm0
-  .text:00000000022D6BDF                 mov     rax, [rax]
-  .text:00000000022D6BE2                 mov     [r14+18h], rax
-  .text:00000000022D6BE6                 mov     eax, 0FFFFFFFFh
-  .text:00000000022D6BEB                 test    rcx, rcx
-  .text:00000000022D6BEE                 jz      short loc_22D6C22
-  .text:00000000022D6BF0                 mov     rdx, [rcx+10h]
-  .text:00000000022D6BF4                 test    rdx, rdx
-  .text:00000000022D6BF7                 jz      short loc_22D6C22
-  .text:00000000022D6BF9                 mov     eax, [rdx+10h]
-  .text:00000000022D6BFC                 mov     esi, [rdx+30h]
-  .text:00000000022D6BFF                 shr     eax, 0Fh
-  .text:00000000022D6C02                 and     esi, 1
-  .text:00000000022D6C05                 sub     eax, esi
-  .text:00000000022D6C07                 cmp     dword ptr [rdx+10h], 0FFFFFFFFh
-  .text:00000000022D6C0B                 jz      loc_22D6D20
-  .text:00000000022D6C11                 movzx   edx, word ptr [rdx+10h]
-  .text:00000000022D6C15                 and     dx, 7FFFh
-  .text:00000000022D6C1A                 shl     eax, 0Fh
-  .text:00000000022D6C1D                 movzx   edx, dx
-  .text:00000000022D6C20                 or      eax, edx
-  .text:00000000022D6C22                 mov     [r14+20h], eax
-  .text:00000000022D6C26                 mov     eax, 0FFFFFFFFh
-  .text:00000000022D6C2B                 test    r12, r12
-  .text:00000000022D6C2E                 jz      short loc_22D6C63
-  .text:00000000022D6C30                 mov     rdx, [r12+10h]
-  .text:00000000022D6C35                 test    rdx, rdx
-  .text:00000000022D6C38                 jz      short loc_22D6C63
-  .text:00000000022D6C3A                 mov     eax, [rdx+10h]
-  .text:00000000022D6C3D                 mov     esi, [rdx+30h]
-  .text:00000000022D6C40                 shr     eax, 0Fh
-  .text:00000000022D6C43                 and     esi, 1
-  .text:00000000022D6C46                 sub     eax, esi
-  .text:00000000022D6C48                 cmp     dword ptr [rdx+10h], 0FFFFFFFFh
-  .text:00000000022D6C4C                 jz      loc_22D6D30
-  .text:00000000022D6C52                 movzx   edx, word ptr [rdx+10h]
-  .text:00000000022D6C56                 and     dx, 7FFFh
-  .text:00000000022D6C5B                 shl     eax, 0Fh
-  .text:00000000022D6C5E                 movzx   edx, dx
-  .text:00000000022D6C61                 or      eax, edx
-  .text:00000000022D6C63                 mov     rsi, [rbp+var_38]
-  .text:00000000022D6C67                 mov     [r14+24h], eax
-  .text:00000000022D6C6B                 test    rsi, rsi
-  .text:00000000022D6C6E                 jz      loc_22D6CF8
-  .text:00000000022D6C74                 mov     rax, [rbp+var_40]
-  .text:00000000022D6C78                 cmp     byte ptr [rax+8], 0
-  .text:00000000022D6C7C                 jz      short loc_22D6CD0
-  .text:00000000022D6C7E                 lea     rsi, [r14+30h]
-  .text:00000000022D6C82                 mov     rdi, rax
-  .text:00000000022D6C85                 call    sub_22CF1F0
-  .text:00000000022D6C8A                 mov     rsi, [rbp+var_38]
-  .text:00000000022D6C8E                 mov     rdi, [rbp+var_68]
-  .text:00000000022D6C92                 call    sub_21D3260
-  .text:00000000022D6C97                 test    r13, r13
-  .text:00000000022D6C9A                 jz      short loc_22D6CB4
-  .text:00000000022D6C9C                 mov     rdi, [rbp+var_70]
-  .text:00000000022D6CA0                 mov     rsi, r13
-  .text:00000000022D6CA3                 call    sub_1DCBFB0
-  .text:00000000022D6CA8                 movzx   eax, byte ptr [r13+10h]
-  .text:00000000022D6CAD                 mov     [r14+0E0h], al
-  .text:00000000022D6CB4                 add     rsp, 48h
-  .text:00000000022D6CB8                 mov     rsi, r14
-  .text:00000000022D6CBB                 mov     rdi, rbx
-  .text:00000000022D6CBE                 pop     rbx
-  .text:00000000022D6CBF                 pop     r12
-  .text:00000000022D6CC1                 pop     r13
-  .text:00000000022D6CC3                 pop     r14
-  .text:00000000022D6CC5                 pop     r15
-  .text:00000000022D6CC7                 pop     rbp
-  .text:00000000022D6CC8                 jmp     CEntitySystem_AddEntityIOEventToQueue
-  .text:00000000022D6CD0                 lea     rdi, [r14+30h]
-  .text:00000000022D6CD4                 call    sub_22A10D0
-  .text:00000000022D6CD9                 jmp     short loc_22D6C8A
-  .text:00000000022D6CE0                 mov     esi, r15d
-  .text:00000000022D6CE3                 mov     rdi, rbx
-  .text:00000000022D6CE6                 call    rax
-  .text:00000000022D6CE8                 movss   [rbp+var_44], xmm0
-  .text:00000000022D6CED                 jmp     loc_22D6B39
-  .text:00000000022D6CF8                 mov     r15, [rbp+var_40]
-  .text:00000000022D6CFC                 lea     rsi, [r14+30h]
-  .text:00000000022D6D00                 mov     rdi, r15
-  .text:00000000022D6D03                 call    sub_22CF1F0
-  .text:00000000022D6D08                 mov     rdi, [rbp+var_68]
-  .text:00000000022D6D0C                 mov     rsi, r15
-  .text:00000000022D6D0F                 call    sub_22A0AE0
-  .text:00000000022D6D14                 jmp     loc_22D6C97
-  .text:00000000022D6D20                 mov     edx, 7FFFh
-  .text:00000000022D6D25                 jmp     loc_22D6C1A
-  .text:00000000022D6D30                 mov     edx, 7FFFh
-  .text:00000000022D6D35                 jmp     loc_22D6C5B
+  .text:00000000022D7650                 push    rbp
+  .text:00000000022D7651                 mov     rbp, rsp
+  .text:00000000022D7654                 push    r15
+  .text:00000000022D7656                 xor     r15d, r15d
+  .text:00000000022D7659                 push    r14
+  .text:00000000022D765B                 push    r13
+  .text:00000000022D765D                 push    r12
+  .text:00000000022D765F                 mov     r12, r8
+  .text:00000000022D7662                 push    rbx
+  .text:00000000022D7663                 mov     rbx, rdi
+  .text:00000000022D7666                 sub     rsp, 48h
+  .text:00000000022D766A                 mov     rax, [rbp+arg_0]
+  .text:00000000022D766E                 mov     [rbp+var_48], esi
+  .text:00000000022D7671                 mov     r13, [rbp+arg_8]
+  .text:00000000022D7675                 mov     [rbp+var_50], rdx
+  .text:00000000022D7679                 mov     [rbp+var_58], rcx
+  .text:00000000022D767D                 mov     [rbp+var_40], r9
+  .text:00000000022D7681                 movss   [rbp+var_5C], xmm0
+  .text:00000000022D7686                 mov     [rbp+var_38], rax
+  .text:00000000022D768A                 test    r8, r8
+  .text:00000000022D768D                 jz      short loc_22D7697
+  .text:00000000022D768F                 mov     rax, [r8+10h]
+  .text:00000000022D7693                 mov     r15d, [rax+38h]
+  .text:00000000022D7697                 mov     rax, [rbx]
+  .text:00000000022D769A                 lea     rdx, CEntitySystem_GetCurTime
+  .text:00000000022D76A1                 mov     rax, [rax+60h]
+  .text:00000000022D76A5                 cmp     rax, rdx
+  .text:00000000022D76A8                 jnz     loc_22D7860
+  .text:00000000022D76AE                 call    cs:qword_2BB7BA0
+  .text:00000000022D76B4                 movss   [rbp+var_44], xmm0
+  .text:00000000022D76B9                 mov     edi, 0F8h
+  .text:00000000022D76BE                 call    sub_9F4E80
+  .text:00000000022D76C3                 pxor    xmm0, xmm0
+  .text:00000000022D76C7                 xor     esi, esi
+  .text:00000000022D76C9                 mov     r14, rax
+  .text:00000000022D76CC                 movups  xmmword ptr [rax+10h], xmm0
+  .text:00000000022D76D0                 mov     qword ptr [rax], 0
+  .text:00000000022D76D7                 mov     qword ptr [rax+20h], 0FFFFFFFFFFFFFFFFh
+  .text:00000000022D76DF                 mov     eax, 0FFFFFFFFh
+  .text:00000000022D76E4                 mov     [r14+28h], rax
+  .text:00000000022D76E8                 lea     rax, [r14+40h]
+  .text:00000000022D76EC                 mov     rdi, rax
+  .text:00000000022D76EF                 mov     qword ptr [r14+30h], 0
+  .text:00000000022D76F7                 mov     qword ptr [r14+38h], 0
+  .text:00000000022D76FF                 mov     [rbp+var_68], rax
+  .text:00000000022D7703                 call    sub_21D33D0
+  .text:00000000022D7708                 mov     edx, 8
+  .text:00000000022D770D                 mov     esi, 1
+  .text:00000000022D7712                 lea     rax, [r14+0D0h]
+  .text:00000000022D7719                 mov     rdi, rax
+  .text:00000000022D771C                 mov     [rbp+var_70], rax
+  .text:00000000022D7720                 call    sub_1DBD340
+  .text:00000000022D7725                 mov     eax, [rbp+var_48]
+  .text:00000000022D7728                 mov     [r14], r15d
+  .text:00000000022D772B                 mov     rcx, [rbp+var_58]
+  .text:00000000022D772F                 mov     byte ptr [r14+0E0h], 0
+  .text:00000000022D7737                 movss   xmm0, [rbp+var_5C]
+  .text:00000000022D773C                 mov     dword ptr [r14+8], 6
+  .text:00000000022D7744                 addss   xmm0, [rbp+var_44]
+  .text:00000000022D7749                 mov     qword ptr [r14+10h], 0
+  .text:00000000022D7751                 mov     [r14+28h], eax
+  .text:00000000022D7755                 mov     rax, [rbp+var_50]
+  .text:00000000022D7759                 movss   dword ptr [r14+4], xmm0
+  .text:00000000022D775F                 mov     rax, [rax]
+  .text:00000000022D7762                 mov     [r14+18h], rax
+  .text:00000000022D7766                 mov     eax, 0FFFFFFFFh
+  .text:00000000022D776B                 test    rcx, rcx
+  .text:00000000022D776E                 jz      short loc_22D77A2
+  .text:00000000022D7770                 mov     rdx, [rcx+10h]
+  .text:00000000022D7774                 test    rdx, rdx
+  .text:00000000022D7777                 jz      short loc_22D77A2
+  .text:00000000022D7779                 mov     eax, [rdx+10h]
+  .text:00000000022D777C                 mov     esi, [rdx+30h]
+  .text:00000000022D777F                 shr     eax, 0Fh
+  .text:00000000022D7782                 and     esi, 1
+  .text:00000000022D7785                 sub     eax, esi
+  .text:00000000022D7787                 cmp     dword ptr [rdx+10h], 0FFFFFFFFh
+  .text:00000000022D778B                 jz      loc_22D78A0
+  .text:00000000022D7791                 movzx   edx, word ptr [rdx+10h]
+  .text:00000000022D7795                 and     dx, 7FFFh
+  .text:00000000022D779A                 shl     eax, 0Fh
+  .text:00000000022D779D                 movzx   edx, dx
+  .text:00000000022D77A0                 or      eax, edx
+  .text:00000000022D77A2                 mov     [r14+20h], eax
+  .text:00000000022D77A6                 mov     eax, 0FFFFFFFFh
+  .text:00000000022D77AB                 test    r12, r12
+  .text:00000000022D77AE                 jz      short loc_22D77E3
+  .text:00000000022D77B0                 mov     rdx, [r12+10h]
+  .text:00000000022D77B5                 test    rdx, rdx
+  .text:00000000022D77B8                 jz      short loc_22D77E3
+  .text:00000000022D77BA                 mov     eax, [rdx+10h]
+  .text:00000000022D77BD                 mov     esi, [rdx+30h]
+  .text:00000000022D77C0                 shr     eax, 0Fh
+  .text:00000000022D77C3                 and     esi, 1
+  .text:00000000022D77C6                 sub     eax, esi
+  .text:00000000022D77C8                 cmp     dword ptr [rdx+10h], 0FFFFFFFFh
+  .text:00000000022D77CC                 jz      loc_22D78B0
+  .text:00000000022D77D2                 movzx   edx, word ptr [rdx+10h]
+  .text:00000000022D77D6                 and     dx, 7FFFh
+  .text:00000000022D77DB                 shl     eax, 0Fh
+  .text:00000000022D77DE                 movzx   edx, dx
+  .text:00000000022D77E1                 or      eax, edx
+  .text:00000000022D77E3                 mov     rsi, [rbp+var_38]
+  .text:00000000022D77E7                 mov     [r14+24h], eax
+  .text:00000000022D77EB                 test    rsi, rsi
+  .text:00000000022D77EE                 jz      loc_22D7878
+  .text:00000000022D77F4                 mov     rax, [rbp+var_40]
+  .text:00000000022D77F8                 cmp     byte ptr [rax+8], 0
+  .text:00000000022D77FC                 jz      short loc_22D7850
+  .text:00000000022D77FE                 lea     rsi, [r14+30h]
+  .text:00000000022D7802                 mov     rdi, rax
+  .text:00000000022D7805                 call    sub_22CFD70
+  .text:00000000022D780A                 mov     rsi, [rbp+var_38]
+  .text:00000000022D780E                 mov     rdi, [rbp+var_68]
+  .text:00000000022D7812                 call    sub_21D3DE0
+  .text:00000000022D7817                 test    r13, r13
+  .text:00000000022D781A                 jz      short loc_22D7834
+  .text:00000000022D781C                 mov     rdi, [rbp+var_70]
+  .text:00000000022D7820                 mov     rsi, r13
+  .text:00000000022D7823                 call    sub_1DCCB30
+  .text:00000000022D7828                 movzx   eax, byte ptr [r13+10h]
+  .text:00000000022D782D                 mov     [r14+0E0h], al
+  .text:00000000022D7834                 add     rsp, 48h
+  .text:00000000022D7838                 mov     rsi, r14
+  .text:00000000022D783B                 mov     rdi, rbx
+  .text:00000000022D783E                 pop     rbx
+  .text:00000000022D783F                 pop     r12
+  .text:00000000022D7841                 pop     r13
+  .text:00000000022D7843                 pop     r14
+  .text:00000000022D7845                 pop     r15
+  .text:00000000022D7847                 pop     rbp
+  .text:00000000022D7848                 jmp     CEntitySystem_AddEntityIOEventToQueue
+  .text:00000000022D7850                 lea     rdi, [r14+30h]
+  .text:00000000022D7854                 call    sub_22A1C50
+  .text:00000000022D7859                 jmp     short loc_22D780A
+  .text:00000000022D7860                 mov     esi, r15d
+  .text:00000000022D7863                 mov     rdi, rbx
+  .text:00000000022D7866                 call    rax
+  .text:00000000022D7868                 movss   [rbp+var_44], xmm0
+  .text:00000000022D786D                 jmp     loc_22D76B9
+  .text:00000000022D7878                 mov     r15, [rbp+var_40]
+  .text:00000000022D787C                 lea     rsi, [r14+30h]
+  .text:00000000022D7880                 mov     rdi, r15
+  .text:00000000022D7883                 call    sub_22CFD70
+  .text:00000000022D7888                 mov     rdi, [rbp+var_68]
+  .text:00000000022D788C                 mov     rsi, r15
+  .text:00000000022D788F                 call    sub_22A1660
+  .text:00000000022D7894                 jmp     loc_22D7817
+  .text:00000000022D78A0                 mov     edx, 7FFFh
+  .text:00000000022D78A5                 jmp     loc_22D779A
+  .text:00000000022D78B0                 mov     edx, 7FFFh
+  .text:00000000022D78B5                 jmp     loc_22D77DB
 procedure: |-
   __int64 __fastcall CEntitySystem_AddEntityIOEventBuildStruct(
           __int64 a1,
@@ -166,7 +166,7 @@ procedure: |-
           __int64 a9)
   {
     unsigned int v9; // r15d
-    __int64 (__fastcall *v11)(); // rax
+    __int64 (*v11)(); // rax
     __int64 v12; // r14
     int v13; // eax
     __int64 v14; // rdx
@@ -182,12 +182,12 @@ procedure: |-
     v9 = 0;
     if ( a5 )
       v9 = *(_DWORD *)(*(_QWORD *)(a5 + 16) + 56LL);
-    v11 = *(__int64 (__fastcall **)())(*(_QWORD *)a1 + 96LL);  // 96LL = 0x60 = CEntitySystem_GetCurTime
-    if ( v11 == sub_22CD490 )
-      v26 = qword_2BB6F80();
+    v11 = *(__int64 (**)())(*(_QWORD *)a1 + 96LL);// 0x60 = 96LL = CEntitySystem_GetCurTime
+    if ( v11 == CEntitySystem_GetCurTime )
+      v26 = qword_2BB7BA0();
     else
       v26 = ((float (__fastcall *)(__int64, _QWORD))v11)(a1, v9);
-    v12 = sub_9F4CE0(248);
+    v12 = sub_9F4E80(248);
     *(_OWORD *)(v12 + 16) = 0;
     *(_QWORD *)v12 = 0;
     *(_QWORD *)(v12 + 32) = -1;
@@ -195,8 +195,8 @@ procedure: |-
     *(_QWORD *)(v12 + 48) = 0;
     *(_QWORD *)(v12 + 56) = 0;
     v22 = v12 + 64;
-    sub_21D2850(v12 + 64, 0);
-    sub_1DBC7C0(v12 + 208, 1, 8);
+    sub_21D33D0(v12 + 64, 0);
+    sub_1DBD340(v12 + 208, 1, 8);
     *(_DWORD *)v12 = v9;
     *(_BYTE *)(v12 + 224) = 0;
     *(_DWORD *)(v12 + 8) = 6;
@@ -237,19 +237,19 @@ procedure: |-
     if ( a8 )
     {
       if ( *(_BYTE *)(a6 + 8) )
-        sub_22CF1F0(a6, v12 + 48);
+        sub_22CFD70(a6, v12 + 48);
       else
-        sub_22A10D0(v12 + 48);
-      sub_21D3260(v22, a8);
+        sub_22A1C50(v12 + 48);
+      sub_21D3DE0(v22, a8);
     }
     else
     {
-      sub_22CF1F0(a6, v12 + 48);
-      sub_22A0AE0(v22, a6);
+      sub_22CFD70(a6, v12 + 48);
+      sub_22A1660(v22, a6);
     }
     if ( a9 )
     {
-      sub_1DCBFB0(v12 + 208, a9);
+      sub_1DCCB30(v12 + 208, a9);
       *(_BYTE *)(v12 + 224) = *(_BYTE *)(a9 + 16);
     }
     return CEntitySystem_AddEntityIOEventToQueue(a1, v12);
