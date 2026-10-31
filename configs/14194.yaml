@@ -10129,6 +10129,18 @@ modules:
           - CEntitySystem_AddEntityIOEventBuildStruct.{platform}.yaml
         expected_input:
           - CEntitySystem_AddEntityIOEvent.{platform}.yaml
+      - name: find-CEntitySystem_AddEntityIOEventBuildStruct-windows
+        platform: windows
+        expected_output:
+          - CEntitySystem_AddEntityIOEventBuildStruct.{platform}.yaml
+        expected_input:
+          - CEntitySystem_AddEntityIOEvent.{platform}.yaml
+      - name: find-CEntitySystem_GetCurTime
+        expected_output:
+          - CEntitySystem_GetCurTime.{platform}.yaml
+        expected_input:
+          - CEntitySystem_AddEntityIOEventBuildStruct.{platform}.yaml
+          - CEntitySystem_vtable.{platform}.yaml
       - name: find-CEntitySystem_AddEntityIOEventToQueue-windows
         platform: windows
         expected_output:
@@ -13872,9 +13884,12 @@ modules:
           - CEntitySystem::AddEntityIOEvent2
       - name: CEntitySystem_AddEntityIOEventBuildStruct
         category: func
-        platform: linux
         alias:
           - CEntitySystem::AddEntityIOEventBuildStruct
+      - name: CEntitySystem_GetCurTime
+        category: vfunc
+        alias:
+          - CEntitySystem::GetCurTime
       - name: CEntitySystem_AddEntityIOEventToQueue
         category: func
         alias:
