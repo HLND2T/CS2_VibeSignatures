@@ -1,0 +1,126 @@
+func_name: CLoopTypeClientServer_RefreshNetworkGameState
+func_va: '0x180228670'
+disasm_code: |-
+  .text:0000000180228670                 push    rbx
+  .text:0000000180228672                 sub     rsp, 20h
+  .text:0000000180228676                 mov     rbx, rcx
+  .text:0000000180228679                 mov     rcx, [rcx+130h]
+  .text:0000000180228680                 test    rcx, rcx
+  .text:0000000180228683                 jz      short loc_180228696
+  .text:0000000180228685                 mov     rax, [rcx]
+  .text:0000000180228688                 call    qword ptr [rax+18h]
+  .text:000000018022868B                 mov     qword ptr [rbx+130h], 0
+  .text:0000000180228696                 mov     rcx, [rbx+138h]
+  .text:000000018022869D                 test    rcx, rcx
+  .text:00000001802286A0                 jz      short loc_1802286B3
+  .text:00000001802286A2                 mov     rax, [rcx]
+  .text:00000001802286A5                 ; 0x30 = 48LL = INetworkGameServer_Release
+  .text:00000001802286A5                 call    qword ptr [rax+30h]; 0x30 = 48LL = INetworkGameServer_Release
+  .text:00000001802286A8                 mov     qword ptr [rbx+138h], 0
+  .text:00000001802286B3                 mov     rcx, cs:g_pNetworkClientService
+  .text:00000001802286BA                 mov     rax, [rcx]
+  .text:00000001802286BD                 call    qword ptr [rax+0B8h]
+  .text:00000001802286C3                 mov     [rbx+130h], rax
+  .text:00000001802286CA                 test    rax, rax
+  .text:00000001802286CD                 jz      short loc_1802286D8
+  .text:00000001802286CF                 mov     rdx, [rax]
+  .text:00000001802286D2                 mov     rcx, rax
+  .text:00000001802286D5                 call    qword ptr [rdx+10h]
+  .text:00000001802286D8                 mov     rcx, cs:g_pNetworkServerService
+  .text:00000001802286DF                 mov     rax, [rcx]
+  .text:00000001802286E2                 call    qword ptr [rax+0B8h]
+  .text:00000001802286E8                 mov     [rbx+138h], rax
+  .text:00000001802286EF                 test    rax, rax
+  .text:00000001802286F2                 jz      short loc_1802286FD
+  .text:00000001802286F4                 mov     rdx, [rax]
+  .text:00000001802286F7                 mov     rcx, rax
+  .text:00000001802286FA                 ; 0x28 = 40LL = INetworkGameServer_AddRef
+  .text:00000001802286FA                 call    qword ptr [rdx+28h]; 0x28 = 40LL = INetworkGameServer_AddRef
+  .text:00000001802286FD                 mov     rcx, [rbx+138h]
+  .text:0000000180228704                 mov     r8, [rbx+130h]
+  .text:000000018022870B                 test    rcx, rcx
+  .text:000000018022870E                 setnz   al
+  .text:0000000180228711                 test    r8, r8
+  .text:0000000180228714                 mov     [rbx+129h], al
+  .text:000000018022871A                 setnz   al
+  .text:000000018022871D                 mov     [rbx+128h], al
+  .text:0000000180228723                 test    rcx, rcx
+  .text:0000000180228726                 jz      short loc_180228760
+  .text:0000000180228728                 test    r8, r8
+  .text:000000018022872B                 jz      short loc_180228760
+  .text:000000018022872D                 mov     byte ptr [rbx+12Ah], 1
+  .text:0000000180228734                 cmp     byte ptr [r8+28Ch], 0
+  .text:000000018022873C                 jz      short loc_180228767
+  .text:000000018022873E                 mov     rax, [r8]
+  .text:0000000180228741                 xor     edx, edx
+  .text:0000000180228743                 mov     rcx, r8
+  .text:0000000180228746                 call    qword ptr [rax+150h]
+  .text:000000018022874C                 test    rax, rax
+  .text:000000018022874F                 jz      short loc_180228767
+  .text:0000000180228751                 mov     rdx, [rax]
+  .text:0000000180228754                 mov     rcx, rax
+  .text:0000000180228757                 call    qword ptr [rdx+10h]
+  .text:000000018022875A                 cmp     dword ptr [rax+1Ch], 4
+  .text:000000018022875E                 jz      short loc_180228767
+  .text:0000000180228760                 mov     byte ptr [rbx+12Ah], 0
+  .text:0000000180228767                 mov     rcx, [rbx+130h]
+  .text:000000018022876E                 test    rcx, rcx
+  .text:0000000180228771                 jz      short loc_180228780
+  .text:0000000180228773                 movzx   eax, byte ptr [rbx+12Ah]
+  .text:000000018022877A                 mov     [rcx+29Eh], al
+  .text:0000000180228780                 add     rsp, 20h
+  .text:0000000180228784                 pop     rbx
+  .text:0000000180228785                 retn
+procedure: |-
+  char __fastcall sub_180228670(__int64 a1)
+  {
+    __int64 v2; // rcx
+    __int64 v3; // rcx
+    __int64 v4; // rax
+    __int64 v5; // rax
+    __int64 v6; // rcx
+    _BYTE *v7; // r8
+    _DWORD *v8; // rax
+    __int64 v9; // rcx
+
+    v2 = *(_QWORD *)(a1 + 304);
+    if ( v2 )
+    {
+      (*(void (__fastcall **)(__int64))(*(_QWORD *)v2 + 24LL))(v2);
+      *(_QWORD *)(a1 + 304) = 0;
+    }
+    v3 = *(_QWORD *)(a1 + 312);
+    if ( v3 )
+    {
+      (*(void (__fastcall **)(__int64))(*(_QWORD *)v3 + 48LL))(v3);// 0x30 = 48LL = INetworkGameServer_Release
+      *(_QWORD *)(a1 + 312) = 0;
+    }
+    v4 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pNetworkClientService + 184LL))(g_pNetworkClientService);
+    *(_QWORD *)(a1 + 304) = v4;
+    if ( v4 )
+      (*(void (__fastcall **)(__int64))(*(_QWORD *)v4 + 16LL))(v4);
+    v5 = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)g_pNetworkServerService + 184LL))(g_pNetworkServerService);
+    *(_QWORD *)(a1 + 312) = v5;
+    if ( v5 )
+      (*(void (__fastcall **)(__int64))(*(_QWORD *)v5 + 40LL))(v5);// 0x28 = 40LL = INetworkGameServer_AddRef
+    v6 = *(_QWORD *)(a1 + 312);
+    v7 = *(_BYTE **)(a1 + 304);
+    *(_BYTE *)(a1 + 297) = v6 != 0;
+    LOBYTE(v8) = v7 != nullptr;
+    *(_BYTE *)(a1 + 296) = v7 != nullptr;
+    if ( !v6
+      || !v7
+      || (*(_BYTE *)(a1 + 298) = 1, v7[652])
+      && (v8 = (_DWORD *)(*(__int64 (__fastcall **)(_BYTE *, _QWORD))(*(_QWORD *)v7 + 336LL))(v7, 0)) != nullptr
+      && (v8 = (_DWORD *)(*(__int64 (__fastcall **)(_DWORD *))(*(_QWORD *)v8 + 16LL))(v8), v8[7] != 4) )
+    {
+      *(_BYTE *)(a1 + 298) = 0;
+    }
+    v9 = *(_QWORD *)(a1 + 304);
+    if ( v9 )
+    {
+      LOBYTE(v8) = *(_BYTE *)(a1 + 298);
+      *(_BYTE *)(v9 + 670) = (_BYTE)v8;
+    }
+    return (char)v8;
+  }
