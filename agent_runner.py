@@ -231,6 +231,8 @@ def _run_process_with_stream_capture(cmd, *, agent_input=None, debug=False, time
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         env=env,
     )
     if agent_input is not None and process.stdin is not None:
