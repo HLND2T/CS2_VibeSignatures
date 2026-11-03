@@ -188,7 +188,7 @@ disasm_code: |-
   .text:000000000052331D                 call    sub_522E10
   .text:0000000000523322                 jmp     loc_52303A
 procedure: |-
-  _QWORD *__fastcall sub_522FC0(__int64 a1)
+  _QWORD *__fastcall CNetworkGameServerBase_RecalculateTags(__int64 a1)
   {
     __int64 v1; // r14
     __int64 (__fastcall *v3)(); // rax
@@ -204,13 +204,14 @@ procedure: |-
     _QWORD *v13; // rax
     void *v14; // rsi
     _QWORD *v15; // rdx
-    __int64 v16; // [rsp+8h] [rbp-A8h]
-    unsigned __int64 v17; // [rsp+10h] [rbp-A0h] BYREF
-    _QWORD *v18; // [rsp+18h] [rbp-98h] BYREF
+    void *v16; // rsi
+    __int64 v17; // [rsp+8h] [rbp-A8h]
+    unsigned __int64 v18; // [rsp+10h] [rbp-A0h] BYREF
+    _QWORD *v19; // [rsp+18h] [rbp-98h] BYREF
 
     v1 = a1 + 872;
     sub_2DF010(a1 + 872, &unk_28DAF4);
-    v16 = 0;
+    v17 = 0;
     if ( !g_pSource2Server )
       goto LABEL_10;
     if ( (*(unsigned int (__fastcall **)(_QWORD *))(*g_pSource2Server + 816LL))(g_pSource2Server)
@@ -227,33 +228,33 @@ procedure: |-
     {
       if ( !((unsigned __int8 (__fastcall *)(__int64))v3)(a1) )
         goto LABEL_8;
-  LABEL_34:
+  LABEL_36:
       sub_522E10(a1, v1, "reserved");
       goto LABEL_8;
     }
     if ( **(_QWORD **)(a1 + 952) )
-      goto LABEL_34;
+      goto LABEL_36;
   LABEL_8:
-    v18 = nullptr;
-    v17 = 0xC000006400000000LL;
-    (*(void (__fastcall **)(_QWORD *, unsigned __int64 *))(*g_pSource2Server + 168LL))(g_pSource2Server, &v17);
-    if ( (v17 & 0x3FFFFFFF) != 0 )
+    v19 = nullptr;
+    v18 = 0xC000006400000000LL;
+    (*(void (__fastcall **)(_QWORD *, unsigned __int64 *))(*g_pSource2Server + 168LL))(g_pSource2Server, &v18);
+    if ( (v18 & 0x3FFFFFFF) != 0 )
     {
-      v15 = &v18;
-      if ( (v17 & 0x4000000000000000LL) == 0 )
+      v15 = &v19;
+      if ( (v18 & 0x4000000000000000LL) == 0 )
       {
         v15 = &unk_28DAF4;
-        if ( (v17 & 0x3FFFFFFF00000000LL) != 0 )
-          v15 = v18;
+        if ( (v18 & 0x3FFFFFFF00000000LL) != 0 )
+          v15 = v19;
       }
       sub_522E10(a1, v1, v15);
     }
-    sub_2DF530(&v17, 0);
+    sub_2DF530(&v18, 0);
   LABEL_10:
     v4 = 0;
     v5 = 0;
     if ( *(int *)(a1 + 616) <= 0 )
-      goto LABEL_35;
+      goto LABEL_37;
     do
     {
       v6 = *(_QWORD *)(*(_QWORD *)(a1 + 624) + 8 * v4++);
@@ -261,7 +262,7 @@ procedure: |-
     }
     while ( *(_DWORD *)(a1 + 616) > (int)v4 );
     if ( !v5 )
-  LABEL_35:
+  LABEL_37:
       sub_522E10(a1, v1, "empty");
     v7 = *(_BYTE **)(qword_AF7168 + 88);
     if ( v7 && *v7 )
@@ -279,11 +280,14 @@ procedure: |-
     v11 = *(_QWORD *)(a1 + 872);
     if ( v11 && (unsigned __int64)(int)sub_2E0240(*(_QWORD *)(a1 + 872)) > 0x3F )
     {
-      sub_2DE950(&v17, v11, 64);
-      sub_2DF010(v1, &v17);
+      sub_2DE950(&v18, v11, 64);
+      sub_2DF010(v1, &v18);
       if ( !byte_AF7070 )
       {
-        sub_2DF870("Tags string is too long: %s\n");
+        v16 = *(void **)(a1 + 872);
+        if ( !v16 )
+          v16 = &unk_28DAF4;
+        sub_2DF870("Tags string is too long: %s\n", v16);
         byte_AF7070 = 1;
       }
     }
