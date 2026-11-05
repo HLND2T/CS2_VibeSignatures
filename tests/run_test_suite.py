@@ -153,6 +153,7 @@ UNIT_MODULES = frozenset(
         "test_vtable_entry_recovery",
         "test_warmup_idb",
         "test_weapon_data_preprocessor",
+        "test_weapon_services_can_use_preprocessor",
     }
 )
 

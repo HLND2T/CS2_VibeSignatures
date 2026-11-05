@@ -54,11 +54,13 @@ async def preprocess_skill(
     image_base,
     debug=False,
 ):
-    """Reuse previous gamever func_sig to locate target function(s) and write YAML."""
+    """Find the current CanAcquire caller in the WeaponServices vtable."""
     return await preprocess_common_skill(
         session=session,
         expected_outputs=expected_outputs,
-        old_yaml_map=old_yaml_map,
+        # Historical CanUse YAML has only a callsite vfunc_sig. Its metadata
+        # cannot supply the function body fields this finder requires.
+        old_yaml_map=None,
         new_binary_dir=new_binary_dir,
         platform=platform,
         image_base=image_base,
