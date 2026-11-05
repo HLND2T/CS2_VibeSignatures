@@ -1689,20 +1689,6 @@ modules:
           - CNetworkGameServerBase_SetServerState.{platform}.yaml
         expected_input:
           - CNetworkGameServerBase_vtable.{platform}.yaml
-      - name: find-CNetworkGameServerBase_RecalculateTags
-        expected_output:
-          - CNetworkGameServerBase_RecalculateTags.{platform}.yaml
-      - name: find-INetworkGameServer_IsReserved
-        expected_output:
-          - INetworkGameServer_IsReserved.{platform}.yaml
-        expected_input:
-          - CNetworkGameServerBase_RecalculateTags.{platform}.yaml
-      - name: find-CNetworkGameServerBase_IsReserved
-        expected_output:
-          - CNetworkGameServerBase_IsReserved.{platform}.yaml
-        expected_input:
-          - CNetworkGameServerBase_vtable.{platform}.yaml
-          - INetworkGameServer_IsReserved.{platform}.yaml
       - name: find-CEngineServer_ClientPrintf-decompiles
         expected_output:
           - CServerSideClientBase_ClientPrintf.{platform}.yaml
@@ -3740,18 +3726,6 @@ modules:
         category: vfunc
         alias:
           - CNetworkGameServerBase::SetServerState
-      - name: CNetworkGameServerBase_RecalculateTags
-        category: func
-        alias:
-          - CNetworkGameServerBase::RecalculateTags
-      - name: INetworkGameServer_IsReserved
-        category: vfunc
-        alias:
-          - INetworkGameServer::IsReserved
-      - name: CNetworkGameServerBase_IsReserved
-        category: vfunc
-        alias:
-          - CNetworkGameServerBase::IsReserved
       - name: CNetworkGameServer_GetFreeClient
         category: func
         alias:
