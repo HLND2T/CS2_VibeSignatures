@@ -1,0 +1,72 @@
+#!/usr/bin/env python3
+"""Preprocess script for find-CCSPlayer_WeaponServices_CanUse skill."""
+
+from ida_analyze_util import preprocess_common_skill
+
+TARGET_FUNCTION_NAMES = [
+    "CCSPlayer_WeaponServices_CanUse",
+]
+
+FUNC_XREFS = [
+    {
+        "func_name": "CCSPlayer_WeaponServices_CanUse",
+        "xref_strings": [],
+        "xref_gvs": [],
+        "xref_signatures": [],
+        "xref_funcs": ["CCSPlayer_ItemServices_CanAcquire"],
+        "exclude_funcs": [],
+        "exclude_strings": [],
+        "exclude_gvs": [],
+        "exclude_signatures": [],
+    },
+]
+
+FUNC_VTABLE_RELATIONS = [
+    # (func_name, vtable_class)
+    ("CCSPlayer_WeaponServices_CanUse", "CCSPlayer_WeaponServices"),
+]
+
+GENERATE_YAML_DESIRED_FIELDS = [
+    # (symbol_name, generate_yaml_fields)
+    (
+        "CCSPlayer_WeaponServices_CanUse",
+        [
+            "func_name",
+            "func_va",
+            "func_rva",
+            "func_size",
+            "func_sig",
+            "vtable_name",
+            "vfunc_offset",
+            "vfunc_index",
+        ],
+    ),
+]
+
+
+async def preprocess_skill(
+    session,
+    skill_name,
+    expected_outputs,
+    old_yaml_map,
+    new_binary_dir,
+    platform,
+    image_base,
+    debug=False,
+):
+    """Find the current CanAcquire caller in the WeaponServices vtable."""
+    return await preprocess_common_skill(
+        session=session,
+        expected_outputs=expected_outputs,
+        # Historical CanUse YAML has only a callsite vfunc_sig. Its metadata
+        # cannot supply the function body fields this finder requires.
+        old_yaml_map=None,
+        new_binary_dir=new_binary_dir,
+        platform=platform,
+        image_base=image_base,
+        func_names=TARGET_FUNCTION_NAMES,
+        func_xrefs=FUNC_XREFS,
+        func_vtable_relations=FUNC_VTABLE_RELATIONS,
+        generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
+        debug=debug,
+    )
