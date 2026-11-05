@@ -1,0 +1,51 @@
+func_name: CLoopTypeClientServer_RefreshNetworkGameState_Acquire
+func_va: '0x396fd0'
+disasm_code: |-
+  .text:0000000000396FD0                 push    rbp
+  .text:0000000000396FD1                 mov     rbp, rsp
+  .text:0000000000396FD4                 push    rbx
+  .text:0000000000396FD5                 mov     rbx, rdi
+  .text:0000000000396FD8                 sub     rsp, 8
+  .text:0000000000396FDC                 lea     rax, g_pNetworkClientService
+  .text:0000000000396FE3                 mov     rdi, [rax]
+  .text:0000000000396FE6                 mov     rax, [rdi]
+  .text:0000000000396FE9                 call    qword ptr [rax+0C0h]
+  .text:0000000000396FEF                 mov     [rbx+130h], rax
+  .text:0000000000396FF6                 test    rax, rax
+  .text:0000000000396FF9                 jz      short loc_397004
+  .text:0000000000396FFB                 mov     rdi, rax
+  .text:0000000000396FFE                 mov     rax, [rax]
+  .text:0000000000397001                 call    qword ptr [rax+10h]
+  .text:0000000000397004                 lea     rax, g_pNetworkServerService
+  .text:000000000039700B                 mov     rdi, [rax]
+  .text:000000000039700E                 mov     rax, [rdi]
+  .text:0000000000397011                 call    qword ptr [rax+0C0h]
+  .text:0000000000397017                 mov     rdi, rax
+  .text:000000000039701A                 mov     [rbx+138h], rax
+  .text:0000000000397021                 test    rax, rax
+  .text:0000000000397024                 jz      short loc_397038
+  .text:0000000000397026                 mov     rax, [rax]
+  .text:0000000000397029                 mov     rbx, [rbp+var_8]
+  .text:000000000039702D                 mov     rax, [rax+28h]
+  .text:0000000000397031                 leave
+  .text:0000000000397032                 ; 0x28 = 40LL = INetworkGameServer_AddRef
+  .text:0000000000397032                 jmp     rax; 0x28 = 40LL = INetworkGameServer_AddRef
+  .text:0000000000397038                 mov     rbx, [rbp+var_8]
+  .text:000000000039703C                 leave
+  .text:000000000039703D                 retn
+procedure: |-
+  __int64 __fastcall sub_396FD0(__int64 a1)
+  {
+    __int64 v1; // rax
+    __int64 result; // rax
+
+    v1 = (*(__int64 (__fastcall **)(_QWORD *))(*g_pNetworkClientService + 192LL))(g_pNetworkClientService);
+    *(_QWORD *)(a1 + 304) = v1;
+    if ( v1 )
+      (*(void (__fastcall **)(__int64))(*(_QWORD *)v1 + 16LL))(v1);
+    result = (*(__int64 (__fastcall **)(_QWORD *))(*g_pNetworkServerService + 192LL))(g_pNetworkServerService);
+    *(_QWORD *)(a1 + 312) = result;
+    if ( result )
+      return (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)result + 40LL))(result);// 0x28 = 40LL = INetworkGameServer_AddRef
+    return result;
+  }

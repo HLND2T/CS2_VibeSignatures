@@ -2674,6 +2674,41 @@ modules:
           - CLoopTypeClientServer_Update.{platform}.yaml
         expected_input:
           - CLoopTypeClientServer_vtable.{platform}.yaml
+      - name: find-CLoopTypeClientServer_RefreshNetworkGameState
+        expected_output:
+          - CLoopTypeClientServer_RefreshNetworkGameState.{platform}.yaml
+        expected_input:
+          - CLoopTypeClientServer_Update.{platform}.yaml
+      - name: find-CLoopTypeClientServer_RefreshNetworkGameState_Acquire
+        optional_output:
+          - CLoopTypeClientServer_RefreshNetworkGameState_Acquire.{platform}.yaml
+        expected_input:
+          - CLoopTypeClientServer_RefreshNetworkGameState.{platform}.yaml
+        skip_if_exists:
+          - INetworkGameServer_Release.{platform}.yaml
+          - INetworkGameServer_AddRef.{platform}.yaml
+      - name: find-CLoopTypeClientServer_RefreshNetworkGameState-decompiles
+        expected_output:
+          - INetworkGameServer_Release.{platform}.yaml
+          - INetworkGameServer_AddRef.{platform}.yaml
+        expected_input:
+          - CLoopTypeClientServer_RefreshNetworkGameState.{platform}.yaml
+        optional_input:
+          - CLoopTypeClientServer_RefreshNetworkGameState_Acquire.{platform}.yaml
+        prerequisite:
+          - find-CLoopTypeClientServer_RefreshNetworkGameState_Acquire
+      - name: find-CNetworkGameServerBase_AddRef
+        expected_output:
+          - CNetworkGameServerBase_AddRef.{platform}.yaml
+        expected_input:
+          - CNetworkGameServerBase_vtable.{platform}.yaml
+          - INetworkGameServer_AddRef.{platform}.yaml
+      - name: find-CNetworkGameServerBase_Release
+        expected_output:
+          - CNetworkGameServerBase_Release.{platform}.yaml
+        expected_input:
+          - CNetworkGameServerBase_vtable.{platform}.yaml
+          - INetworkGameServer_Release.{platform}.yaml
       - name: find-CLoopModeLevelLoad_MaybeSwitchToGameLoop
         expected_output:
           - CLoopModeLevelLoad_MaybeSwitchToGameLoop.{platform}.yaml
@@ -4867,6 +4902,26 @@ modules:
         category: vfunc
         alias:
           - CLoopTypeClientServer::Update
+      - name: CLoopTypeClientServer_RefreshNetworkGameState
+        category: func
+        alias:
+          - CLoopTypeClientServer::RefreshNetworkGameState
+      - name: INetworkGameServer_AddRef
+        category: vfunc
+        alias:
+          - INetworkGameServer::AddRef
+      - name: INetworkGameServer_Release
+        category: vfunc
+        alias:
+          - INetworkGameServer::Release
+      - name: CNetworkGameServerBase_AddRef
+        category: vfunc
+        alias:
+          - CNetworkGameServerBase::AddRef
+      - name: CNetworkGameServerBase_Release
+        category: vfunc
+        alias:
+          - CNetworkGameServerBase::Release
       - name: CLoopModeLevelLoad_MaybeSwitchToGameLoop
         category: func
         alias:

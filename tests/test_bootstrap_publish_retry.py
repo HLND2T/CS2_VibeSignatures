@@ -21,7 +21,7 @@ HARNESS = r"""
 $global:pollCalls = 0
 $global:sleptMs = @()
 $global:nowMs = 0
-$responses = @($env:STUB_RESPONSES | ConvertFrom-Json)
+$responses = @(($env:STUB_RESPONSES | ConvertFrom-Json) | ForEach-Object { $_ })
 function Get-Date {
     [datetime]::new(2026, 1, 1, 0, 0, 0, [System.DateTimeKind]::Utc).AddMilliseconds($global:nowMs)
 }
