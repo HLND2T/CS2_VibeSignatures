@@ -1822,7 +1822,7 @@ modules:
           - CDemoRecorder_vtable.{platform}.yaml
       - name: find-CDemoRecorder_ParseMessage-decompiles
         expected_output:
-          - INetworkMessages_SerializeAbstract.{platform}.yaml
+          # INetworkMessages_SerializeAbstract was removed from the interface in 14197.
           - INetworkMessages_GetNetMessageInfo.{platform}.yaml
         expected_input:
           - CDemoRecorder_ParseMessage.{platform}.yaml
@@ -4103,11 +4103,6 @@ modules:
         category: func
         alias:
           - CHLTVDemoRecorder::WriteFrameImmediate
-      - name: INetworkMessages_SerializeAbstract
-        category: vfunc
-        alias:
-          - INetworkMessages::SerializeAbstract
-        shared: true
       - name: INetworkMessages_GetNetMessageInfo
         category: vfunc
         alias:
