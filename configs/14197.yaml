@@ -1306,6 +1306,11 @@ modules:
       - name: find-CGameEventSystem_vtable
         expected_output:
           - CGameEventSystem_vtable.{platform}.yaml
+      - name: find-CGameEventSystem_RegisterGameEvent
+        expected_output:
+          - CGameEventSystem_RegisterGameEvent.{platform}.yaml
+        expected_input:
+          - CGameEventSystem_vtable.{platform}.yaml
       - name: find-CGameEventSystem_RegisterGameEventHandlerAbstract
         expected_output:
           - CGameEventSystem_RegisterGameEventHandlerAbstract.{platform}.yaml
@@ -1820,12 +1825,13 @@ modules:
           - CDemoRecorder_ParseMessage.{platform}.yaml
         expected_input:
           - CDemoRecorder_vtable.{platform}.yaml
-      - name: find-CDemoRecorder_ParseMessage-decompiles
+      - name: find-CDemoRecorder_ParseMessage-decompiles-14197
         expected_output:
           # INetworkMessages_SerializeAbstract was removed from the interface in 14197.
           - INetworkMessages_GetNetMessageInfo.{platform}.yaml
         expected_input:
-          - CDemoRecorder_ParseMessage.{platform}.yaml
+          # 14197 no longer calls this slot from CDemoRecorder_ParseMessage.
+          - CGameEventSystem_RegisterGameEvent.{platform}.yaml
       - name: find-CDemoRecorder_WriteSpawnGroups
         expected_output:
           - CDemoRecorder_WriteSpawnGroups.{platform}.yaml
@@ -3565,6 +3571,10 @@ modules:
         category: vtable
       - name: CGameEventSystem_vtable
         category: vtable
+      - name: CGameEventSystem_RegisterGameEvent
+        category: vfunc
+        alias:
+          - CGameEventSystem::RegisterGameEvent
       - name: CGameEventSystem_RegisterGameEventHandlerAbstract
         category: vfunc
         alias:
