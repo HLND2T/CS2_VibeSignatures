@@ -148,8 +148,8 @@ MCP_RELEASE_POLL_INTERVAL = 0.1
 _WINDOWS_GENERIC_READ = 0x80000000
 _WINDOWS_OPEN_EXISTING = 3
 QEXIT_CONNECTION_RESET_MARKER = "[WinError 10054]"
-OPENED_BINARY_VERIFY_TIMEOUT = 60.0
-OPENED_BINARY_VERIFY_RETRY_INTERVAL = 2.0
+OPENED_BINARY_VERIFY_TIMEOUT = 1800.0
+OPENED_BINARY_VERIFY_RETRY_INTERVAL = 5.0
 _BINARY_HASH_CACHE = {}
 _PE_STYLE_BASE_ADDRESS = 0x180000000
 
@@ -1106,7 +1106,20 @@ def verify_opened_binary_via_mcp(
             )
         except McpDatabaseUnavailableError:
             raise
-        except (McpConnectionError, McpContractError, McpDatabaseSelectionError, McpToolCallError) as exc:
+        except McpConnectionError as exc:
+            # A large binary can still be under first-time auto-analysis while
+            # the MCP port is already accepting connections. Retry within the
+            # verification window instead of failing the whole binary.
+            if time.monotonic() >= deadline:
+                print("  Failed: opened binary verification failed")
+                print(f"    Expected: {_absolute_path_preserve_spelling(binary_path)}")
+                print(f"    Reason: {exc}")
+                return False
+            if debug:
+                print("  MCP session is not ready yet; retrying verification...")
+            time.sleep(max(0.0, retry_interval))
+            continue
+        except (McpContractError, McpDatabaseSelectionError, McpToolCallError) as exc:
             print("  Failed: opened binary verification failed")
             print(f"    Expected: {_absolute_path_preserve_spelling(binary_path)}")
             print(f"    Reason: {exc}")
