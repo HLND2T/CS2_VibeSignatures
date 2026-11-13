@@ -26,7 +26,6 @@ These commands populate the binary workspace under `bin/<GAMEVER>/` and run the 
 - [Requirements and environment setup](docs/en/requirements.md)
 - [Development checks: formatting and tests](docs/en/development.md)
 - [Binary acquisition and symbol analysis](docs/en/analysis.md)
-- [Process reporting, scheduling, and dashboard](docs/en/process-monitoring.md)
 - [Reference YAML for `LLM_DECOMPILE`](docs/en/reference-yaml.md)
 - [Snapshots, gamedata, and C++ validation](docs/en/snapshot-and-gamedata.md)
 - [Creating symbol-analysis skills](docs/en/creating-skills.md)

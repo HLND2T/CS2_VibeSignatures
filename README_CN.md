@@ -26,7 +26,6 @@ uv run ida_analyze_bin.py -gamever 14156 -oldgamever 14155
 - [依赖与环境配置](docs/zh-CN/requirements.md)
 - [开发检查：格式化与测试](docs/zh-CN/development.md)
 - [二进制获取与符号分析](docs/zh-CN/analysis.md)
-- [进度上报、调度与看板](docs/zh-CN/process-monitoring.md)
 - [`LLM_DECOMPILE` reference YAML](docs/zh-CN/reference-yaml.md)
 - [Snapshot、gamedata 与 C++ 验证](docs/zh-CN/snapshot-and-gamedata.md)
 - [创建符号分析 skill](docs/zh-CN/creating-skills.md)

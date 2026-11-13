@@ -20,13 +20,11 @@ from ida_mcp_session import (
     McpDatabaseUnavailableError,
     McpToolCallError,
 )
-from process_reporter import (
+from analysis_execution import (
+    AnalysisExecutionState,
     EdgeType,
     PlanNodeType,
-    ProcessEventType,
-    ProcessPhase,
-    ProcessReason,
-    RunStatus,
+    ExecutionReason,
     TaskStatus,
 )
 from tests.gamesymbol_snapshot_test_support import write_config
@@ -362,7 +360,7 @@ class TestMcpCleanupFailure(unittest.TestCase):
             ) as process,
         ):
             with self.assertRaisesRegex(ida_analyze_bin.McpCleanupError, "worker alive"):
-                ida_analyze_bin._execute_analysis(args, modules, reporting=None)
+                ida_analyze_bin._execute_analysis(args, modules, execution=None)
 
         process.assert_called_once()
 
@@ -2723,7 +2721,6 @@ class TestProcessBinary(unittest.TestCase):
             with self.subTest(repair=repair), TemporaryDirectory() as temp_dir:
                 output = Path(temp_dir) / "Slot.windows.yaml"
                 attempts = []
-                progress = []
 
                 def execute(*args, **kwargs):
                     attempts.append(kwargs.get("agent_input") or " ".join(args[0]))
@@ -2747,7 +2744,6 @@ class TestProcessBinary(unittest.TestCase):
                         agent_model="",
                         mcp_url=None,
                         output_validator=kwargs["output_validator"],
-                        progress_callback=lambda **event: progress.append(event),
                     )
 
                 process = object()
@@ -2778,7 +2774,6 @@ class TestProcessBinary(unittest.TestCase):
                 self.assertEqual(2 if repair else 3, len(attempts))
                 self.assertIn("vfunc_index does not match", attempts[1])
                 self.assertEqual(1 if repair else 0, produced.call_count)
-                self.assertEqual(1 if repair else 0, sum(e["event"] == "succeeded" for e in progress))
 
     def test_only_agent_outputs_request_deterministic_func_sig_regeneration(self) -> None:
         for producer in ("preprocessor", "agent"):
@@ -3367,8 +3362,7 @@ class TestProcessBinary(unittest.TestCase):
             None,
             skill_name,
             TaskStatus.SKIPPED,
-            ProcessPhase.FINISHED,
-            reason=ProcessReason.OPTIONAL_OUTPUT_ABSENT,
+            reason=ExecutionReason.OPTIONAL_OUTPUT_ABSENT,
         )
 
     def test_process_binary_skip_pp_succeeds_optional_only_skill_when_agent_writes_output(self) -> None:
@@ -4707,8 +4701,8 @@ class TestProcessBinary(unittest.TestCase):
         self.assertEqual((0, 1, 1), (success, fail, skip))
 
 
-class TestProcessBinaryReporting(unittest.TestCase):
-    def _build_reporting(self, binary_root, skills):
+class TestProcessBinaryExecutionEvidence(unittest.TestCase):
+    def _build_execution(self, binary_root, skills):
         module = {
             "stage_index": 0,
             "name": "engine",
@@ -4721,9 +4715,8 @@ class TestProcessBinaryReporting(unittest.TestCase):
             bin_dir=str(binary_root),
             gamever="14141",
         )
-        reporter = MagicMock()
-        reporting = ida_analyze_bin.AnalysisReporting(reporter, "run-1", plan)
-        return reporter, reporting, plan.jobs[0].id
+        execution = ida_analyze_bin.AnalysisExecutionState("run-1", plan)
+        return execution, plan.jobs[0].id
 
     def test_reports_existing_output_as_skipped(self) -> None:
         with TemporaryDirectory() as temp_dir:
@@ -4733,7 +4726,7 @@ class TestProcessBinaryReporting(unittest.TestCase):
             binary_path = str(binary_dir / "engine2.dll")
             (binary_dir / "Existing.windows.yaml").write_text("func_name: Existing\n", encoding="utf-8")
             skills = [{"name": "existing", "expected_output": ["Existing.{platform}.yaml"], "expected_input": []}]
-            reporter, reporting, job_id = self._build_reporting(binary_root, skills)
+            execution, job_id = self._build_execution(binary_root, skills)
 
             with patch.object(ida_analyze_bin, "start_idalib_mcp") as mock_start:
                 counts = ida_analyze_bin.process_binary(
@@ -4744,19 +4737,19 @@ class TestProcessBinaryReporting(unittest.TestCase):
                     13337,
                     "",
                     "windows",
-                    reporting=reporting,
+                    execution=execution,
                     job_id=job_id,
                 )
 
         task_id = f"{job_id}/existing"
-        events = [report_call.args[0] for report_call in reporter.emit.call_args_list]
-        skipped_event = next(event for event in events if event.task_id == task_id)
+        record = execution.task_record(task_id)
         self.assertEqual((0, 0, 1), counts)
-        self.assertEqual(TaskStatus.SKIPPED, skipped_event.status)
-        self.assertEqual(ProcessReason.EXISTING_OUTPUTS, skipped_event.reason)
+        self.assertEqual("skipped", record["status"])
+        self.assertEqual("existing_outputs", record["reason"])
+        self.assertFalse(record["attempted"])
         mock_start.assert_not_called()
 
-    def test_reports_failed_skill_progress_and_aborts_remaining_skill(self) -> None:
+    def test_records_failed_skill_and_aborts_remaining_skill(self) -> None:
         with TemporaryDirectory() as temp_dir:
             binary_root = Path(temp_dir) / "bin"
             binary_dir = binary_root / "14141" / "engine"
@@ -4766,11 +4759,7 @@ class TestProcessBinaryReporting(unittest.TestCase):
                 {"name": "first", "expected_output": ["First.{platform}.yaml"], "expected_input": []},
                 {"name": "second", "expected_output": ["Second.{platform}.yaml"], "expected_input": []},
             ]
-            reporter, reporting, job_id = self._build_reporting(binary_root, skills)
-
-            def fail_agent(*_args, progress_callback=None, **_kwargs):
-                progress_callback(event="attempt_started", attempt=1, max_attempts=1)
-                return False
+            execution, job_id = self._build_execution(binary_root, skills)
 
             with (
                 patch.object(ida_analyze_bin, "start_idalib_mcp", return_value=object()),
@@ -4780,7 +4769,7 @@ class TestProcessBinaryReporting(unittest.TestCase):
                 patch.object(ida_analyze_bin, "verify_opened_binary_via_mcp", return_value=True),
                 patch.object(ida_analyze_bin, "_run_validate_expected_input_artifacts_via_mcp", return_value=[]),
                 patch.object(ida_analyze_bin, "_run_preprocess_single_skill_via_mcp", return_value="no_script"),
-                patch.object(ida_analyze_bin, "run_skill", side_effect=fail_agent),
+                patch.object(ida_analyze_bin, "run_skill", return_value=False),
                 patch.object(ida_analyze_bin, "quit_ida_gracefully"),
             ):
                 counts = ida_analyze_bin.process_binary(
@@ -4792,33 +4781,19 @@ class TestProcessBinaryReporting(unittest.TestCase):
                     "",
                     "windows",
                     max_retries=1,
-                    reporting=reporting,
+                    execution=execution,
                     job_id=job_id,
                 )
 
-        events = [report_call.args[0] for report_call in reporter.emit.call_args_list]
-        first_id = f"{job_id}/first"
-        second_id = f"{job_id}/second"
         self.assertEqual((0, 1, 0), counts)
-        self.assertTrue(
-            any(event.event_type == ProcessEventType.SKILL_PROGRESS and event.task_id == first_id for event in events)
-        )
-        self.assertTrue(
-            any(
-                event.task_id == first_id
-                and event.status == TaskStatus.FAILED
-                and event.reason == ProcessReason.AGENT_FAILED
-                for event in events
-            )
-        )
-        self.assertTrue(
-            any(
-                event.task_id == second_id
-                and event.status == TaskStatus.ABORTED
-                and event.reason == ProcessReason.UPSTREAM_ABORTED
-                for event in events
-            )
-        )
+        first = execution.task_record(f"{job_id}/first")
+        second = execution.task_record(f"{job_id}/second")
+        self.assertEqual("failed", first["status"])
+        self.assertEqual("agent_failed", first["reason"])
+        self.assertTrue(first["attempted"])
+        self.assertEqual("aborted", second["status"])
+        self.assertEqual("upstream_aborted", second["reason"])
+        self.assertFalse(second["attempted"])
 
     def test_reports_missing_input_as_failed(self) -> None:
         with TemporaryDirectory() as temp_dir:
@@ -4833,7 +4808,7 @@ class TestProcessBinaryReporting(unittest.TestCase):
                     "expected_input": ["Missing.{platform}.yaml"],
                 }
             ]
-            reporter, reporting, job_id = self._build_reporting(binary_root, skills)
+            execution, job_id = self._build_execution(binary_root, skills)
 
             with (
                 patch.object(ida_analyze_bin, "start_idalib_mcp", return_value=object()),
@@ -4851,16 +4826,16 @@ class TestProcessBinaryReporting(unittest.TestCase):
                     13337,
                     "",
                     "windows",
-                    reporting=reporting,
+                    execution=execution,
                     job_id=job_id,
                 )
 
         task_id = f"{job_id}/consumer"
-        events = [report_call.args[0] for report_call in reporter.emit.call_args_list]
-        failed_event = next(event for event in events if event.task_id == task_id and event.status == TaskStatus.FAILED)
+        record = execution.task_record(task_id)
         self.assertEqual((0, 1, 0), counts)
-        self.assertEqual(ProcessReason.MISSING_INPUT, failed_event.reason)
-        self.assertIn(ProcessPhase.VALIDATING_INPUTS, [event.phase for event in events if event.task_id == task_id])
+        self.assertEqual("failed", record["status"])
+        self.assertEqual("missing_input", record["reason"])
+        self.assertTrue(record["attempted"])
 
 
 class TestProcessBinaryOpenedBinaryVerification(unittest.TestCase):
@@ -4990,7 +4965,7 @@ class TestProcessBinaryOpenedBinaryVerification(unittest.TestCase):
             binary_path.write_bytes(b"server-binary")
             with (
                 patch.object(ida_analyze_bin, "start_idalib_mcp") as start_ida,
-                patch.object(ida_analyze_bin, "_abort_binary_reporting") as abort_reporting,
+                patch.object(ida_analyze_bin, "_abort_binary_execution") as abort_execution,
             ):
                 result = ida_analyze_bin.process_binary(
                     binary_path=str(binary_path),
@@ -5011,7 +4986,7 @@ class TestProcessBinaryOpenedBinaryVerification(unittest.TestCase):
 
         self.assertEqual((0, 1, 0), result)
         start_ida.assert_not_called()
-        self.assertEqual(ProcessReason.MISSING_INPUT, abort_reporting.call_args.args[2])
+        self.assertEqual(ExecutionReason.MISSING_INPUT, abort_execution.call_args.args[2])
 
     def test_process_binary_does_not_rebuild_invalid_database_in_strict_mode(self) -> None:
         fake_process = MagicMock()
@@ -5696,29 +5671,29 @@ class TestParseArgsLlmOptions(unittest.TestCase):
         self.assertTrue(args.skip_pp)
 
     @patch.object(ida_analyze_bin, "resolve_oldgamever", return_value="14140")
-    def test_parse_args_accepts_process_reporter_configuration(self, _mock_resolve_oldgamever) -> None:
-        with patch(
-            "sys.argv",
-            [
-                "ida_analyze_bin.py",
-                "-gamever",
-                "14141",
-                "-process_reporter",
-                "redis",
-                "-redis_url",
-                "redis://example:6379/2",
-                "-redis_prefix",
-                "test:analysis",
-                "-run_id",
-                "scheduler-run",
-            ],
-        ):
-            args = ida_analyze_bin.parse_args()
+    def test_parse_args_rejects_removed_reporter_options(self, _mock_resolve_oldgamever) -> None:
+        for option in ("-process_reporter", "-redis_url", "-redis_prefix"):
+            with (
+                self.subTest(option=option),
+                patch("sys.argv", ["ida_analyze_bin.py", "-gamever", "14141", option, "unused"]),
+                patch("sys.stderr", new_callable=io.StringIO),
+            ):
+                with self.assertRaises(SystemExit) as raised:
+                    ida_analyze_bin.parse_args()
+                self.assertEqual(2, raised.exception.code)
 
-        self.assertEqual("redis", args.process_reporter)
-        self.assertEqual("redis://example:6379/2", args.redis_url)
-        self.assertEqual("test:analysis", args.redis_prefix)
-        self.assertEqual("scheduler-run", args.run_id)
+    @patch.object(ida_analyze_bin, "resolve_oldgamever", return_value="14140")
+    def test_run_id_is_local_and_ignores_legacy_environment(self, _mock_resolve_oldgamever) -> None:
+        with (
+            patch.dict(
+                os.environ,
+                {"CS2VIBE_RUN_ID": "obsolete", "CS2VIBE_PROCESS_REPORTER": "redis", "CS2VIBE_REDIS_URL": "invalid"},
+            ),
+            patch("sys.argv", ["ida_analyze_bin.py", "-gamever", "14141"]),
+        ):
+            self.assertIsNone(ida_analyze_bin.parse_args().run_id)
+        with patch("sys.argv", ["ida_analyze_bin.py", "-gamever", "14141", "-run_id", "local-run"]):
+            self.assertEqual("local-run", ida_analyze_bin.parse_args().run_id)
 
     @patch.object(ida_analyze_bin, "resolve_oldgamever", return_value="14140")
     def test_parse_args_accepts_and_strips_skill(self, _mock_resolve_oldgamever) -> None:
@@ -6191,7 +6166,7 @@ class TestProcessBinaryLlmWiring(unittest.TestCase):
         self.assertEqual(4, mock_preprocess.await_args.kwargs["llm_max_retries"])
 
 
-class TestMainReporterLifecycle(unittest.TestCase):
+class TestMainExecutionLifecycle(unittest.TestCase):
     def setUp(self) -> None:
         patcher = patch.object(ida_analyze_bin, "_load_config_document", return_value={})
         patcher.start()
@@ -6200,7 +6175,7 @@ class TestMainReporterLifecycle(unittest.TestCase):
     @patch.object(ida_analyze_bin, "parse_config")
     @patch("ida_analyze_bin.os.path.exists", return_value=True)
     @patch.object(ida_analyze_bin, "parse_args")
-    def test_main_finalizes_flushes_and_closes_reporter_after_exception(
+    def test_main_aborts_pending_local_records_after_exception(
         self,
         mock_parse_args,
         _mock_exists,
@@ -6230,7 +6205,7 @@ class TestMainReporterLifecycle(unittest.TestCase):
             llm_effort="medium",
             llm_fake_as=None,
             rename=False,
-            run_id="scheduler-run",
+            run_id="local-run",
         )
         mock_parse_config.return_value = [
             {
@@ -6240,30 +6215,26 @@ class TestMainReporterLifecycle(unittest.TestCase):
                 "path_windows": "game/bin/win64/engine2.dll",
             }
         ]
-        reporter = MagicMock()
-        reporter.initialize_run.return_value = "scheduler-run"
-        call_order = []
-        reporter.initialize_run.side_effect = lambda *_args, **_kwargs: (
-            call_order.append("initialize") or "scheduler-run"
-        )
+        states = []
 
-        def fail_processing(*_args, **_kwargs):
-            call_order.append("process")
-            raise RuntimeError("analysis crashed")
+        def create_state(run_id, plan):
+            state = AnalysisExecutionState(run_id, plan)
+            states.append(state)
+            return state
 
         with (
-            patch.object(ida_analyze_bin, "create_process_reporter", return_value=reporter),
-            patch.object(ida_analyze_bin, "process_binary", side_effect=fail_processing),
+            patch.object(ida_analyze_bin, "AnalysisExecutionState", side_effect=create_state),
+            patch.object(ida_analyze_bin, "process_binary", side_effect=RuntimeError("analysis crashed")),
             self.assertRaisesRegex(RuntimeError, "analysis crashed"),
         ):
             ida_analyze_bin.main()
 
-        self.assertEqual(["initialize", "process"], call_order)
-        initialized_plan = reporter.initialize_run.call_args.args[0]
-        self.assertEqual("stage-0003-engine-windows/find-target", initialized_plan["nodes"][0]["id"])
-        self.assertEqual(RunStatus.FAILED, reporter.finalize_run.call_args.args[1])
-        reporter.flush.assert_called_once()
-        reporter.close.assert_called_once()
+        state = states[0]
+        task_id = "stage-0003-engine-windows/find-target"
+        self.assertEqual("local-run", state.run_id)
+        self.assertEqual(task_id, state.plan.nodes[0].id)
+        self.assertEqual("aborted", state.task_record(task_id)["status"])
+        self.assertEqual("unknown_error", state.task_record(task_id)["reason"])
 
 
 class TestMainLlmWiring(unittest.TestCase):
@@ -6720,15 +6691,14 @@ class TestForceAllExecutionContract(unittest.TestCase):
             gamever="14179",
             artifact_dir=str(artifact_root),
         )
-        reporting = ida_analyze_bin.AnalysisReporting(MagicMock(), "run-1", plan)
+        execution = ida_analyze_bin.AnalysisExecutionState("run-1", plan)
         for node in plan.nodes:
             if node.node_type != PlanNodeType.SKILL:
                 continue
-            reporting.emit_task_status(node.id, TaskStatus.RUNNING, ProcessPhase.WAITING_FOR_MCP)
-            reporting.emit_task_status(
+            execution.record_task_status(node.id, TaskStatus.RUNNING, attempted=True)
+            execution.record_task_status(
                 node.id,
                 TaskStatus.SUCCEEDED,
-                ProcessPhase.FINISHED,
                 payload={"produced_outputs": [str(artifact)]},
             )
         args = SimpleNamespace(
@@ -6741,12 +6711,12 @@ class TestForceAllExecutionContract(unittest.TestCase):
             rename=True,
             require_warm_idb=True,
         )
-        return args, reporting
+        return args, execution
 
     def test_force_all_report_binds_single_group_winner_and_rejects_multiple_successes(self) -> None:
         with TemporaryDirectory() as temporary:
-            args, reporting = self._execution_fixture(Path(temporary), alternatives=False)
-            report = ida_analyze_bin.build_force_all_execution_report(args, reporting)
+            args, execution = self._execution_fixture(Path(temporary), alternatives=False)
+            report = ida_analyze_bin.build_force_all_execution_report(args, execution)
             self.assertTrue(report["valid"])
             self.assertEqual(2, report["schema_version"])
             self.assertEqual("14178", report["prior_gamever"])
@@ -6755,8 +6725,8 @@ class TestForceAllExecutionContract(unittest.TestCase):
             self.assertTrue(report["execution_sha256"].startswith("sha256:"))
 
         with TemporaryDirectory() as temporary:
-            args, reporting = self._execution_fixture(Path(temporary), alternatives=True)
-            report = ida_analyze_bin.build_force_all_execution_report(args, reporting)
+            args, execution = self._execution_fixture(Path(temporary), alternatives=True)
+            report = ida_analyze_bin.build_force_all_execution_report(args, execution)
             self.assertFalse(report["valid"])
             self.assertTrue(any("exactly one successful winner" in issue for issue in report["issues"]))
 
@@ -6807,20 +6777,20 @@ class TestForceAllExecutionContract(unittest.TestCase):
                 gamever="14179",
                 artifact_dir=str(artifact_root),
             )
-            reporting = ida_analyze_bin.AnalysisReporting(MagicMock(), "run-1", plan)
+            execution = ida_analyze_bin.AnalysisExecutionState("run-1", plan)
             nodes = {node.name: node for node in plan.nodes if node.node_type == PlanNodeType.SKILL}
 
             primary = nodes["z-primary"]
-            reporting.emit_task_status(primary.id, TaskStatus.RUNNING, ProcessPhase.WAITING_FOR_MCP)
-            reporting.record_output_attempts(primary.id, [str(shared)])
-            reporting.record_output_produced(primary.id, [str(shared)])
-            reporting.emit_task_status(primary.id, TaskStatus.SUCCEEDED, ProcessPhase.FINISHED)
+            execution.record_task_status(primary.id, TaskStatus.RUNNING, attempted=True)
+            execution.record_output_attempts(primary.id, [str(shared)])
+            execution.record_output_produced(primary.id, [str(shared)])
+            execution.record_task_status(primary.id, TaskStatus.SUCCEEDED)
 
             fallback = nodes["a-fallback"]
-            reporting.emit_task_status(fallback.id, TaskStatus.RUNNING, ProcessPhase.WAITING_FOR_MCP)
-            reporting.record_output_attempts(fallback.id, [str(unique)])
-            reporting.record_output_produced(fallback.id, [str(unique)])
-            reporting.emit_task_status(fallback.id, TaskStatus.SUCCEEDED, ProcessPhase.FINISHED)
+            execution.record_task_status(fallback.id, TaskStatus.RUNNING, attempted=True)
+            execution.record_output_attempts(fallback.id, [str(unique)])
+            execution.record_output_produced(fallback.id, [str(unique)])
+            execution.record_task_status(fallback.id, TaskStatus.SUCCEEDED)
 
             args = SimpleNamespace(
                 configyaml=str(config),
@@ -6832,7 +6802,7 @@ class TestForceAllExecutionContract(unittest.TestCase):
                 rename=True,
                 require_warm_idb=True,
             )
-            report = ida_analyze_bin.build_force_all_execution_report(args, reporting)
+            report = ida_analyze_bin.build_force_all_execution_report(args, execution)
 
         self.assertTrue(report["valid"], report["issues"])
         groups = {group["artifact_path"]: group for group in report["producer_groups"]}
@@ -7053,14 +7023,14 @@ class TestSelectedExecution(unittest.TestCase):
                 selected_node_ids=frozenset({"0:0:server:windows:find-a"}),
             )
             self.assertEqual(1, len([node for node in plan.nodes if node.node_type == PlanNodeType.SKILL]))
-            reporting = ida_analyze_bin.AnalysisReporting(MagicMock(), "run-1", plan)
+            execution = ida_analyze_bin.AnalysisExecutionState("run-1", plan)
             for node in plan.nodes:
                 if node.node_type != PlanNodeType.SKILL:
                     continue
-                reporting.emit_task_status(node.id, TaskStatus.RUNNING, ProcessPhase.WAITING_FOR_MCP)
-                reporting.record_output_attempts(node.id, [str(artifact)])
-                reporting.record_output_produced(node.id, [str(artifact)])
-                reporting.emit_task_status(node.id, TaskStatus.SUCCEEDED, ProcessPhase.FINISHED)
+                execution.record_task_status(node.id, TaskStatus.RUNNING, attempted=True)
+                execution.record_output_attempts(node.id, [str(artifact)])
+                execution.record_output_produced(node.id, [str(artifact)])
+                execution.record_task_status(node.id, TaskStatus.SUCCEEDED)
             args = SimpleNamespace(
                 configyaml=str(root / "configs" / "1.yaml"),
                 gamever="1",
@@ -7089,7 +7059,7 @@ class TestSelectedExecution(unittest.TestCase):
             manifest["execute_nodes"][0]["fingerprint"] = node.fingerprint
             manifest["manifest_sha256"] = ida_analyze_bin._selected_manifest_digest(manifest)
 
-            report = ida_analyze_bin.build_selected_execution_report(args, manifest, reporting)
+            report = ida_analyze_bin.build_selected_execution_report(args, manifest, execution)
 
             self.assertTrue(report["valid"], report["issues"])
             self.assertEqual(1, report["schema_version"])
@@ -7142,7 +7112,7 @@ class TestSelectedExecution(unittest.TestCase):
                 artifact_dir=str(artifact_root),
                 selected_node_ids=frozenset({"0:0:server:windows:z-primary", "0:1:server:windows:a-fallback"}),
             )
-            reporting = ida_analyze_bin.AnalysisReporting(MagicMock(), "run-1", plan)
+            execution = ida_analyze_bin.AnalysisExecutionState("run-1", plan)
             from gamesymbol_snapshot_lib.config import load_contract
 
             contract = load_contract(str(config), "1", str(root / "bin"), artifactdir=artifact_root)
@@ -7178,19 +7148,18 @@ class TestSelectedExecution(unittest.TestCase):
 
             nodes = {node.name: node for node in plan.nodes if node.node_type == PlanNodeType.SKILL}
             primary = nodes["z-primary"]
-            reporting.emit_task_status(primary.id, TaskStatus.RUNNING, ProcessPhase.WAITING_FOR_MCP)
-            reporting.record_output_attempts(primary.id, [str(shared)])
-            reporting.emit_task_status(
+            execution.record_task_status(primary.id, TaskStatus.RUNNING, attempted=True)
+            execution.record_output_attempts(primary.id, [str(shared)])
+            execution.record_task_status(
                 primary.id,
                 TaskStatus.SKIPPED,
-                ProcessPhase.FINISHED,
-                reason=ProcessReason.OPTIONAL_OUTPUT_ABSENT,
+                reason=ExecutionReason.OPTIONAL_OUTPUT_ABSENT,
             )
             fallback = nodes["a-fallback"]
-            reporting.emit_task_status(fallback.id, TaskStatus.RUNNING, ProcessPhase.WAITING_FOR_MCP)
-            reporting.record_output_attempts(fallback.id, [str(shared)])
-            reporting.record_output_produced(fallback.id, [str(shared)])
-            reporting.emit_task_status(fallback.id, TaskStatus.SUCCEEDED, ProcessPhase.FINISHED)
+            execution.record_task_status(fallback.id, TaskStatus.RUNNING, attempted=True)
+            execution.record_output_attempts(fallback.id, [str(shared)])
+            execution.record_output_produced(fallback.id, [str(shared)])
+            execution.record_task_status(fallback.id, TaskStatus.SUCCEEDED)
             args = SimpleNamespace(
                 configyaml=str(config),
                 gamever="1",
@@ -7202,7 +7171,7 @@ class TestSelectedExecution(unittest.TestCase):
                 require_warm_idb=True,
             )
 
-            report = ida_analyze_bin.build_selected_execution_report(args, manifest, reporting)
+            report = ida_analyze_bin.build_selected_execution_report(args, manifest, execution)
 
             self.assertTrue(report["valid"], report["issues"])
             group_record = report["producer_groups"][0]
@@ -7279,7 +7248,7 @@ class TestSelectedExecution(unittest.TestCase):
                 artifact_dir=str(artifact_root),
                 selected_node_ids=frozenset({"0:0:server:windows:find-opt"}),
             )
-            reporting = ida_analyze_bin.AnalysisReporting(MagicMock(), "run-1", plan)
+            execution = ida_analyze_bin.AnalysisExecutionState("run-1", plan)
             from gamesymbol_snapshot_lib.config import load_contract
 
             contract = load_contract(str(config), "1", str(root / "bin"), artifactdir=artifact_root)
@@ -7314,13 +7283,12 @@ class TestSelectedExecution(unittest.TestCase):
             for execution_node in plan.nodes:
                 if execution_node.node_type != PlanNodeType.SKILL:
                     continue
-                reporting.emit_task_status(execution_node.id, TaskStatus.RUNNING, ProcessPhase.WAITING_FOR_MCP)
-                reporting.record_output_attempts(execution_node.id, [str(absent_output)])
-                reporting.emit_task_status(
+                execution.record_task_status(execution_node.id, TaskStatus.RUNNING, attempted=True)
+                execution.record_output_attempts(execution_node.id, [str(absent_output)])
+                execution.record_task_status(
                     execution_node.id,
                     TaskStatus.SKIPPED,
-                    ProcessPhase.FINISHED,
-                    reason=ProcessReason.OPTIONAL_OUTPUT_ABSENT,
+                    reason=ExecutionReason.OPTIONAL_OUTPUT_ABSENT,
                 )
             args = SimpleNamespace(
                 configyaml=str(config),
@@ -7333,7 +7301,7 @@ class TestSelectedExecution(unittest.TestCase):
                 require_warm_idb=True,
             )
 
-            report = ida_analyze_bin.build_selected_execution_report(args, manifest, reporting)
+            report = ida_analyze_bin.build_selected_execution_report(args, manifest, execution)
 
             self.assertTrue(report["valid"], report["issues"])
             self.assertEqual(1, len(report["producer_groups"]))
@@ -7386,7 +7354,7 @@ class TestSelectedExecution(unittest.TestCase):
                 artifact_dir=str(artifact_root),
                 selected_node_ids=frozenset({"0:0:server:windows:find-a"}),
             )
-            reporting = ida_analyze_bin.AnalysisReporting(MagicMock(), "run-1", plan)
+            execution = ida_analyze_bin.AnalysisExecutionState("run-1", plan)
             from gamesymbol_snapshot_lib.config import load_contract
 
             contract = load_contract(str(config), "1", str(root / "bin"), artifactdir=artifact_root)
@@ -7400,11 +7368,11 @@ class TestSelectedExecution(unittest.TestCase):
             for execution_node in plan.nodes:
                 if execution_node.node_type != PlanNodeType.SKILL:
                     continue
-                reporting.emit_task_status(execution_node.id, TaskStatus.RUNNING, ProcessPhase.WAITING_FOR_MCP)
+                execution.record_task_status(execution_node.id, TaskStatus.RUNNING, attempted=True)
                 # The producer honestly records rewriting the inherited B artifact byte-for-byte.
-                reporting.record_output_attempts(execution_node.id, [str(artifact), str(inherited)])
-                reporting.record_output_produced(execution_node.id, [str(artifact), str(inherited)])
-                reporting.emit_task_status(execution_node.id, TaskStatus.SUCCEEDED, ProcessPhase.FINISHED)
+                execution.record_output_attempts(execution_node.id, [str(artifact), str(inherited)])
+                execution.record_output_produced(execution_node.id, [str(artifact), str(inherited)])
+                execution.record_task_status(execution_node.id, TaskStatus.SUCCEEDED)
             args = SimpleNamespace(
                 configyaml=str(config),
                 gamever="1",
@@ -7416,7 +7384,7 @@ class TestSelectedExecution(unittest.TestCase):
                 require_warm_idb=True,
             )
 
-            report = ida_analyze_bin.build_selected_execution_report(args, manifest, reporting)
+            report = ida_analyze_bin.build_selected_execution_report(args, manifest, execution)
 
             self.assertFalse(report["valid"])
             self.assertTrue(

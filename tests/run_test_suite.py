@@ -14,7 +14,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 TESTS_DIR = REPO_ROOT / "tests"
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
-PRIMARY_SUITES = ("unit", "repository-contract", "redis-integration", "release-integration")
+PRIMARY_SUITES = ("unit", "repository-contract", "release-integration")
 SUITE_NAMES = (*PRIMARY_SUITES, "all")
 
 REPOSITORY_CONTRACT_MODULES = frozenset(
@@ -37,11 +37,6 @@ REPOSITORY_CONTRACT_PREFIXES = (
     "test_test_suite_runner.TestSuiteAssignmentContract",
     "test_trusted_yaml.TestRepositoryYamlCompatibility",
 )
-REDIS_INTEGRATION_PREFIXES = (
-    "test_process_reporter_redis.TestRedisProcessReporterIntegration",
-    "test_process_scheduler_redis.TestRedisProcessSchedulerIntegration",
-    "test_process_status_reader_redis.TestRedisProcessStatusReader",
-)
 RELEASE_INTEGRATION_MODULES = frozenset(
     {
         "test_legacy_inputs_tool",
@@ -62,6 +57,7 @@ UNIT_MODULES = frozenset(
         "test_agent_runner",
         "test_analysis_config",
         "test_analysis_parallel",
+        "test_analysis_execution",
         "test_atomic_json_write",
         "test_binary_lock",
         "test_binary_hashing",
@@ -130,15 +126,9 @@ UNIT_MODULES = frozenset(
         "test_network_stats_preprocessors",
         "test_new_gamever_artifact",
         "test_optional_dependencies",
-        "test_process_api",
         "test_posix_memory",
         "test_posix_mcp_cleanup",
         "test_preprocessor_output_names",
-        "test_process_reporter",
-        "test_process_reporter_factory",
-        "test_process_reporter_redis",
-        "test_process_scheduler_redis",
-        "test_process_status_reader_redis",
         "test_prune_pr_expected_output_bin",
         "test_release_artifact_rebuild",
         "test_ordinal_vtable_common",
@@ -185,16 +175,14 @@ def matching_primary_suites(test_id: str) -> tuple[str, ...]:
     repository_contract = module in REPOSITORY_CONTRACT_MODULES or _matches_prefix(
         test_id, REPOSITORY_CONTRACT_PREFIXES
     )
-    redis_integration = _matches_prefix(test_id, REDIS_INTEGRATION_PREFIXES)
     release_integration = module in RELEASE_INTEGRATION_MODULES
-    special = repository_contract or redis_integration or release_integration
+    special = repository_contract or release_integration
     unit = module in UNIT_MODULES and not special
     return tuple(
         suite_name
         for suite_name, matched in (
             ("unit", unit),
             ("repository-contract", repository_contract),
-            ("redis-integration", redis_integration),
             ("release-integration", release_integration),
         )
         if matched

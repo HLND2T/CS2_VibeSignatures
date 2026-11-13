@@ -25,20 +25,20 @@ import os, sys, time
 from pathlib import Path
 sys.path.insert(0, sys.argv.pop(1))
 import ida_analyze_bin as a
-from process_reporter import PlanNodeType, TaskStatus, ProcessPhase
+from analysis_execution import PlanNodeType, TaskStatus
 from ida_analyze_util import canonical_symbol_yaml_bytes
-def execute(args, modules, reporting):
-    jobs = {job.id: job for job in reporting.plan.jobs}
-    for node in reporting.plan.nodes:
-        reporting.emit_task_status(node.id, TaskStatus.RUNNING, ProcessPhase.WAITING_FOR_MCP)
+def execute(args, modules, execution):
+    jobs = {job.id: job for job in execution.plan.jobs}
+    for node in execution.plan.nodes:
+        execution.record_task_status(node.id, TaskStatus.RUNNING, attempted=True)
         if node.node_type == PlanNodeType.SKILL:
             job = jobs[node.job_id]
             output = Path(args.artifactdir) / str(args.gamever) / job.module_name / f'A.{job.platform}.yaml'
             output.parent.mkdir(parents=True, exist_ok=True)
             output.write_bytes(canonical_symbol_yaml_bytes({'func_name':'A','func_rva':'0x10'}, category='func'))
-            reporting.record_output_attempts(node.id, [str(output)])
-            reporting.record_output_produced(node.id, [str(output)])
-        reporting.emit_task_status(node.id, TaskStatus.SUCCEEDED, ProcessPhase.FINISHED)
+            execution.record_output_attempts(node.id, [str(output)])
+            execution.record_output_produced(node.id, [str(output)])
+        execution.record_task_status(node.id, TaskStatus.SUCCEEDED)
     return [1, 0, 0], False
 a._execute_analysis = execute
 a.main()
@@ -143,8 +143,6 @@ if os.environ.get('TEST_FAIL_PLATFORM') and '-platform' in sys.argv:
                     "-oldgamever",
                     "none",
                     "-require_warm_idb",
-                    "-process_reporter",
-                    "none",
                     *flags,
                 ]
                 actual_runner = parallel.run_processes
@@ -376,10 +374,10 @@ class TestWorkerEvidence(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            args, reporting = TestForceAllExecutionContract()._execution_fixture(root, alternatives=False)
+            args, execution = TestForceAllExecutionContract()._execution_fixture(root, alternatives=False)
             args.platforms = ["windows"]
-            reporting.abort_pending("unused", "Fixture task was not used")
-            original = parallel.worker_document(args, reporting, [1, 0, 0], False)
+            execution.abort_pending("unused")
+            original = parallel.worker_document(args, execution, [1, 0, 0], False)
             for violation in (
                 "missing",
                 "duplicate",
@@ -414,7 +412,7 @@ class TestWorkerEvidence(unittest.TestCase):
                     with self.assertRaises(ValueError):
                         parallel.import_worker(
                             document,
-                            reporting,
+                            execution,
                             "windows",
                             Path(args.artifactdir),
                             root / "final",

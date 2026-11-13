@@ -26,7 +26,7 @@ tags:
 uv run python -c "from bin_artifact_contract import load_contract; ..."  # compare formal_paths vs git ls-files bin_artifacts/<gamever>/
 # 2. formatter gate exactly as CI runs it
 uv run python format_repo_files.py --check
-# 3. suites as CI: unit, repository-contract, redis-integration, release-integration
+# 3. suites as CI: unit, repository-contract, release-integration
 uv run python tests/run_test_suite.py unit -b
 ```
 

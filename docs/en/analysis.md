@@ -42,7 +42,6 @@ Analyzer behavior:
 - `-rename` runs rename/comment post-processing over existing expected-output YAML files.
 - `-require_warm_idb` requires a pre-existing `.i64`/`.idb`. Missing databases or binary-identity verification failures stop the binary without deleting the database or rebuilding it through inline auto-analysis. PR and release CI always enable this mode after restoring a published cache generation.
 
-Process reporting, the Redis-backed Scheduler, and the progress dashboard are documented in [Process reporting, scheduling, and dashboard](process-monitoring.md).
 
 ## `vcall_finder`
 

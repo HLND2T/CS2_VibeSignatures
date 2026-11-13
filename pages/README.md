@@ -1,6 +1,6 @@
-# CS2 VibeSignatures Process Dashboard
+# CS2 VibeSignatures Pages
 
-React + TypeScript + Vite implementation of the Process Reporter web dashboard.
+Static symbol and gamedata browsing, built with React, TypeScript and Vite.
 
 ## Development
 
@@ -9,18 +9,11 @@ npm ci
 npm run dev
 ```
 
-The first visit asks for the Process API address. The default is `http://127.0.0.1:8000`; a different build-time default can be supplied with `VITE_API_BASE_URL`.
-
-Start the local API for Vite development with:
-
-```powershell
-$env:CS2VIBE_API_CORS_ORIGINS="http://localhost:5173"
-uv run uvicorn process_api:app --host 127.0.0.1 --port 8000
-```
+Symbols and Game Data load static assets from the Pages deployment. Prepare `PAGES_RELEASE_INPUT_ROOT` as described below before starting Vite.
 
 ## Pages deployment
 
-`esa.jsonc` publishes `dist/` and uses SPA fallback routing. A public Pages application still calls the localhost of the computer running the browser; the CDN cannot reach a different computer's localhost.
+`esa.jsonc` publishes `dist/` and uses SPA fallback routing. Old `/runs` URLs open the default Symbols view.
 
 Pages development and deployment build from `PAGES_RELEASE_INPUT_ROOT`, a fresh staging tree hydrated from compatible published immutable GitHub Releases. The hydration step revalidates each direct tag/source binding, canonical Release manifest, exact SHA256SUMS and public asset allowlist, then safely extracts only the manifest-bound gamedata subtree. Repository-root `gamesymbols/` and `gamedata/` are not compatibility inputs; development/build fails closed when the explicit Release staging root is absent.
 
@@ -109,16 +102,6 @@ Repeated runs must produce byte-identical assets; a second `pages_legacy_input.p
 - A Windows checkout that rewrites line endings fails verification. The archive commit marks both data subtrees `text eol=lf`; compare git blob hashes rather than worktree bytes when investigating.
 - Post-deploy CDN verification failing means the public response bytes differ from the built `dist`; the run fails after publishing, and the manifests in that run's verification artifact show which asset disagreed.
 
-For an exact Pages origin:
-
-```powershell
-$env:CS2VIBE_API_CORS_ORIGINS="https://status.example.com"
-$env:CS2VIBE_API_ALLOW_PRIVATE_NETWORK="true"
-uv run uvicorn process_api:app --host 127.0.0.1 --port 8000
-```
-
-Do not use a wildcard CORS origin with private-network access.
-
 ## Verification
 
 ```powershell
@@ -126,5 +109,5 @@ npm run lint
 npm test
 npm run build
 npm run verify:gamesymbols
-npm run test:e2e
+npm run verify:gamedata
 ```

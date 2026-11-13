@@ -5,10 +5,7 @@
 .app-nav { align-self: stretch; margin-right: auto; }
 .app-nav .ant-tabs-nav { height: 100%; margin: 0; }
 .app-nav .ant-tabs-content-holder { display: none; }
-.api-summary { min-width: 0; align-items: center !important; }
-.api-summary .ant-space-item { vertical-align: middle; }
-.api-summary .ant-typography { max-width: 380px; vertical-align: middle !important; }
-.api-summary .ant-badge { vertical-align: middle !important; }
+.app-controls { min-width: 0; align-items: center !important; }
 .app-content { width: 100%; margin: 0 auto; padding: 28px clamp(16px, 4vw, 48px) 60px; }
 .full-width { width: 100%; }
 .page-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
@@ -17,31 +14,8 @@
 .symbol-version-controls .ant-select { width: 210px; }
 .symbol-version-metadata { min-width: 0; overflow-wrap: anywhere; text-align: right; }
 .filter-row { width: 100%; }
-.table-card .ant-card-body { padding: 0; }
-.load-more { padding: 18px; text-align: center; border-top: 1px solid var(--panel-border); }
-.connection-wrap { min-height: calc(100vh - 160px); display: grid; place-items: center; }
-.connection-card { width: min(680px, 100%); border-color: var(--connection-card-border); background: var(--connection-card-bg); box-shadow: var(--connection-card-shadow); }
-.settings-help { margin-top: 20px; }
 .page-spinner { min-height: 60vh; display: grid; place-items: center; }
-.run-header-grid { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 32px; align-items: center; }
-.run-header-grid .ant-typography { margin-block: 10px 4px; overflow-wrap: anywhere; }
-.run-progress { display: flex; align-items: center; gap: 18px; max-width: 620px; }
-.run-error { margin-top: 18px; }
-.view-card .ant-card-body { padding-top: 8px; }
-.graph-canvas { position: relative; width: 100%; height: min(68vh, 760px); min-height: 520px; overflow: hidden; border: 1px solid var(--panel-border); border-radius: 10px; background: var(--graph-canvas-bg); }
-.graph-loading { position: absolute; top: 16px; right: 16px; z-index: 8; }
-.flow-node-label { display: flex; flex-direction: column; gap: 4px; text-align: left; overflow: hidden; }
-.flow-node-label strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--graph-node-fg); }
-.flow-node-label span { color: var(--graph-node-muted); font-size: 12px; }
-.flow-node-description { display: -webkit-box; margin: 0; overflow: hidden; color: var(--graph-node-description); font-size: 11px; line-height: 1.35; white-space: pre-wrap; overflow-wrap: anywhere; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
-.flow-node-label small { color: var(--graph-node-accent); font-size: 11px; }
-.react-flow__node { border-radius: 9px; }
-.flow-node-running { animation: flow-running 2.2s ease-in-out infinite; }
-.react-flow__controls, .react-flow__minimap { overflow: hidden; border: 1px solid var(--panel-border); border-radius: 8px; background: var(--graph-controls-bg); }
-.react-flow__controls-button { color: var(--graph-controls-fg); background: var(--graph-controls-bg); border-bottom-color: var(--panel-border); }
-.json-block, .warning-block { max-height: 260px; margin: 0; padding: 12px; overflow: auto; border: 1px solid var(--panel-border); border-radius: 8px; color: var(--code-fg); background: var(--code-bg); font: 12px/1.55 "Cascadia Code", Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
-.task-description { margin-bottom: 0 !important; white-space: pre-wrap; overflow-wrap: anywhere; }
-.status-running { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.55); animation: status-pulse 2s infinite; }
+.json-block { max-height: 260px; margin: 0; padding: 12px; overflow: auto; border: 1px solid var(--panel-border); border-radius: 8px; color: var(--code-fg); background: var(--code-bg); font: 12px/1.55 "Cascadia Code", Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
 .symbol-browser-grid, .gamedata-browser-grid { display: grid; grid-template-columns: minmax(320px, 2fr) minmax(0, 3fr); gap: 20px; align-items: start; }
 .symbol-tree-card, .symbol-search-card, .gamedata-tree-card, .gamedata-viewer-card { min-width: 0; overflow: hidden; }
 .symbol-tree-card .ant-card-body, .gamedata-tree-card .ant-card-body { height: 680px; overflow: auto; }
@@ -70,28 +44,11 @@
 .gamedata-diff-before { color: #fca5a5; }
 .gamedata-diff-after { color: #86efac; }
 
-@keyframes status-pulse {
-  0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.45); }
-  70% { box-shadow: 0 0 0 7px rgba(37, 99, 235, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
-}
-
-@keyframes flow-running {
-  50% { filter: drop-shadow(0 0 8px rgba(37, 99, 235, 0.72)); }
-}
-
-@media (max-width: 1180px) {
-  .api-summary .ant-typography { display: none; }
-}
-
 @media (max-width: 900px) {
   .app-header { height: auto; min-height: 64px; flex-wrap: wrap; padding-block: 10px; line-height: 1.4; }
   .app-nav { order: 3; width: 100%; height: 44px; }
   .app-nav .ant-tabs-nav-wrap { justify-content: center; }
   .app-content { padding-top: 20px; }
-  .run-header-grid { grid-template-columns: 1fr; }
-  .run-progress { flex-wrap: wrap; }
-  .graph-canvas { min-height: 460px; }
   .symbol-browser-grid, .gamedata-browser-grid { grid-template-columns: 1fr; }
   .symbol-tree-card .ant-card-body, .gamedata-tree-card .ant-card-body { height: 520px; }
   .gamedata-viewer { height: 580px; }
@@ -99,8 +56,6 @@
 
 @media (max-width: 600px) {
   .app-brand .ant-typography { display: none; }
-  .api-summary .ant-btn:not(.theme-toggle) { font-size: 0; }
-  .api-summary .ant-btn .anticon { margin-inline-end: 0; font-size: 14px; }
   .page-title-row { align-items: stretch; flex-direction: column; }
   .symbol-version-controls { width: 100%; align-items: stretch; justify-content: flex-start; flex-direction: column; }
   .symbol-version-controls .ant-select { width: 100% !important; }
