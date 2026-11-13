@@ -623,3 +623,28 @@ Eighteen focused tests pass, covering the diagnostic cases, unnamed PLT imports,
 and native thunk targets, ambiguous bindings, nonterminal jumps, oversized stubs, rejected
 ordinary wrappers, separate execution namespaces, and safe treatment of non-helper ctree expressions. The repository formatting
 and diff whitespace checks pass. The PR workflow supplies the final native Linux verification.
+
+Run `43403371008`, attempt 2, confirmed that the scope error was fixed, but the native Linux
+IDB still provided no PLT-to-import bindings. Both environments enumerated one import module
+and 434 named imports. The log establishes that IDA's reference/thunk annotations were
+insufficient; it does not establish which loader annotation differed.
+
+The resolver now also reads the ELF64 AMD64 dynamic relocations from an input file whose MD5
+matches the IDB. It derives PLT ranges and undefined function identities from section, dynamic
+symbol, string and relocation tables, validating their bounds and rejecting conflicting
+bindings. A decoded terminal memory jump must reference the relocation's GOT slot. This path
+does not depend on IDA's segment names, function boundaries, applied GOT relocations or xrefs.
+PE handling and the exact/partial comparator requirements remain unchanged. The ELF reader
+and resolver are both passed explicitly into the emitted probe.
+
+In the disposable linux IDB with all 2848 PLT names already cleared, both comparison GOT slots
+were restored to lazy resolver values, their external code references removed, and the PLT
+segment renamed. The old import-reference resolver then returned no binding. The new path
+resolved `0x492728` to `V_stricmp_fast` and `0x4927b0` to `_Z14V_stristr_fastPKcS0_` from
+the verified ELF, and the comparison probe passed. This deliberately reproduces missing IDB
+annotations without claiming that CI has those exact mutations.
+
+The isolated CLI validation against that IDB and the existing Windows copy completed with
+`Successful: 2, Failed: 0, Skipped: 0`; both generated YAMLs matched the tracked source bytes.
+Twenty-four focused tests pass, including raw relocation parsing, rebase handling, malformed
+table/index rejection, file identity mismatch, conflicting bindings, and missing IDB annotations.

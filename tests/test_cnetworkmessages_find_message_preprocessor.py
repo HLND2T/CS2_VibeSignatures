@@ -1,5 +1,7 @@
 import io
+import hashlib
 import json
+import struct
 import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
@@ -78,7 +80,8 @@ class TestNetworkMessageComparisonProbe(unittest.TestCase):
                 {
                     "ida_hexrays": hx,
                     "ida_name": ida_names,
-                    "idaapi": N(get_kernel_version=lambda: "test-ida"),
+                    "idaapi": N(get_kernel_version=lambda: "test-ida", get_imagebase=lambda: 0),
+                    "ida_loader": N(get_path=lambda kind: "/test/library", PATH_TYPE_CMD=0),
                     "ida_nalt": N(
                         retrieve_input_file_md5=lambda: b"\xab" * 16,
                         get_input_file_path=lambda: "/test/library",
@@ -96,7 +99,7 @@ class TestNetworkMessageComparisonProbe(unittest.TestCase):
             patch.object(
                 finder,
                 "_resolve_imported_comparison_names",
-                side_effect=lambda target, imports: (bindings or {}).get(target, []),
+                side_effect=lambda target, imports, elf: (bindings or {}).get(target, []),
                 create=True,
             ),
         ):
@@ -104,7 +107,9 @@ class TestNetworkMessageComparisonProbe(unittest.TestCase):
                 globals_, locals_ = {}, {}
                 exec(wire_code, globals_, locals_)
                 return json.loads(locals_["result"])
-            return finder._probe_network_message_comparisons(0x1000, 0x2000, finder._resolve_imported_comparison_names)
+            return finder._probe_network_message_comparisons(
+                0x1000, 0x2000, finder._resolve_imported_comparison_names, lambda *args: {}
+            )
 
     def test_accepts_current_platform_comparator_names(self):
         self.assertTrue(self._probe(["V_stricmp_fast"], ["?V_stristr_fast@@YAPEBDPEBD0@Z"])["valid"])
@@ -177,6 +182,11 @@ class TestImportedComparisonTargets(unittest.TestCase):
         feature=3,
         earlier_feature=0,
         count=2,
+        elf_bindings=None,
+        function_present=True,
+        data_refs=(0x9000,),
+        got_value=0x5000,
+        operand_type=2,
     ):
         finder = load_module(SCRIPT, "network_message_imports_14197")
         imports = {0x5000: "V_stricmp_fast", 0x6000: "_Z14V_stristr_fastPKcS0_"}
@@ -187,27 +197,30 @@ class TestImportedComparisonTargets(unittest.TestCase):
 
         def decode(insn, address):
             insn.feature = feature if address == 0x8000 + count - 1 else earlier_feature
+            insn.ops = [N(type=operand_type, addr=0x9000)]
             return 1
 
         modules = {
             "ida_idaapi": N(BADADDR=0xFFFFFFFFFFFFFFFF),
             "ida_funcs": N(
                 FUNC_THUNK=8,
-                get_func=lambda address: N(start_ea=0x8000, flags=flags),
+                get_func=lambda address: (
+                    N(start_ea=0x8000, end_ea=0x8000 + count, flags=flags) if function_present else None
+                ),
                 calc_thunk_func_target=lambda fn: thunk,
             ),
             "ida_segment": N(getseg=lambda address: N(), get_segm_name=lambda seg: segment),
             "idautils": N(
                 FuncItems=lambda address: range(0x8000, 0x8000 + count),
                 CodeRefsFrom=lambda address, flow: refs,
-                DataRefsFrom=lambda address: [0x9000],
+                DataRefsFrom=lambda address: data_refs,
             ),
-            "ida_bytes": N(get_qword=lambda address: 0x5000),
-            "ida_ua": N(insn_t=Instruction, decode_insn=decode),
+            "ida_bytes": N(get_qword=lambda address: got_value),
+            "ida_ua": N(insn_t=Instruction, decode_insn=decode, o_mem=2),
             "ida_idp": N(CF_JUMP=1, CF_STOP=2, CF_CALL=4),
         }
         with patch.dict("sys.modules", modules):
-            return finder._resolve_imported_comparison_names(target, imports)
+            return finder._resolve_imported_comparison_names(target, imports, elf_bindings)
 
     def test_resolves_direct_import_plt_got_and_native_thunk_targets(self):
         for kwargs in (
@@ -233,6 +246,146 @@ class TestImportedComparisonTargets(unittest.TestCase):
     def test_rejects_ambiguous_import_bindings(self):
         with self.assertRaisesRegex(ValueError, "ambiguous"):
             self._resolve(refs=(0x5000, 0x6000))
+
+    def test_resolves_elf_binding_without_plt_labels_functions_or_import_xrefs(self):
+        layout = {"plt_ranges": [(0x8000, 0x8010)], "relocations": {0x9000: "V_stricmp_fast"}}
+        self.assertEqual(
+            [{"target_va": "0x9000", "name": "V_stricmp_fast", "binding_kind": "elf_relocation"}],
+            self._resolve(
+                segment="LOAD", function_present=False, refs=(), data_refs=(), got_value=0x1000, elf_bindings=layout
+            ),
+        )
+
+    def test_rejects_unproven_elf_stubs_and_conflicting_import_evidence(self):
+        layout = {"plt_ranges": [(0x8000, 0x8010)], "relocations": {0x9000: "V_stricmp_fast"}}
+        for kwargs in (dict(feature=1), dict(earlier_feature=4), dict(count=5), dict(operand_type=1)):
+            with self.subTest(kwargs=kwargs):
+                self.assertEqual(
+                    [], self._resolve(refs=(), data_refs=(), got_value=0x1000, elf_bindings=layout, **kwargs)
+                )
+        self.assertEqual(
+            [],
+            self._resolve(
+                segment="LOAD",
+                refs=(),
+                data_refs=(),
+                got_value=0x1000,
+                elf_bindings={"plt_ranges": [(0x8000, 0x8001)], "relocations": layout["relocations"]},
+            ),
+        )
+        with self.assertRaisesRegex(ValueError, "conflicting"):
+            self._resolve(elf_bindings={**layout, "relocations": {0x9000: "other"}})
+
+
+class TestElfImportBindings(unittest.TestCase):
+    def _elf(self):
+        """Minimal shared object with two external function relocations and one PLT section."""
+        section_names = b"\0.shstrtab\0.dynstr\0.dynsym\0.rela.plt\0.plt\0"
+        strings = b"\0V_stricmp_fast\0_Z14V_stristr_fastPKcS0_\0"
+        symbol = struct.Struct("<IBBHQQ")
+        symbols = bytes(symbol.size) + symbol.pack(1, 0x12, 0, 0, 0, 0) + symbol.pack(16, 0x12, 0, 0, 0, 0)
+        rela = struct.pack("<QQqQQq", 0x9000, (1 << 32) | 7, 0, 0x9008, (2 << 32) | 6, 0)
+        contents = [b"", section_names, strings, symbols, rela, bytes(16)]
+        section_count, section_size, header_size = len(contents), 64, 64
+        data = bytearray(header_size + section_count * section_size)
+        offsets = []
+        specs = [
+            ("", 0, 0, 0, 0),
+            (".shstrtab", 3, 0, 0, 0),
+            (".dynstr", 3, 0, 0, 0),
+            (".dynsym", 11, 0, 2, 24),
+            (".rela.plt", 4, 0, 3, 24),
+            (".plt", 1, 0x8000, 0, 0),
+        ]
+        for index, (content, (name, kind, address, link, entry_size)) in enumerate(zip(contents, specs)):
+            offset = len(data)
+            offsets.append(offset)
+            data.extend(content)
+            struct.pack_into(
+                "<IIQQQQIIQQ",
+                data,
+                header_size + index * section_size,
+                section_names.index(name.encode() + b"\0"),
+                kind,
+                0,
+                address,
+                offset,
+                len(content),
+                link,
+                0,
+                1,
+                entry_size,
+            )
+        struct.pack_into(
+            "<16sHHIQQQIHHHHHH",
+            data,
+            0,
+            b"\x7fELF\x02\x01\x01" + bytes(9),
+            3,
+            62,
+            1,
+            0,
+            0,
+            header_size,
+            0,
+            header_size,
+            0,
+            0,
+            section_size,
+            section_count,
+            1,
+        )
+        return data, offsets
+
+    def _read(self, data, *, image_base=0, expected_md5=None):
+        finder = load_module(SCRIPT, "network_message_elf_bindings_14197")
+        with TemporaryDirectory() as directory:
+            binary = Path(directory, "library.so")
+            binary.write_bytes(data)
+            return finder._read_elf_import_bindings(
+                [str(Path(directory, "missing.so")), str(binary)],
+                image_base,
+                expected_md5 if expected_md5 is not None else hashlib.md5(data).digest(),
+            )
+
+    def test_reads_both_import_relocation_types_and_rebases_virtual_addresses(self):
+        data, _ = self._elf()
+        self.assertEqual(
+            {
+                "plt_ranges": [(0x18000, 0x18010)],
+                "relocations": {0x19000: "V_stricmp_fast", 0x19008: "_Z14V_stristr_fastPKcS0_"},
+            },
+            self._read(data, image_base=0x10000),
+        )
+
+    def test_rejects_wrong_input_identity_truncated_tables_and_invalid_indices(self):
+        data, offsets = self._elf()
+        with self.assertRaisesRegex(ValueError, "MD5"):
+            self._read(data, expected_md5=bytes(16))
+        cases = [(40, "<Q", len(data) + 1), (offsets[4] + 8, "<Q", (99 << 32) | 7), (offsets[3] + 24, "<I", 9999)]
+        for offset, format_, value in cases:
+            corrupted = bytearray(data)
+            struct.pack_into(format_, corrupted, offset, value)
+            with self.subTest(offset=offset), self.assertRaises(ValueError):
+                self._read(corrupted)
+        with self.assertRaises(ValueError):
+            self._read(data[:30])
+
+    def test_rejects_conflicting_relocations_and_ignores_defined_symbols(self):
+        data, offsets = self._elf()
+        struct.pack_into("<Q", data, offsets[4] + 24, 0x9000)
+        with self.assertRaisesRegex(ValueError, "ambiguous"):
+            self._read(data)
+        data, offsets = self._elf()
+        struct.pack_into("<H", data, offsets[3] + 24 + 6, 1)
+        self.assertEqual({0x9008: "_Z14V_stristr_fastPKcS0_"}, self._read(data)["relocations"])
+
+    def test_skips_pe_and_rejects_unsupported_elf_encoding(self):
+        self.assertEqual({}, self._read(b"MZ" + bytes(100)))
+        data, _ = self._elf()
+        data[5] = 2
+        with self.assertRaisesRegex(ValueError, "ELF64"):
+            self._read(data)
 
 
 def _valid_probe():
