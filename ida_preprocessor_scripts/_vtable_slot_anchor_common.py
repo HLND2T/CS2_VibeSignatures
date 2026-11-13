@@ -29,6 +29,7 @@ import os
 from ida_analyze_util import (
     _build_vtable_yaml_path,
     _collect_xref_func_starts_for_string,
+    _normalize_generate_yaml_desired_fields,
     _read_yaml_file,
     parse_mcp_result,
     preprocess_gen_func_sig_via_mcp,
@@ -46,12 +47,19 @@ _SUPPORTED_FIELDS = {
     "vtable_name",
     "vfunc_offset",
     "vfunc_index",
+    "func_sig_allow_across_function_boundary",
 }
 
 
-def _probe_receiver_vcall_offsets(func_va):
-    """Run inside IDA: vtable byte offsets called through the first argument of ``func_va``."""
+def _probe_receiver_vcall_offsets(func_va, include_sites=False):
+    """Run inside IDA: vtable offsets dispatched through the first argument of ``func_va``.
+
+    The default remains a sorted offset list. ``include_sites`` also returns the
+    proven load/call anchors, including slot loads hoisted into function-pointer locals.
+    """
     import ida_hexrays as hx
+    if include_sites:
+        from ida_idaapi import BADADDR
 
     cfunc = hx.decompile(func_va)
     if cfunc is None or not len(cfunc.argidx):
@@ -66,6 +74,12 @@ def _probe_receiver_vcall_offsets(func_va):
     def is_receiver(expr):
         expr = uncast(expr)
         return expr.op == hx.cot_var and expr.v.idx == receiver
+
+    def source_site(expr):
+        if not include_sites:
+            return None
+        address = getattr(uncast(expr), "ea", BADADDR)
+        return int(address) if address != BADADDR and address > 0 else None
 
     def slot_offset(expr):
         # *(*(receiver) + K) or (*(receiver))[N] -> byte offset of the vtable slot.
@@ -96,7 +110,9 @@ def _probe_receiver_vcall_offsets(func_va):
     # A slot load hoisted above an intervening call lands in a local first:
     # ``v = *(*(a1) + K); name = f(); v(a1, name);``.
     slot_vars = {}
+    slot_var_sites = {}
     offsets = set()
+    sites_by_offset = {}
 
     class Assignments(hx.ctree_visitor_t):
         def __init__(self):
@@ -104,7 +120,12 @@ def _probe_receiver_vcall_offsets(func_va):
 
         def visit_expr(self, expr):
             if expr.op == hx.cot_asg and uncast(expr.x).op == hx.cot_var:
-                slot_vars.setdefault(uncast(expr.x).v.idx, set()).add(slot_offset(expr.y))
+                index = uncast(expr.x).v.idx
+                offset = slot_offset(expr.y)
+                slot_vars.setdefault(index, set()).add(offset)
+                if include_sites and offset is not None:
+                    sites = {source_site(expr.y), source_site(expr)} - {None}
+                    slot_var_sites.setdefault(index, set()).update(sites)
             return 0
 
     class Calls(hx.ctree_visitor_t):
@@ -116,16 +137,25 @@ def _probe_receiver_vcall_offsets(func_va):
                 return 0
             callee = uncast(expr.x)
             offset = slot_offset(callee)
+            sites = set()
+            if include_sites and offset is not None:
+                sites.update({source_site(callee), source_site(expr)} - {None})
             if offset is None and callee.op == hx.cot_var:
                 assigned = slot_vars.get(callee.v.idx, set())
                 if len(assigned) == 1 and None not in assigned:
                     offset = next(iter(assigned))
+                    if include_sites:
+                        sites.update(slot_var_sites.get(callee.v.idx, set()))
             if offset is not None:
                 offsets.add(int(offset))
+                if include_sites:
+                    sites_by_offset.setdefault(int(offset), set()).update(sites)
             return 0
 
     Assignments().apply_to(cfunc.body, None)
     Calls().apply_to(cfunc.body, None)
+    if include_sites:
+        return [{"offset": offset, "inst_vas": sorted(sites_by_offset.get(offset, set()))} for offset in sorted(offsets)]
     return sorted(offsets)
 
 
@@ -168,7 +198,10 @@ def _normalize_requested_fields(generate_yaml_desired_fields, target_name, debug
     if len(matches) != 1:
         _debug(debug, f"expected one desired-field entry for {target_name}")
         return None
-    requested = list(matches[0])
+    normalized = _normalize_generate_yaml_desired_fields([(target_name, matches[0])], debug=debug)
+    if normalized is None:
+        return None
+    requested = normalized[target_name]["desired_output_fields"]
     unsupported = sorted(set(requested) - _SUPPORTED_FIELDS)
     if not requested or unsupported:
         _debug(debug, f"unsupported desired fields for {target_name}: {unsupported}")
@@ -187,6 +220,27 @@ def _load_vtable_entries(new_binary_dir, vtable_class, platform, debug=False):
     except (TypeError, ValueError):
         _debug(debug, f"{vtable_class} vtable YAML has invalid entries")
         return None
+
+
+def _load_vfunc_anchor_slot(new_binary_dir, platform, target_name, vtable_class, entries, debug=False):
+    """Accept an anchor only when its identity, address, index and offset match the current table."""
+    payload = _read_yaml_file(os.path.join(new_binary_dir, f"{target_name}.{platform}.yaml"))
+    if not isinstance(payload, dict):
+        _debug(debug, f"anchor YAML missing or invalid: {target_name}")
+        return None
+    if payload.get("func_name") != target_name or payload.get("vtable_name") != vtable_class:
+        _debug(debug, f"anchor identity does not match {target_name} in {vtable_class}")
+        return None
+    try:
+        index = int(str(payload["vfunc_index"]), 0)
+        offset = int(str(payload["vfunc_offset"]), 0)
+        func_va = int(str(payload["func_va"]), 0)
+    except (KeyError, TypeError, ValueError):
+        return None
+    if index < 0 or offset != index * SLOT_SIZE or entries.get(index) != func_va:
+        _debug(debug, f"anchor metadata does not match the current vtable: {target_name}")
+        return None
+    return index
 
 
 async def _write_slot_func_yaml(
@@ -211,9 +265,10 @@ async def _write_slot_func_yaml(
         return False
 
     func_va = hex(vtable_entries[slot])
-    sig_data = await preprocess_gen_func_sig_via_mcp(
-        session=session, func_va=func_va, image_base=image_base, debug=debug
-    )
+    signature_kwargs = {"session": session, "func_va": func_va, "image_base": image_base, "debug": debug}
+    if "func_sig_allow_across_function_boundary" in requested:
+        signature_kwargs["allow_across_function_boundary"] = True
+    sig_data = await preprocess_gen_func_sig_via_mcp(**signature_kwargs)
     if not isinstance(sig_data, dict) or not sig_data.get("func_sig"):
         _debug(debug, f"failed to generate func_sig for {target_name} at {func_va}")
         return False
@@ -228,6 +283,8 @@ async def _write_slot_func_yaml(
         "vfunc_offset": hex(slot * SLOT_SIZE),
         "vfunc_index": slot,
     }
+    if "func_sig_allow_across_function_boundary" in requested:
+        available["func_sig_allow_across_function_boundary"] = True
     missing = [field for field in requested if available.get(field) is None]
     if missing:
         _debug(debug, f"fields unavailable for {target_name}: {missing}")
