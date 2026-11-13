@@ -590,8 +590,30 @@ versions, and the database input path/MD5. The caller surfaces MCP stderr and lo
 report, requiring the same exact/partial semantic checks and matching role addresses before
 signature generation. It does not accept an unresolved comparison as a fallback.
 
-Twelve focused tests pass, including five new diagnostic/error-validation cases. Both platforms
-pass isolated IDA regeneration with old-version reuse disabled; Linux uses an independently
-created clean database. Both output YAMLs remain byte-identical. The repository formatting check
-and diff whitespace checks pass. Native Linux CI evidence is still required to identify its
-specific probe failure; local success is not presented as resolution of that CI discrepancy.
+The diagnostic-only patch passed twelve focused tests and isolated regeneration on both
+platforms. A subsequent local `all` suite passed 1842 tests (21 skipped). These local checks
+were followed by another native Linux CI run to establish the missing evidence.
+
+Run `43395230647`, attempt 2, confirmed that the database input MD5 and IDA/Hex-Rays versions
+matched locally. Its PLT functions at `0x1811f0` and `0x181300` had generic names `sub_1811F0`
+and `sub_181300`, with no comparison names found and no decompiler errors. Those same addresses
+retain the intended calls; the display-name-only identity check caused the false rejection.
+
+The comparison probe now also resolves actual import identities. Direct imports and native
+thunks use their bound import entries; ELF PLT entries require a bounded stub with a terminal
+unconditional jump and no earlier calls or jumps. Code/GOT references must identify one import;
+ambiguous bindings and arbitrary non-PLT wrappers are rejected. In particular, Source2's
+`mov r11d, tag; jmp [GOT]` PLT stubs are not recognized by IDA's generic thunk resolver, so
+their terminal jump is checked explicitly. The recovered symbols must still be the exact and
+substring comparators respectively; no fixed comparator address or missing-name bypass is used.
+
+Clearing the PLT names in a disposable, independently analyzed linux IDB reproduced the CI
+failure with the old probe and passed with the import-backed probe. All 2848 PLT function names
+were then cleared for the actual isolated linux validation run. Both platforms reported
+`Successful: 2, Failed: 0, Skipped: 0`; both regenerated YAMLs remained byte-identical. The prior
+CI's 22 Windows repair targets also matched the source artifacts byte-for-byte.
+
+Seventeen focused tests pass, covering the diagnostic cases, unnamed PLT imports, direct import
+and native thunk targets, ambiguous bindings, nonterminal jumps, oversized stubs, rejected
+ordinary wrappers, and safe treatment of non-helper ctree expressions. The repository formatting
+and diff whitespace checks pass. The PR workflow supplies the final native Linux verification.

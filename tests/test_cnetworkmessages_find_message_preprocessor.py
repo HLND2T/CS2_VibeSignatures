@@ -19,7 +19,7 @@ PARTIAL_NAME = "CNetworkMessages_FindNetworkMessagePartial"
 
 
 class TestNetworkMessageComparisonProbe(unittest.TestCase):
-    def _probe(self, target_names, partial_names):
+    def _probe(self, target_names, partial_names, *, bindings=None):
         finder = load_module(SCRIPT, "network_message_comparisons_14197")
         names = {}
 
@@ -31,8 +31,12 @@ class TestNetworkMessageComparisonProbe(unittest.TestCase):
             calls = []
             for index, symbol in enumerate(symbols):
                 address = base + index
-                names[address] = symbol
-                calls.append(N(op="call", ea=address + 0x100, x=N(op="cast", x=N(op="obj", obj_ea=address))))
+                if isinstance(symbol, str):
+                    names[address] = symbol
+                    callee = N(op="obj", obj_ea=address)
+                else:
+                    callee = symbol
+                calls.append(N(op="call", ea=address + 0x100, x=N(op="cast", x=callee)))
             return N(body=calls)
 
         functions = {0x1000: function(target_names, 0x8000), 0x2000: function(partial_names, 0x9000)}
@@ -59,6 +63,7 @@ class TestNetworkMessageComparisonProbe(unittest.TestCase):
             cot_cast="cast",
             cot_obj="obj",
             cot_call="call",
+            cot_helper="helper",
         )
         ida_names = N(
             get_name=names.get,
@@ -66,16 +71,26 @@ class TestNetworkMessageComparisonProbe(unittest.TestCase):
                 "_Z14V_stristr_fastPKcS0_": "V_stristr_fast(char const *, char const *)",
             }.get(name),
         )
-        with patch.dict(
-            "sys.modules",
-            {
-                "ida_hexrays": hx,
-                "ida_name": ida_names,
-                "idaapi": N(get_kernel_version=lambda: "test-ida"),
-                "ida_nalt": N(
-                    retrieve_input_file_md5=lambda: b"\xab" * 16, get_input_file_path=lambda: "/test/library"
-                ),
-            },
+        with (
+            patch.dict(
+                "sys.modules",
+                {
+                    "ida_hexrays": hx,
+                    "ida_name": ida_names,
+                    "idaapi": N(get_kernel_version=lambda: "test-ida"),
+                    "ida_nalt": N(
+                        retrieve_input_file_md5=lambda: b"\xab" * 16,
+                        get_input_file_path=lambda: "/test/library",
+                        get_import_module_qty=lambda: 0,
+                    ),
+                },
+            ),
+            patch.object(
+                finder,
+                "_resolve_imported_comparison_names",
+                side_effect=lambda target, imports: (bindings or {}).get(target, []),
+                create=True,
+            ),
         ):
             return finder._probe_network_message_comparisons(0x1000, 0x2000)
 
@@ -112,6 +127,100 @@ class TestNetworkMessageComparisonProbe(unittest.TestCase):
         self.assertFalse(report["valid"])
         self.assertIn("cannot decompile", report["exact"]["error"])
         self.assertEqual(["V_stristr_fast"], report["partial"]["comparisons"])
+
+    def test_does_not_read_helper_union_fields_from_an_indirect_callee(self):
+        class Indirect:
+            op = "ptr"
+
+            @property
+            def helper(self):
+                raise AssertionError("callee is not a helper")
+
+        report = self._probe([Indirect()], ["V_stristr_fast"])
+        self.assertFalse(report["valid"])
+        self.assertIsNone(report["exact"]["error"])
+        self.assertEqual("ptr", report["exact"]["calls"][0]["kind"])
+
+    def test_accepts_unnamed_plt_stubs_only_with_the_correct_import_identity(self):
+        bindings = {
+            0x8000: [{"target_va": "0x5000", "name": "V_stricmp_fast"}],
+            0x9000: [{"target_va": "0x6000", "name": "_Z14V_stristr_fastPKcS0_"}],
+        }
+        report = self._probe(["sub_8000"], ["sub_9000"], bindings=bindings)
+        self.assertTrue(report["valid"])
+        self.assertEqual(bindings[0x8000], report["exact"]["calls"][0]["import_bindings"])
+        bindings[0x8000] = bindings[0x9000]
+        self.assertFalse(self._probe(["sub_8000"], ["sub_9000"], bindings=bindings)["valid"])
+
+
+class TestImportedComparisonTargets(unittest.TestCase):
+    def _resolve(
+        self,
+        *,
+        target=0x8000,
+        segment=".plt",
+        refs=(0x1000, 0x5000),
+        flags=0,
+        thunk=(0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF),
+        feature=3,
+        earlier_feature=0,
+        count=2,
+    ):
+        finder = load_module(SCRIPT, "network_message_imports_14197")
+        imports = {0x5000: "V_stricmp_fast", 0x6000: "_Z14V_stristr_fastPKcS0_"}
+
+        class Instruction:
+            def get_canon_feature(self):
+                return self.feature
+
+        def decode(insn, address):
+            insn.feature = feature if address == 0x8000 + count - 1 else earlier_feature
+            return 1
+
+        modules = {
+            "ida_idaapi": N(BADADDR=0xFFFFFFFFFFFFFFFF),
+            "ida_funcs": N(
+                FUNC_THUNK=8,
+                get_func=lambda address: N(start_ea=0x8000, flags=flags),
+                calc_thunk_func_target=lambda fn: thunk,
+            ),
+            "ida_segment": N(getseg=lambda address: N(), get_segm_name=lambda seg: segment),
+            "idautils": N(
+                FuncItems=lambda address: range(0x8000, 0x8000 + count),
+                CodeRefsFrom=lambda address, flow: refs,
+                DataRefsFrom=lambda address: [0x9000],
+            ),
+            "ida_bytes": N(get_qword=lambda address: 0x5000),
+            "ida_ua": N(insn_t=Instruction, decode_insn=decode),
+            "ida_idp": N(CF_JUMP=1, CF_STOP=2, CF_CALL=4),
+        }
+        with patch.dict("sys.modules", modules):
+            return finder._resolve_imported_comparison_names(target, imports)
+
+    def test_resolves_direct_import_plt_got_and_native_thunk_targets(self):
+        for kwargs in (
+            dict(target=0x5000),
+            {},
+            dict(segment=".text", flags=8, thunk=(0x5000, 0xFFFFFFFFFFFFFFFF)),
+            dict(segment=".text", flags=8, thunk=[0x5000, 0xFFFFFFFFFFFFFFFF]),
+        ):
+            with self.subTest(kwargs=kwargs):
+                self.assertEqual([{"target_va": "0x5000", "name": "V_stricmp_fast"}], self._resolve(**kwargs))
+
+    def test_rejects_arbitrary_wrappers_nonterminal_jumps_and_oversized_stubs(self):
+        for kwargs in (
+            dict(segment=".text"),
+            dict(feature=1),
+            dict(earlier_feature=4),
+            dict(count=5),
+            dict(segment=".text", flags=8, thunk=(0x8000, 0xFFFFFFFFFFFFFFFF)),
+        ):
+            with self.subTest(kwargs=kwargs):
+                self.assertEqual([], self._resolve(**kwargs))
+
+    def test_rejects_ambiguous_import_bindings(self):
+        with self.assertRaisesRegex(ValueError, "ambiguous"):
+            self._resolve(refs=(0x5000, 0x6000))
 
 
 def _valid_probe():
