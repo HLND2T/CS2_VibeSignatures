@@ -15,13 +15,19 @@ from ida_preprocessor_scripts._vtable_slot_anchor_common import SLOT_SIZE
 SENDER_NAME = "CNetworkSystem_SendNetworkStats"
 TARGET_FUNCTION_NAMES = list(GROUP_METHODS)
 GENERATE_YAML_DESIRED_FIELDS = [
-    (name, ["func_name", "vfunc_sig", "vfunc_offset", "vfunc_index", "vtable_name"])
-    for name in TARGET_FUNCTION_NAMES
+    (name, ["func_name", "vfunc_sig", "vfunc_offset", "vfunc_index", "vtable_name"]) for name in TARGET_FUNCTION_NAMES
 ]
 
 
 async def preprocess_skill(
-    session, skill_name, expected_outputs, old_yaml_map, new_binary_dir, platform, image_base, debug=False,
+    session,
+    skill_name,
+    expected_outputs,
+    old_yaml_map,
+    new_binary_dir,
+    platform,
+    image_base,
+    debug=False,
 ):
     """Sign each current virtual-call instruction only after checking its receiver and role."""
     _ = skill_name, old_yaml_map, image_base

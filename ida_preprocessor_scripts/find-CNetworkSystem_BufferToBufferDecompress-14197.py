@@ -13,7 +13,14 @@ GENERATE_YAML_DESIRED_FIELDS = [(TARGET, list(VFUNC_FIELDS))]
 
 
 async def preprocess_skill(
-    session, skill_name, expected_outputs, old_yaml_map, new_binary_dir, platform, image_base, debug=False,
+    session,
+    skill_name,
+    expected_outputs,
+    old_yaml_map,
+    new_binary_dir,
+    platform,
+    image_base,
+    debug=False,
 ):
     _ = skill_name, old_yaml_map
     if resolve_output_path(expected_outputs, new_binary_dir, TARGET, platform) is None:
@@ -25,7 +32,14 @@ async def preprocess_skill(
     if slot is None:
         return False
     return await _write_slot_func_yaml(
-        session=session, expected_outputs=expected_outputs, platform=platform, image_base=image_base,
-        target_name=TARGET, vtable_class=VTABLE_CLASS, vtable_entries=entries, slot=slot,
-        generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS, debug=debug,
+        session=session,
+        expected_outputs=expected_outputs,
+        platform=platform,
+        image_base=image_base,
+        target_name=TARGET,
+        vtable_class=VTABLE_CLASS,
+        vtable_entries=entries,
+        slot=slot,
+        generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
+        debug=debug,
     )

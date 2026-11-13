@@ -13,13 +13,22 @@ SIBLING_NAME = "CGameEventSystem_PostEntityEventAbstract"
 TARGET_FUNCTION_NAMES = ["CGameEventSystem_PostEventAbstract2"]
 POSTING_LOG = "GameEvent:  Posting %s (id:%d group:'%s') from code\n"
 GENERATE_YAML_DESIRED_FIELDS = [
-    (TARGET_FUNCTION_NAMES[0], ["func_name", "func_va", "func_rva", "func_size", "func_sig",
-                               "vtable_name", "vfunc_offset", "vfunc_index"]),
+    (
+        TARGET_FUNCTION_NAMES[0],
+        ["func_name", "func_va", "func_rva", "func_size", "func_sig", "vtable_name", "vfunc_offset", "vfunc_index"],
+    ),
 ]
 
 
 async def preprocess_skill(
-    session, skill_name, expected_outputs, old_yaml_map, new_binary_dir, platform, image_base, debug=False,
+    session,
+    skill_name,
+    expected_outputs,
+    old_yaml_map,
+    new_binary_dir,
+    platform,
+    image_base,
+    debug=False,
 ):
     """Require one current vtable log owner after excluding the verified sibling slot."""
     _ = skill_name, old_yaml_map
@@ -40,7 +49,14 @@ async def preprocess_skill(
             print(f"    Preprocess: expected one posting overload after sibling exclusion, found {len(candidates)}")
         return False
     return await _write_slot_func_yaml(
-        session=session, expected_outputs=expected_outputs, platform=platform, image_base=image_base,
-        target_name=TARGET_FUNCTION_NAMES[0], vtable_class=VTABLE_CLASS, vtable_entries=entries,
-        slot=candidates[0], generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS, debug=debug,
+        session=session,
+        expected_outputs=expected_outputs,
+        platform=platform,
+        image_base=image_base,
+        target_name=TARGET_FUNCTION_NAMES[0],
+        vtable_class=VTABLE_CLASS,
+        vtable_entries=entries,
+        slot=candidates[0],
+        generate_yaml_desired_fields=GENERATE_YAML_DESIRED_FIELDS,
+        debug=debug,
     )

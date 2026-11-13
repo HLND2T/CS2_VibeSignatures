@@ -21,9 +21,7 @@ VFUNC_FIELDS = [
 
 
 async def _resolve_slot(session, anchor, entries, debug=False, vtable_class=VTABLE_CLASS):
-    owners = await _collect_xref_func_starts_for_string(
-        session=session, xref_string=f"FULLMATCH:{anchor}", debug=debug
-    )
+    owners = await _collect_xref_func_starts_for_string(session=session, xref_string=f"FULLMATCH:{anchor}", debug=debug)
     if owners is None or len(owners) != 1:
         if debug:
             print(f"    Preprocess: expected one implementation owner for {anchor}")

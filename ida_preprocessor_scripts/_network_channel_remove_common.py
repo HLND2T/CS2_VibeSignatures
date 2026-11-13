@@ -59,11 +59,26 @@ def _probe_channel_calls(func_va, mode, target_va=0, root_fields=()):
 
     assignments, fields, calls = {}, set(), []
     other_writes = {
-        getattr(hx, name, None) for name in (
-            "cot_asgbor", "cot_asgxor", "cot_asgband", "cot_asgadd", "cot_asgsub",
-            "cot_asgmul", "cot_asgsshr", "cot_asgushr", "cot_asgshl", "cot_asgsdiv",
-            "cot_asgudiv", "cot_asgsmod", "cot_asgumod", "cot_preinc", "cot_predec",
-            "cot_postinc", "cot_postdec", "cot_ref",
+        getattr(hx, name, None)
+        for name in (
+            "cot_asgbor",
+            "cot_asgxor",
+            "cot_asgband",
+            "cot_asgadd",
+            "cot_asgsub",
+            "cot_asgmul",
+            "cot_asgsshr",
+            "cot_asgushr",
+            "cot_asgshl",
+            "cot_asgsdiv",
+            "cot_asgudiv",
+            "cot_asgsmod",
+            "cot_asgumod",
+            "cot_preinc",
+            "cot_predec",
+            "cot_postinc",
+            "cot_postdec",
+            "cot_ref",
         )
     } - {None}
 
@@ -96,7 +111,10 @@ def _probe_channel_calls(func_va, mode, target_va=0, root_fields=()):
             if target is None or call.a.size() != 5 or not is_arg(call.a[0], receiver):
                 continue
             literal = uncast(call.a[3])
-            if literal.op == hx.cot_obj and ida_bytes.get_strlit_contents(literal.obj_ea, -1, idc.STRTYPE_C) == b"CloseSocket":
+            if (
+                literal.op == hx.cot_obj
+                and ida_bytes.get_strlit_contents(literal.obj_ea, -1, idc.STRTYPE_C) == b"CloseSocket"
+            ):
                 helpers.add(target)
         return {"helper_vas": sorted(helpers)} if helpers else None
 
@@ -137,11 +155,17 @@ def _probe_channel_calls(func_va, mode, target_va=0, root_fields=()):
             return True
         if expr.op == hx.cot_call:
             # GCC keeps the (this, socket, address*) lookup out of line.
-            return True if (
-                direct_target(expr.x) not in (None, target_va)
-                and expr.a.size() == 3 and is_arg(expr.a[0], receiver)
-                and is_arg(expr.a[1], cfunc.argidx[1]) and local_address(expr.a[2])
-            ) else None
+            return (
+                True
+                if (
+                    direct_target(expr.x) not in (None, target_va)
+                    and expr.a.size() == 3
+                    and is_arg(expr.a[0], receiver)
+                    and is_arg(expr.a[1], cfunc.argidx[1])
+                    and local_address(expr.a[2])
+                )
+                else None
+            )
         if expr.op != hx.cot_var or expr.v.idx in seen or expr.v.idx in cfunc.argidx:
             return None
         definitions = assignments.get(expr.v.idx, [])
@@ -173,7 +197,11 @@ async def probe_channel_calls(session, func_va, mode, target_va=0, root_fields=(
     payload = json.loads(parsed.get("result") or "null")
     if payload is None:
         return None
-    keys = ("helper_vas",) if mode == "close_helper" else (("call_vas", "receiver_fields") if mode == "remove" else ("call_vas",))
+    keys = (
+        ("helper_vas",)
+        if mode == "close_helper"
+        else (("call_vas", "receiver_fields") if mode == "remove" else ("call_vas",))
+    )
     if not isinstance(payload, dict):
         raise ValueError("invalid channel-removal probe result")
     for key in keys:
@@ -201,7 +229,9 @@ async def resolve_remove_pair(session, new_binary_dir, platform, debug=False):
                 helpers.update(result["helper_vas"])
         if len(helpers) != 1:
             if debug:
-                print(f"    Preprocess: expected one close helper from {len(owners or ())} owners, found {len(helpers)}")
+                print(
+                    f"    Preprocess: expected one close helper from {len(owners or ())} owners, found {len(helpers)}"
+                )
             return None
         helper = next(iter(helpers))
         callers = await _collect_single_call_or_jump_xref_func_starts_for_ea(
@@ -229,5 +259,7 @@ async def resolve_remove_pair(session, new_binary_dir, platform, debug=False):
             print(f"    Preprocess: channel removal proof failed: {exc}")
         return None
     if debug:
-        print(f"    Preprocess: close helper {hex(helper)} proves removal pair at slots {candidates[0]}, {candidates[0] + BY_ADDRESS_SLOT_DELTA}")
+        print(
+            f"    Preprocess: close helper {hex(helper)} proves removal pair at slots {candidates[0]}, {candidates[0] + BY_ADDRESS_SLOT_DELTA}"
+        )
     return entries, candidates[0]

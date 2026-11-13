@@ -4,7 +4,10 @@
 from ida_preprocessor_scripts._network_registry_vfunc_common import VFUNC_FIELDS, preprocess_registry_vfuncs
 
 TARGETS = (
-    ("CNetworkMessages_RegisterNetworkFieldChangeCallbackInternal", "NetSerializers_RegisterNetworkFieldChangeCallback"),
+    (
+        "CNetworkMessages_RegisterNetworkFieldChangeCallbackInternal",
+        "NetSerializers_RegisterNetworkFieldChangeCallback",
+    ),
     ("CNetworkMessages_RegisterFieldChangeCallbackPriority", "NetSerializers_RegisterFieldChangeCallbackPriority"),
     ("CNetworkMessages_ComputeOrderForPriority", "NetSerializers_ComputeOrderForPriority"),
 )

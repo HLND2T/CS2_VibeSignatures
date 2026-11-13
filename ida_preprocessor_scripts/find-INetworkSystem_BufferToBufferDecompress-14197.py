@@ -15,13 +15,18 @@ VTABLE_CLASS = "CNetworkSystem"
 # 14197 passes this, compressed bytes, byte count, and a growable output container.
 DECOMPRESSION_CALL_ARITY = 4
 TARGET_FUNCTION_NAMES = [TARGET]
-GENERATE_YAML_DESIRED_FIELDS = [
-    (TARGET, ["func_name", "vfunc_sig", "vfunc_offset", "vfunc_index", "vtable_name"])
-]
+GENERATE_YAML_DESIRED_FIELDS = [(TARGET, ["func_name", "vfunc_sig", "vfunc_offset", "vfunc_index", "vtable_name"])]
 
 
 async def preprocess_skill(
-    session, skill_name, expected_outputs, old_yaml_map, new_binary_dir, platform, image_base, debug=False,
+    session,
+    skill_name,
+    expected_outputs,
+    old_yaml_map,
+    new_binary_dir,
+    platform,
+    image_base,
+    debug=False,
 ):
     _ = skill_name, old_yaml_map, image_base
     output = resolve_output_path(expected_outputs, new_binary_dir, TARGET, platform)
@@ -38,8 +43,11 @@ async def preprocess_skill(
         if parser_va <= 0:
             return False
         calls = await probe_global_receiver_calls(
-            session=session, func_va=parser_va, offsets=(slot * SLOT_SIZE,),
-            arities=(DECOMPRESSION_CALL_ARITY,), debug=debug,
+            session=session,
+            func_va=parser_va,
+            offsets=(slot * SLOT_SIZE,),
+            arities=(DECOMPRESSION_CALL_ARITY,),
+            debug=debug,
         )
     except Exception as exc:
         if debug:
@@ -52,8 +60,14 @@ async def preprocess_skill(
     )
     if not isinstance(generated, dict) or not generated.get("vfunc_sig"):
         return False
-    write_func_yaml(output, {
-        "func_name": TARGET, "vfunc_sig": generated["vfunc_sig"],
-        "vfunc_offset": hex(slot * SLOT_SIZE), "vfunc_index": slot, "vtable_name": "INetworkSystem",
-    })
+    write_func_yaml(
+        output,
+        {
+            "func_name": TARGET,
+            "vfunc_sig": generated["vfunc_sig"],
+            "vfunc_offset": hex(slot * SLOT_SIZE),
+            "vfunc_index": slot,
+            "vtable_name": "INetworkSystem",
+        },
+    )
     return True

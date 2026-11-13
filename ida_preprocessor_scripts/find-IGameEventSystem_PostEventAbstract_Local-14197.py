@@ -22,7 +22,14 @@ GENERATE_YAML_DESIRED_FIELDS = [
 
 
 async def preprocess_skill(
-    session, skill_name, expected_outputs, old_yaml_map, new_binary_dir, platform, image_base, debug=False,
+    session,
+    skill_name,
+    expected_outputs,
+    old_yaml_map,
+    new_binary_dir,
+    platform,
+    image_base,
+    debug=False,
 ):
     """Derive the unique this-dispatch slot and sign one proven memory-access instruction."""
     _ = skill_name, old_yaml_map, image_base
@@ -67,8 +74,13 @@ async def preprocess_skill(
             continue
         write_func_yaml(
             outputs[0],
-            {"func_name": TARGET_FUNCTION_NAMES[0], "vfunc_sig": generated["vfunc_sig"],
-             "vfunc_offset": hex(offset), "vfunc_index": offset // SLOT_SIZE, "vtable_name": "IGameEventSystem"},
+            {
+                "func_name": TARGET_FUNCTION_NAMES[0],
+                "vfunc_sig": generated["vfunc_sig"],
+                "vfunc_offset": hex(offset),
+                "vfunc_index": offset // SLOT_SIZE,
+                "vtable_name": "IGameEventSystem",
+            },
         )
         if debug:
             print(f"    Preprocess: local event dispatch uses slot {offset // SLOT_SIZE}, anchor {hex(site)}")

@@ -55,6 +55,9 @@ _probe_stats_group_calls = _probe_global_receiver_calls
 
 async def probe_stats_group_calls(session, func_va, slots, platform, debug=False):
     return await probe_global_receiver_calls(
-        session=session, func_va=func_va,
-        offsets=[slot * SLOT_SIZE for slot in slots], arities=GROUP_CALL_ARITIES[platform], debug=debug,
+        session=session,
+        func_va=func_va,
+        offsets=[slot * SLOT_SIZE for slot in slots],
+        arities=GROUP_CALL_ARITIES[platform],
+        debug=debug,
     )

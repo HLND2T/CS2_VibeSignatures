@@ -18,7 +18,9 @@ REGISTRY_HELPER = "ida_preprocessor_scripts._network_registry_vfunc_common"
 
 
 class TestNetworkSerializerVfuncPreprocessor(unittest.IsolatedAsyncioTestCase):
-    async def _run(self, directory, *, platform="linux", owners=None, callers=None, entries=None, signature_ok=True, script=SCRIPT):
+    async def _run(
+        self, directory, *, platform="linux", owners=None, callers=None, entries=None, signature_ok=True, script=SCRIPT
+    ):
         finder = load_module(script, "network_serializer_vfuncs_14197")
         entries = entries if entries is not None else {2: 0x1200, 5: 0x1500}
         if entries:
@@ -116,9 +118,7 @@ class TestNetworkSerializerVfuncPreprocessor(unittest.IsolatedAsyncioTestCase):
 
     async def test_rejects_an_implementation_shared_by_multiple_vtable_slots(self):
         with TemporaryDirectory() as directory:
-            result, payloads, _callers, generate = await self._run(
-                directory, entries={2: 0x1200, 3: 0x1200, 5: 0x1500}
-            )
+            result, payloads, _callers, generate = await self._run(directory, entries={2: 0x1200, 3: 0x1200, 5: 0x1500})
         self.assertFalse(result)
         self.assertEqual([None, None], payloads)
         generate.assert_not_awaited()

@@ -30,16 +30,17 @@ class TestGlobalReceiverResultFlow(unittest.TestCase):
         def call(offset, site, argument, receiver=0x7000):
             def receiver_expr():
                 if mode in ("array", "pointer_array"):
-                    return N(op="idx", x=N(op="obj", obj_ea=receiver - 16,
-                                          type=N(is_array=lambda: mode == "array")),
-                             y=N(op="num", numval=lambda: 2), type=N(get_size=lambda: 8))
+                    return N(
+                        op="idx",
+                        x=N(op="obj", obj_ea=receiver - 16, type=N(is_array=lambda: mode == "array")),
+                        y=N(op="num", numval=lambda: 2),
+                        type=N(get_size=lambda: 8),
+                    )
                 return N(op="obj", obj_ea=receiver)
 
-            table = N(op="ptr", x=receiver_expr(),
-                      type=N(is_ptr=lambda: False))
+            table = N(op="ptr", x=receiver_expr(), type=N(is_ptr=lambda: False))
             target = N(op="ptr", x=N(op="add", x=table, y=N(op="num", numval=lambda: offset)))
-            return N(op="call", x=target, ea=site,
-                     a=Arguments([receiver_expr(), argument]))
+            return N(op="call", x=target, ea=site, a=Arguments([receiver_expr(), argument]))
 
         lookup = call(0x98, 0x3000, var(0))
         assignments = [N(op="asg", x=var(1), y=lookup)]
@@ -72,9 +73,15 @@ class TestGlobalReceiverResultFlow(unittest.TestCase):
                 for expr in body:
                     self.visit_expr(expr)
 
-        hx = N(decompile=lambda address: N(body=assignments + [lookup, consumer]),
-               ctree_visitor_t=Visitor, CV_FAST=0,
-               **{f"cot_{op}": op for op in ("cast", "obj", "ptr", "idx", "num", "add", "call", "asg", "var", "preinc", "ref")})
+        hx = N(
+            decompile=lambda address: N(body=assignments + [lookup, consumer]),
+            ctree_visitor_t=Visitor,
+            CV_FAST=0,
+            **{
+                f"cot_{op}": op
+                for op in ("cast", "obj", "ptr", "idx", "num", "add", "call", "asg", "var", "preinc", "ref")
+            },
+        )
         with patch.dict("sys.modules", {"ida_hexrays": hx}):
             return helper._probe_global_receiver_calls(0x1000, [0x98, 0x30], [2, 2], (0, 1, 1))
 
@@ -84,7 +91,17 @@ class TestGlobalReceiverResultFlow(unittest.TestCase):
                 self.assertEqual(0x7000, self._probe(mode)["receiver"])
 
     def test_rejects_unproven_or_ambiguous_return_flow_and_other_receivers(self):
-        for mode in ("missing", "wrong", "ambiguous", "repeated", "cycle", "receiver", "pointer_array", "mutated", "escaped"):
+        for mode in (
+            "missing",
+            "wrong",
+            "ambiguous",
+            "repeated",
+            "cycle",
+            "receiver",
+            "pointer_array",
+            "mutated",
+            "escaped",
+        ):
             with self.subTest(mode=mode):
                 self.assertIsNone(self._probe(mode))
 
@@ -98,8 +115,13 @@ class TestByIdFinder(unittest.IsolatedAsyncioTestCase):
             engine.mkdir()
             network.mkdir()
             table = {index: "0x1400", index + 1: "0x1500", 6: "0x1600"}
-            priority = dict(func_name=PRIORITY, func_va="0x1400", vtable_name="CNetworkMessages",
-                            vfunc_index=index, vfunc_offset=hex(index * 8))
+            priority = dict(
+                func_name=PRIORITY,
+                func_va="0x1400",
+                vtable_name="CNetworkMessages",
+                vfunc_index=index,
+                vfunc_offset=hex(index * 8),
+            )
             info = dict(func_name=INFO, vtable_name="INetworkMessages", vfunc_index=6, vfunc_offset="0x30")
             if mutation == "priority":
                 priority["func_va"] = "0x9999"
@@ -109,15 +131,25 @@ class TestByIdFinder(unittest.IsolatedAsyncioTestCase):
                 info["vfunc_offset"] = "0x38"
             elif mutation == "info_class":
                 info["vtable_name"] = "OtherInterface"
-            for root, name, payload in ((network, "CNetworkMessages_vtable", {"vtable_entries": table}),
-                                        (network, PRIORITY, priority), (engine, INFO, info)):
+            for root, name, payload in (
+                (network, "CNetworkMessages_vtable", {"vtable_entries": table}),
+                (network, PRIORITY, priority),
+                (engine, INFO, info),
+            ):
                 (root / f"{name}.linux.yaml").write_text(yaml.safe_dump(payload), encoding="utf-8")
             output = engine / f"{NAME}.linux.yaml"
             if mutation == "output":
                 output = network / f"{NAME}.linux.yaml"
-            matches = {0x1000 + i * 0x100: {"receiver": receiver, "calls": [
-                {"offset": (index + 1) * 8, "inst_va": 0x3000 + i * 0x10},
-                {"offset": 0x30, "inst_va": 0x4000 + i * 0x10}]} for i, receiver in enumerate(receivers)}
+            matches = {
+                0x1000 + i * 0x100: {
+                    "receiver": receiver,
+                    "calls": [
+                        {"offset": (index + 1) * 8, "inst_va": 0x3000 + i * 0x10},
+                        {"offset": 0x30, "inst_va": 0x4000 + i * 0x10},
+                    ],
+                }
+                for i, receiver in enumerate(receivers)
+            }
             calls = []
 
             async def signature(**kwargs):
@@ -132,8 +164,9 @@ class TestByIdFinder(unittest.IsolatedAsyncioTestCase):
                 patch.object(finder, "probe_global_receiver_calls", probe),
                 patch.object(finder, "preprocess_gen_vfunc_sig_via_mcp", AsyncMock(side_effect=signature)),
             ):
-                result = await finder.preprocess_skill(AsyncMock(), "finder", [str(output)], {},
-                                                       str(engine), "linux", 0)
+                result = await finder.preprocess_skill(
+                    AsyncMock(), "finder", [str(output)], {}, str(engine), "linux", 0
+                )
             payload = yaml.safe_load(output.read_text(encoding="utf-8")) if output.exists() else None
             return result, payload, calls, probe
 
@@ -150,7 +183,10 @@ class TestByIdFinder(unittest.IsolatedAsyncioTestCase):
         self.assertEqual([0x3000, 0x3010], [call["inst_va"] for call in calls])
 
     async def test_rejects_stale_metadata_missing_context_and_conflicting_receivers(self):
-        cases = [dict(mutation=value) for value in ("priority", "missing_slot", "info_offset", "info_class", "transport", "output")]
+        cases = [
+            dict(mutation=value)
+            for value in ("priority", "missing_slot", "info_offset", "info_class", "transport", "output")
+        ]
         cases += [dict(receivers=()), dict(receivers=(0x7000, 0x8000)), dict(fail_all=True)]
         for kwargs in cases:
             with self.subTest(kwargs=kwargs):

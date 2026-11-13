@@ -24,9 +24,15 @@ def _seed_anchor(directory, platform, name, index, address, entries):
     )
     Path(directory, f"{name}.{platform}.yaml").write_text(
         yaml.safe_dump(
-            {"func_name": name, "func_va": hex(address), "vtable_name": VTABLE,
-             "vfunc_index": index, "vfunc_offset": hex(index * 8)}
-        ), encoding="utf-8",
+            {
+                "func_name": name,
+                "func_va": hex(address),
+                "vtable_name": VTABLE,
+                "vfunc_index": index,
+                "vfunc_offset": hex(index * 8),
+            }
+        ),
+        encoding="utf-8",
     )
 
 
@@ -52,7 +58,9 @@ class TestReceiverVcallSites(unittest.TestCase):
             if unknown_assignment:
                 body.append(N(op="asg", x=variable(20), y=N(op="obj", obj_ea=0x9000)))
             target = variable(20)
-        body.append(N(op="call", x=target, a=Arguments([variable(8 if foreign else 7)]), ea=0x1110 if hoisted else 0x1100))
+        body.append(
+            N(op="call", x=target, a=Arguments([variable(8 if foreign else 7)]), ea=0x1110 if hoisted else 0x1100)
+        )
         if extra_offset is not None:
             body.append(N(op="call", x=slot(extra_offset, 0x1200), a=Arguments([variable(7)]), ea=0x1200))
 
@@ -65,9 +73,17 @@ class TestReceiverVcallSites(unittest.TestCase):
                     self.visit_expr(expression)
 
         hx = N(
-            decompile=lambda address: N(argidx=[7], body=body), ctree_visitor_t=Visitor, CV_FAST=0,
-            cot_cast="cast", cot_var="var", cot_idx="idx", cot_num="num", cot_ptr="ptr",
-            cot_add="add", cot_asg="asg", cot_call="call",
+            decompile=lambda address: N(argidx=[7], body=body),
+            ctree_visitor_t=Visitor,
+            CV_FAST=0,
+            cot_cast="cast",
+            cot_var="var",
+            cot_idx="idx",
+            cot_num="num",
+            cot_ptr="ptr",
+            cot_add="add",
+            cot_asg="asg",
+            cot_call="call",
         )
         with patch.dict("sys.modules", {"ida_hexrays": hx, "ida_idaapi": N(BADADDR=-1)}):
             if include_sites:
@@ -105,9 +121,13 @@ class TestPostEventAbstract2Finder(unittest.IsolatedAsyncioTestCase):
             patch(GENERATOR, AsyncMock(return_value=signature)),
         ):
             result = await finder.preprocess_skill(
-                session=AsyncMock(), skill_name="finder", expected_outputs=[str(output)],
-                old_yaml_map={str(output): "obsolete-signature.yaml"}, new_binary_dir=directory,
-                platform=platform, image_base=0,
+                session=AsyncMock(),
+                skill_name="finder",
+                expected_outputs=[str(output)],
+                old_yaml_map={str(output): "obsolete-signature.yaml"},
+                new_binary_dir=directory,
+                platform=platform,
+                image_base=0,
             )
         payload = yaml.safe_load(output.read_text(encoding="utf-8")) if output.exists() else None
         return result, payload, collect
@@ -115,7 +135,9 @@ class TestPostEventAbstract2Finder(unittest.IsolatedAsyncioTestCase):
     async def test_excludes_the_validated_sibling_and_derives_platform_specific_slots(self):
         for platform, index, users in (("linux", 6, {0x1000, 0x2000}), ("windows", 8, {0x1000})):
             with self.subTest(platform=platform), TemporaryDirectory() as directory:
-                result, payload, _collect = await self._run(directory, platform=platform, target_index=index, users=users)
+                result, payload, _collect = await self._run(
+                    directory, platform=platform, target_index=index, users=users
+                )
                 self.assertTrue(result)
                 self.assertEqual(index, payload["vfunc_index"])
                 self.assertEqual("0x1000", payload["func_va"])
@@ -152,8 +174,13 @@ class TestLocalEventInterfaceFinder(unittest.IsolatedAsyncioTestCase):
         results = [None, {"vfunc_sig": "48 8B 40 20 48 85 C0"}] if signature_results is None else signature_results
         with patch.object(finder, "preprocess_gen_vfunc_sig_via_mcp", AsyncMock(side_effect=results)) as generate:
             result = await finder.preprocess_skill(
-                session=session, skill_name="finder", expected_outputs=[str(output)], old_yaml_map={},
-                new_binary_dir=directory, platform="linux", image_base=0,
+                session=session,
+                skill_name="finder",
+                expected_outputs=[str(output)],
+                old_yaml_map={},
+                new_binary_dir=directory,
+                platform="linux",
+                image_base=0,
             )
         payload = yaml.safe_load(output.read_text(encoding="utf-8")) if output.exists() else None
         return result, payload, session, generate
@@ -168,7 +195,8 @@ class TestLocalEventInterfaceFinder(unittest.IsolatedAsyncioTestCase):
 
     async def test_rejects_ambiguous_malformed_unaligned_or_missing_slot_probes(self):
         for probe in (
-            [], True,
+            [],
+            True,
             [{"offset": 0x20, "inst_vas": []}],
             [{"offset": 0x21, "inst_vas": [0x3000]}],
             [{"offset": 0x80, "inst_vas": [0x3000]}],

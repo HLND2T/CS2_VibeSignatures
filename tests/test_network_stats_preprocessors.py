@@ -184,17 +184,33 @@ class TestSendNetworkStatsFinder(unittest.IsolatedAsyncioTestCase):
             if fail_sig:
                 return None
             address = kwargs["func_va"]
-            return {"func_va": hex(address), "func_rva": hex(address), "func_size": "0x90", "func_sig": "55 48 89 E5 41 57"}
+            return {
+                "func_va": hex(address),
+                "func_rva": hex(address),
+                "func_size": "0x90",
+                "func_sig": "55 48 89 E5 41 57",
+            }
 
         with (
             patch.object(finder, "_collect_xref_func_starts_for_string", AsyncMock(side_effect=[owners, error_owners])),
-            patch.object(finder, "_collect_single_call_or_jump_xref_func_starts_for_ea", AsyncMock(return_value=callers)) as caller_probe,
-            patch.object(finder, "probe_stats_group_calls", AsyncMock(side_effect=lambda **kwargs: matches.get(kwargs["func_va"]))),
+            patch.object(
+                finder, "_collect_single_call_or_jump_xref_func_starts_for_ea", AsyncMock(return_value=callers)
+            ) as caller_probe,
+            patch.object(
+                finder,
+                "probe_stats_group_calls",
+                AsyncMock(side_effect=lambda **kwargs: matches.get(kwargs["func_va"])),
+            ),
             patch.object(finder, "preprocess_gen_func_sig_via_mcp", AsyncMock(side_effect=signature)) as generate,
         ):
             result = await finder.preprocess_skill(
-                session=AsyncMock(), skill_name="finder", expected_outputs=[str(output)], old_yaml_map={},
-                new_binary_dir=directory, platform="linux", image_base=0,
+                session=AsyncMock(),
+                skill_name="finder",
+                expected_outputs=[str(output)],
+                old_yaml_map={},
+                new_binary_dir=directory,
+                platform="linux",
+                image_base=0,
             )
         payload = yaml.safe_load(output.read_text(encoding="utf-8")) if output.exists() else None
         return result, payload, caller_probe, generate
@@ -250,8 +266,13 @@ class TestNetworkGroupInterfaceFinder(unittest.IsolatedAsyncioTestCase):
             patch.object(finder, "preprocess_gen_vfunc_sig_via_mcp", AsyncMock(side_effect=signature)),
         ):
             result = await finder.preprocess_skill(
-                session=AsyncMock(), skill_name="finder", expected_outputs=[str(path) for path in outputs],
-                old_yaml_map={}, new_binary_dir=directory, platform=platform, image_base=0,
+                session=AsyncMock(),
+                skill_name="finder",
+                expected_outputs=[str(path) for path in outputs],
+                old_yaml_map={},
+                new_binary_dir=directory,
+                platform=platform,
+                image_base=0,
             )
         payloads = [yaml.safe_load(path.read_text(encoding="utf-8")) if path.exists() else None for path in outputs]
         return result, payloads, generated_calls

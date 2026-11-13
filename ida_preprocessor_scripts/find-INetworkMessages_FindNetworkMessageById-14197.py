@@ -20,9 +20,7 @@ VTABLE_CLASS = "CNetworkMessages"
 # FindNetworkMessageById immediately follows the priority registration method in 14197.
 BY_ID_SLOT_DELTA = 1
 TARGET_FUNCTION_NAMES = [TARGET]
-GENERATE_YAML_DESIRED_FIELDS = [
-    (TARGET, ["func_name", "vfunc_sig", "vfunc_offset", "vfunc_index", "vtable_name"])
-]
+GENERATE_YAML_DESIRED_FIELDS = [(TARGET, ["func_name", "vfunc_sig", "vfunc_offset", "vfunc_index", "vtable_name"])]
 
 
 def load_lookup_offsets(new_binary_dir, platform, debug=False):
@@ -50,7 +48,14 @@ def load_lookup_offsets(new_binary_dir, platform, debug=False):
 
 
 async def preprocess_skill(
-    session, skill_name, expected_outputs, old_yaml_map, new_binary_dir, platform, image_base, debug=False,
+    session,
+    skill_name,
+    expected_outputs,
+    old_yaml_map,
+    new_binary_dir,
+    platform,
+    image_base,
+    debug=False,
 ):
     _ = skill_name, old_yaml_map, image_base
     offsets = load_lookup_offsets(new_binary_dir, platform, debug=debug)
@@ -66,8 +71,12 @@ async def preprocess_skill(
         matches = []
         for owner in sorted(owners or ()):
             match = await probe_global_receiver_calls(
-                session=session, func_va=owner, offsets=offsets, arities=(2, 2),
-                result_flow=(0, 1, 1), debug=debug,
+                session=session,
+                func_va=owner,
+                offsets=offsets,
+                arities=(2, 2),
+                result_flow=(0, 1, 1),
+                debug=debug,
             )
             if match is not None:
                 matches.append(match)
@@ -85,12 +94,15 @@ async def preprocess_skill(
         )
         if not isinstance(generated, dict) or not generated.get("vfunc_sig"):
             continue
-        write_func_yaml(output, {
-            "func_name": TARGET,
-            "vfunc_sig": generated["vfunc_sig"],
-            "vfunc_offset": hex(offsets[0]),
-            "vfunc_index": offsets[0] // SLOT_SIZE,
-            "vtable_name": "INetworkMessages",
-        })
+        write_func_yaml(
+            output,
+            {
+                "func_name": TARGET,
+                "vfunc_sig": generated["vfunc_sig"],
+                "vfunc_offset": hex(offsets[0]),
+                "vfunc_index": offsets[0] // SLOT_SIZE,
+                "vtable_name": "INetworkMessages",
+            },
+        )
         return True
     return False

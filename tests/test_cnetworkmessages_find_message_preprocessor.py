@@ -10,8 +10,7 @@ from ida_preprocessor_test_support import load_module, py_eval_payload
 
 
 SCRIPT = (
-    Path(__file__).resolve().parents[1]
-    / "ida_preprocessor_scripts/find-CNetworkMessages_FindNetworkMessage-14197.py"
+    Path(__file__).resolve().parents[1] / "ida_preprocessor_scripts/find-CNetworkMessages_FindNetworkMessage-14197.py"
 )
 SIGNATURE_GENERATOR = "ida_preprocessor_scripts._vtable_slot_anchor_common.preprocess_gen_func_sig_via_mcp"
 PARTIAL_NAME = "CNetworkMessages_FindNetworkMessagePartial"

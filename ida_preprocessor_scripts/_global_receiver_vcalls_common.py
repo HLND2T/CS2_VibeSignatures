@@ -63,11 +63,26 @@ def _probe_global_receiver_calls(func_va, expected_offsets, expected_arities, re
     assignments = {}
     if result_flow is not None:
         other_writes = {
-            getattr(hx, name, None) for name in (
-                "cot_asgbor", "cot_asgxor", "cot_asgband", "cot_asgadd", "cot_asgsub",
-                "cot_asgmul", "cot_asgsshr", "cot_asgushr", "cot_asgshl", "cot_asgsdiv",
-                "cot_asgudiv", "cot_asgsmod", "cot_asgumod", "cot_preinc", "cot_predec",
-                "cot_postinc", "cot_postdec", "cot_ref",
+            getattr(hx, name, None)
+            for name in (
+                "cot_asgbor",
+                "cot_asgxor",
+                "cot_asgband",
+                "cot_asgadd",
+                "cot_asgsub",
+                "cot_asgmul",
+                "cot_asgsshr",
+                "cot_asgushr",
+                "cot_asgshl",
+                "cot_asgsdiv",
+                "cot_asgudiv",
+                "cot_asgsmod",
+                "cot_asgumod",
+                "cot_preinc",
+                "cot_predec",
+                "cot_postinc",
+                "cot_postdec",
+                "cot_ref",
             )
         } - {None}
 

@@ -58,6 +58,7 @@ def _probe_receiver_vcall_offsets(func_va, include_sites=False):
     proven load/call anchors, including slot loads hoisted into function-pointer locals.
     """
     import ida_hexrays as hx
+
     if include_sites:
         from ida_idaapi import BADADDR
 
@@ -155,7 +156,9 @@ def _probe_receiver_vcall_offsets(func_va, include_sites=False):
     Assignments().apply_to(cfunc.body, None)
     Calls().apply_to(cfunc.body, None)
     if include_sites:
-        return [{"offset": offset, "inst_vas": sorted(sites_by_offset.get(offset, set()))} for offset in sorted(offsets)]
+        return [
+            {"offset": offset, "inst_vas": sorted(sites_by_offset.get(offset, set()))} for offset in sorted(offsets)
+        ]
     return sorted(offsets)
 
 
