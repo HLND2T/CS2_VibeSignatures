@@ -9,6 +9,10 @@ from ida_analyze_util import (
     _collect_xref_func_starts_for_string,
     parse_mcp_result,
 )
+from ida_preprocessor_scripts._elf_import_common import (
+    _read_elf_import_bindings,
+    _resolve_imported_comparison_names,
+)
 from ida_preprocessor_scripts._vtable_slot_anchor_common import _load_vtable_entries
 
 VTABLE_CLASS = "CNetworkSystem"
@@ -16,6 +20,84 @@ REMOVE = "CNetworkSystem_RemoveNetChannel"
 BY_ADDRESS = "CNetworkSystem_RemoveNetChannelByAddress"
 # The address-based overload immediately follows removal in INetworkSystem.
 BY_ADDRESS_SLOT_DELTA = 1
+
+
+def _repair_thread_id_import(func_vas, read_elf_imports, resolve_imports):
+    """Run inside IDA: correct the verified zero-argument import before inferring callers."""
+    import ida_hexrays as hx
+    import ida_idp
+    import ida_loader
+    import ida_nalt
+    import ida_typeinf
+    import ida_ua
+    import idautils
+
+    bindings = read_elf_imports(
+        [ida_loader.get_path(ida_loader.PATH_TYPE_CMD), ida_nalt.get_input_file_path()],
+        ida_nalt.get_imagebase(),
+        ida_nalt.retrieve_input_file_md5(),
+    )
+    targets = set()
+    for func_va in func_vas:
+        for site in idautils.FuncItems(func_va):
+            insn = ida_ua.insn_t()
+            if (
+                ida_ua.decode_insn(insn, site) <= 0
+                or not insn.get_canon_feature() & ida_idp.CF_CALL
+                or insn.ops[0].type != ida_ua.o_near
+            ):
+                continue
+            target = insn.ops[0].addr
+            # Require the verified ELF relocation, independent of IDB names/types.
+            imports = resolve_imports(target, {}, bindings)
+            if (
+                len(imports) == 1
+                and imports[0].get("name") == "ThreadGetCurrentId"
+                and imports[0].get("binding_kind") == "elf_relocation"
+            ):
+                targets.add(target)
+    if targets:
+        prototype = ida_typeinf.tinfo_t()
+        if not ida_typeinf.parse_decl(
+            prototype, None, "unsigned long long __fastcall ThreadGetCurrentId(void);", ida_typeinf.PT_SIL
+        ):
+            raise ValueError("unable to parse ThreadGetCurrentId prototype")
+        for target in sorted(targets):
+            if not ida_typeinf.apply_tinfo(target, prototype, ida_typeinf.TINFO_DEFINITE):
+                raise ValueError(f"unable to apply verified ThreadGetCurrentId prototype at {hex(target)}")
+        # A previous decompilation may have propagated phantom arguments into
+        # removal and its sibling. Recompute both; retain the strict pair proof.
+        for func_va in func_vas:
+            hx.mark_cfunc_dirty(func_va, False)
+    return {"normalized_targets": sorted(targets)}
+
+
+async def repair_channel_imports(session, func_vas, platform, debug=False):
+    if platform != "linux":
+        return
+    code = (
+        inspect.getsource(_read_elf_import_bindings)
+        + "\n"
+        + inspect.getsource(_resolve_imported_comparison_names)
+        + "\n"
+        + inspect.getsource(_repair_thread_id_import)
+        + f"\nimport json\nresult = json.dumps(_repair_thread_id_import({list(func_vas)!r}, _read_elf_import_bindings, _resolve_imported_comparison_names))\n"
+    )
+    parsed = parse_mcp_result(await session.call_tool(name="py_eval", arguments={"code": code}))
+    if parsed.get("stderr"):
+        raise ValueError(f"channel-removal import normalization failed: {parsed['stderr']}")
+    payload = json.loads(parsed.get("result") or "null")
+    targets = payload.get("normalized_targets") if isinstance(payload, dict) else None
+    if (
+        not isinstance(targets, list)
+        or any(type(target) is not int or target <= 0 for target in targets)
+        or len(targets) != len(set(targets))
+    ):
+        raise ValueError("invalid channel-removal import normalization result")
+    if debug and targets:
+        print(
+            f"    Preprocess: normalized verified ThreadGetCurrentId import(s): {[hex(target) for target in targets]}"
+        )
 
 
 def _probe_channel_calls(func_va, mode, target_va=0, root_fields=(), debug=False):
@@ -258,6 +340,7 @@ async def resolve_remove_pair(session, new_binary_dir, platform, debug=False):
             sibling = entries.get(slot + BY_ADDRESS_SLOT_DELTA)
             if address not in (callers or ()) or sibling is None or sibling == address:
                 continue
+            await repair_channel_imports(session, (address, sibling), platform, debug=debug)
             root = await probe_channel_calls(session, address, "remove", target_va=helper, debug=debug)
             if root is None:
                 continue
