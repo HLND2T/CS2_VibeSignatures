@@ -22,7 +22,6 @@ PLATFORMS = ("windows", "linux")
 WORKER_SCHEMA = "platform-analysis-worker:v1"
 LOCK_ROOT_ENV = "CS2VIBE_PARALLEL_LOCK_ROOT"
 POLL_SECONDS = 0.1
-HEARTBEAT_SECONDS = 30
 
 
 @contextlib.contextmanager
@@ -94,7 +93,7 @@ def stop_process(process):
     process.wait(timeout=10)
 
 
-def run_processes(commands, logs, *, env=None, heartbeat=None):
+def run_processes(commands, logs, *, env=None):
     """Start every worker before waiting; preserve both logs even after one fails."""
     logs = Path(logs)
     logs.mkdir(parents=True, exist_ok=True)
@@ -127,11 +126,7 @@ def run_processes(commands, logs, *, env=None, heartbeat=None):
                 results[platform] = -1
                 timing[platform] = time.monotonic() - timing[platform]
         pending = set(processes)
-        heartbeat_at = time.monotonic()
         while pending:
-            if heartbeat is not None and time.monotonic() - heartbeat_at >= HEARTBEAT_SECONDS:
-                heartbeat()
-                heartbeat_at = time.monotonic()
             for platform in tuple(pending):
                 code = processes[platform].poll()
                 if code is not None:
@@ -215,27 +210,27 @@ def merge_artifacts(worker, target, owned, seed):
         shutil.copyfile(Path(worker) / relative, destination)
 
 
-def worker_document(args, reporting, totals, aborted):
+def worker_document(args, execution, totals, aborted):
     return {
         "schema": WORKER_SCHEMA,
         "platform": args.platforms[0],
-        "run_id": reporting.run_id,
+        "run_id": execution.run_id,
         "config_sha256": hashlib.sha256(Path(args.configyaml).read_bytes()).hexdigest(),
         "artifact_root": str(Path(args.artifactdir).resolve()),
         "totals": totals,
         "aborted": aborted,
-        "tasks": [reporting.task_record(node.id) for node in [*reporting.plan.jobs, *reporting.plan.nodes]],
+        "tasks": [execution.task_record(node.id) for node in [*execution.plan.jobs, *execution.plan.nodes]],
     }
 
 
-def import_worker(document, reporting, platform, worker_root, target_root, run_id, config_digest):
+def import_worker(document, execution, platform, worker_root, target_root, run_id, config_digest):
     """Require exact task coverage and translate isolated output paths to the final root."""
-    from process_reporter import TaskStatus
+    from analysis_execution import TaskStatus
 
     if not isinstance(document, dict):
         raise ValueError(f"Invalid {platform} worker document")
-    jobs = {job.id for job in reporting.plan.jobs if job.platform == platform}
-    expected = jobs | {node.id for node in reporting.plan.nodes if node.job_id in jobs}
+    jobs = {job.id for job in execution.plan.jobs if job.platform == platform}
+    expected = jobs | {node.id for node in execution.plan.nodes if node.job_id in jobs}
     tasks = document.get("tasks", [])
     totals = document.get("totals")
     if (
@@ -281,10 +276,10 @@ def import_worker(document, reporting, platform, worker_root, target_root, run_i
             }
         )
     for task in translated:
-        reporting.import_task_record(task)
+        execution.import_task_record(task)
 
 
-def run_parallel(args, modules, reporting, analyzer):
+def run_parallel(args, modules, execution, analyzer):
     """Prepare private roots, execute both CLI workers, and compose their records."""
     from gamesymbol_snapshot_lib.config import load_contract
 
@@ -332,7 +327,7 @@ def run_parallel(args, modules, reporting, analyzer):
         if game_root.exists():
             shutil.copytree(game_root, roots[platform] / str(args.gamever))
         reports[platform] = logs / platform / "worker.json"
-        run_ids[platform] = f"{reporting.run_id}-{platform}"
+        run_ids[platform] = f"{execution.run_id}-{platform}"
         commands[platform] = [
             "uv",
             "run",
@@ -356,18 +351,16 @@ def run_parallel(args, modules, reporting, analyzer):
             str(args.oldgamever) if args.oldgamever else "none",
             "-run_id",
             run_ids[platform],
-            "-process_reporter",
-            "none",
         ]
     env = {**os.environ, LOCK_ROOT_ENV: str(logs / "locks"), "PYTHONUNBUFFERED": "1"}
-    results = run_processes(commands, logs, env=env, heartbeat=lambda: reporting.reporter.heartbeat(reporting.run_id))
+    results = run_processes(commands, logs, env=env)
     totals, aborted, errors = [0, 0, 0], False, []
     for platform in PLATFORMS:
         try:
             document = json.loads(reports[platform].read_text(encoding="utf-8"))
             import_worker(
                 document,
-                reporting,
+                execution,
                 platform,
                 roots[platform],
                 target,

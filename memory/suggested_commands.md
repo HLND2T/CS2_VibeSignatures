@@ -46,7 +46,6 @@ Primary completion gates:
 uv run python format_repo_files.py --check
 uv run python tests/run_test_suite.py unit -b --durations 30
 uv run python tests/run_test_suite.py repository-contract -b --durations 30
-uv run python tests/run_test_suite.py redis-integration -b --durations 30
 uv run python tests/run_test_suite.py release-integration -b --durations 30
 uv run python tests/run_test_suite.py all -b --durations 30
 git diff --check

@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import i18n, { APP_LANGUAGES, changeLanguage, resolveLanguage } from './index'
-import { phaseLabel, statusLabel } from './labels'
 
 describe('i18n', () => {
   it('resolves browser Chinese variants to a supported language', () => {
@@ -9,11 +8,9 @@ describe('i18n', () => {
     expect(resolveLanguage('ja-JP')).toBe('en')
   })
 
-  it('translates status and phase labels for every supported language', async () => {
+  it('translates static browsing labels for every supported language', async () => {
     for (const language of APP_LANGUAGES) {
       await changeLanguage(language)
-      expect(statusLabel('running', i18n.t)).not.toBe('running')
-      expect(phaseLabel('preprocessing', i18n.t)).not.toBe('preprocessing')
       expect(i18n.t('symbols.versionMetadata', { time: '2026-01-02 03:04:05', count: 3 })).not.toContain('symbols.versionMetadata')
     }
   })

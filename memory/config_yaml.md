@@ -65,7 +65,7 @@ cpp_tests:
 
 ### `modules[]`
 - `name` (string): Canonical module key (also source artifact subdirectory name under `bin_artifacts/{gamever}/`).
-- `description` (string, optional): Human-readable module annotation sent through the ProcessReporter execution plan and shown in the Web UI. It does not affect analysis behavior.
+- `description` (string, optional): Human-readable module annotation retained in the local execution plan. It does not affect analysis behavior.
 - `path_windows` (string): Windows binary path (source-style path). Used to derive file name and download URL; local binary path resolves to `bin/{gamever}/{module}/{filename}`.
 - `path_linux` (string): Linux binary path with the same semantics as `path_windows`.
 - `skills` (list): Ordered-by-dependency skill definitions for `ida_analyze_bin.py`.
@@ -73,7 +73,7 @@ cpp_tests:
 
 ### `modules[].skills[]`
 - `name` (string): Skill identifier (e.g. `find-...`). Used as the executable skill key (mapped to `/.<skill>` style invocation and project skill assets).
-- `description` (string, optional): Human-readable skill annotation sent through the ProcessReporter execution plan and shown in the Web UI. It is metadata only and is ignored by dependency ordering and analysis execution.
+- `description` (string, optional): Human-readable skill annotation retained in the local execution plan. It is metadata only and is ignored by dependency ordering and analysis execution.
 - `expected_output` (list[string]): Output YAML artifacts expected from this skill. Supports `{platform}` placeholder expansion at runtime.
   - Used to skip already completed skills.
   - Used to verify that a run actually produced required files.

@@ -48,7 +48,6 @@ Analyzer 行为：
 - `-rename` 对已有 expected-output YAML 执行 rename/comment 后处理。
 - `-require_warm_idb` 要求预先存在 `.i64`/`.idb`。数据库缺失或 binary identity 校验失败时，当前 binary 会直接失败，不会删除数据库并通过 inline auto-analysis 重建。PR 与 release CI 在恢复已发布 cache generation 后始终启用该模式。
 
-进度上报、Redis Scheduler 和进度看板见[进度上报、调度与看板](process-monitoring.md)。
 
 ## `vcall_finder`
 

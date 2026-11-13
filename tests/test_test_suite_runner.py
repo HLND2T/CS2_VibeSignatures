@@ -11,9 +11,6 @@ class TestSuiteClassifier(unittest.TestCase):
         cases = {
             "tests.test_ida_analyze_util.TestLlmDecompileSupport.test_example": ("unit",),
             "tests.test_symbol_store_architecture.TestSymbolStoreArchitecture.test_example": ("repository-contract",),
-            "tests.test_process_reporter_redis.TestRedisProcessReporterIntegration.test_example": (
-                "redis-integration",
-            ),
             "tests.test_release_source_preflight.ReleaseSourcePreflightTests.test_example": ("release-integration",),
             "tests.test_unknown.TestUnknown.test_example": (),
         }

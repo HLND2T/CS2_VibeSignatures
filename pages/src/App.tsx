@@ -3,9 +3,7 @@ import { App as AntApp, ConfigProvider, theme } from 'antd'
 import enUS from 'antd/locale/en_US'
 import zhCN from 'antd/locale/zh_CN'
 import zhTW from 'antd/locale/zh_TW'
-import { BrowserRouter } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ApiProvider } from './app/ApiProvider'
 import { AppShell } from './app/AppShell'
 import { resolveLanguage } from './i18n'
 import { useTheme } from './theme/themeContext'
@@ -43,11 +41,7 @@ export default function App() {
     >
       <AntApp>
         <QueryClientProvider client={queryClient}>
-          <ApiProvider>
-            <BrowserRouter basename={import.meta.env.BASE_URL}>
-              <AppShell />
-            </BrowserRouter>
-          </ApiProvider>
+          <AppShell />
         </QueryClientProvider>
       </AntApp>
     </ConfigProvider>

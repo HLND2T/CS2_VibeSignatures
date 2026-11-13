@@ -32,7 +32,6 @@ uv run python tests/run_test_suite.py unit -b --durations 30
 
 ```bash
 uv run python tests/run_test_suite.py repository-contract -b --durations 30
-uv run python tests/run_test_suite.py redis-integration -b --durations 30
 uv run python tests/run_test_suite.py release-integration -b --durations 30
 ```
 
