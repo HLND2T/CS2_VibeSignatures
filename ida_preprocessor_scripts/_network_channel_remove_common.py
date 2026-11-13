@@ -18,15 +18,20 @@ BY_ADDRESS = "CNetworkSystem_RemoveNetChannelByAddress"
 BY_ADDRESS_SLOT_DELTA = 1
 
 
-def _probe_channel_calls(func_va, mode, target_va=0, root_fields=()):
+def _probe_channel_calls(func_va, mode, target_va=0, root_fields=(), debug=False):
     """Run inside IDA: identify the close helper, removal body, or its address-based caller."""
     import ida_hexrays as hx
 
+    def reject(reason):
+        if debug:
+            print(f"    Preprocess: channel-removal {mode} at {hex(func_va)}: {reason}")
+        return None
+
     cfunc = hx.decompile(func_va)
     if cfunc is None or not len(cfunc.argidx):
-        return None
+        return reject("decompilation has no receiver argument")
     if mode != "close_helper" and len(cfunc.argidx) != 3:
-        return None
+        return reject(f"expected 3 arguments, found {len(cfunc.argidx)}")
     receiver = cfunc.argidx[0]
 
     def uncast(expr):
@@ -100,7 +105,7 @@ def _probe_channel_calls(func_va, mode, target_va=0, root_fields=()):
 
     Expressions().apply_to(cfunc.body, None)
     if receiver in assignments:
-        return None
+        return reject("receiver is reassigned or its address escapes")
     if mode == "close_helper":
         import ida_bytes
         import idc
@@ -116,12 +121,18 @@ def _probe_channel_calls(func_va, mode, target_va=0, root_fields=()):
                 and ida_bytes.get_strlit_contents(literal.obj_ea, -1, idc.STRTYPE_C) == b"CloseSocket"
             ):
                 helpers.add(target)
-        return {"helper_vas": sorted(helpers)} if helpers else None
+        return (
+            {"helper_vas": sorted(helpers)} if helpers else reject("no close call on this with the CloseSocket literal")
+        )
 
     matched = [call for call in calls if direct_target(call.x) == target_va]
     if mode == "remove":
         sites = {int(call.ea) for call in matched if call.a.size() == 5 and is_arg(call.a[0], receiver)}
-        return {"receiver_fields": sorted(fields), "call_vas": sorted(sites)} if sites else None
+        return (
+            {"receiver_fields": sorted(fields), "call_vas": sorted(sites)}
+            if sites
+            else reject(f"no five-argument call on this to helper {hex(target_va)}; direct calls={len(matched)}")
+        )
     if mode != "by_address":
         return None
 
@@ -155,17 +166,13 @@ def _probe_channel_calls(func_va, mode, target_va=0, root_fields=()):
             return True
         if expr.op == hx.cot_call:
             # GCC keeps the (this, socket, address*) lookup out of line.
-            return (
-                True
-                if (
-                    direct_target(expr.x) not in (None, target_va)
-                    and expr.a.size() == 3
-                    and is_arg(expr.a[0], receiver)
-                    and is_arg(expr.a[1], cfunc.argidx[1])
-                    and local_address(expr.a[2])
-                )
-                else None
-            )
+            if direct_target(expr.x) in (None, target_va) or expr.a.size() != 3:
+                return reject("channel lookup is not a separate three-argument direct call")
+            if not is_arg(expr.a[0], receiver) or not is_arg(expr.a[1], cfunc.argidx[1]):
+                return reject("channel lookup receiver or socket does not match the caller arguments")
+            if not local_address(expr.a[2]):
+                return reject("lookup address is not a local object")
+            return True
         if expr.op != hx.cot_var or expr.v.idx in seen or expr.v.idx in cfunc.argidx:
             return None
         definitions = assignments.get(expr.v.idx, [])
@@ -176,24 +183,28 @@ def _probe_channel_calls(func_va, mode, target_va=0, root_fields=()):
         return any(sources) if all(source is not None for source in sources) else None
 
     if len(matched) != 1:
-        return None
+        return reject(f"expected one direct removal call, found {len(matched)}")
     call = matched[0]
     if call.a.size() != 3 or not is_arg(call.a[0], receiver):
-        return None
+        return reject("removal call does not have three arguments on this")
     flag = uncast(call.a[2])
-    if flag.op != hx.cot_num or flag.numval() != 0 or channel_source(call.a[1], set()) is not True:
-        return None
+    if flag.op != hx.cot_num or flag.numval() != 0:
+        return reject("removal flag is not constant zero")
+    if channel_source(call.a[1], set()) is not True:
+        return reject("removal channel source could not be proven")
     return {"call_vas": [int(call.ea)]}
 
 
-async def probe_channel_calls(session, func_va, mode, target_va=0, root_fields=()):
+async def probe_channel_calls(session, func_va, mode, target_va=0, root_fields=(), debug=False):
     code = (
         inspect.getsource(_probe_channel_calls)
-        + f"\nimport json\nresult = json.dumps(_probe_channel_calls({func_va}, {mode!r}, {target_va}, {list(root_fields)!r}))\n"
+        + f"\nimport json\nresult = json.dumps(_probe_channel_calls({func_va}, {mode!r}, {target_va}, {list(root_fields)!r}, debug={debug!r}))\n"
     )
     parsed = parse_mcp_result(await session.call_tool(name="py_eval", arguments={"code": code}))
     if parsed.get("stderr"):
         raise ValueError(f"channel-removal probe execution failed: {parsed['stderr']}")
+    if debug and parsed.get("stdout"):
+        print(parsed["stdout"].rstrip())
     payload = json.loads(parsed.get("result") or "null")
     if payload is None:
         return None
@@ -224,7 +235,7 @@ async def resolve_remove_pair(session, new_binary_dir, platform, debug=False):
         )
         helpers = set()
         for owner in sorted(owners or ()):
-            result = await probe_channel_calls(session, owner, "close_helper")
+            result = await probe_channel_calls(session, owner, "close_helper", debug=debug)
             if result is not None:
                 helpers.update(result["helper_vas"])
         if len(helpers) != 1:
@@ -237,16 +248,21 @@ async def resolve_remove_pair(session, new_binary_dir, platform, debug=False):
         callers = await _collect_single_call_or_jump_xref_func_starts_for_ea(
             session=session, target_ea=helper, debug=debug
         )
+        if debug:
+            slots = [slot for slot, address in sorted(entries.items()) if address in (callers or ())]
+            print(
+                f"    Preprocess: close helper {hex(helper)} has {len(callers or ())} single-call callers; vtable slots={slots}"
+            )
         candidates = []
         for slot, address in sorted(entries.items()):
             sibling = entries.get(slot + BY_ADDRESS_SLOT_DELTA)
             if address not in (callers or ()) or sibling is None or sibling == address:
                 continue
-            root = await probe_channel_calls(session, address, "remove", target_va=helper)
+            root = await probe_channel_calls(session, address, "remove", target_va=helper, debug=debug)
             if root is None:
                 continue
             pair = await probe_channel_calls(
-                session, sibling, "by_address", target_va=address, root_fields=root["receiver_fields"]
+                session, sibling, "by_address", target_va=address, root_fields=root["receiver_fields"], debug=debug
             )
             if pair is not None:
                 candidates.append(slot)

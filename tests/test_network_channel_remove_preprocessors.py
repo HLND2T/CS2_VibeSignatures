@@ -1,5 +1,7 @@
 import importlib
+import io
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace as N
@@ -50,7 +52,7 @@ def assignment(index, source):
 
 
 class TestChannelCallProof(unittest.TestCase):
-    def _probe(self, body, mode, *, target=0x2000, fields=(104,), argc=3, local_arrays=()):
+    def _probe(self, body, mode, *, target=0x2000, fields=(104,), argc=3, local_arrays=(), debug=False):
         helper = importlib.import_module("ida_preprocessor_scripts._network_channel_remove_common")
 
         class Visitor:
@@ -89,7 +91,7 @@ class TestChannelCallProof(unittest.TestCase):
                 ),
             },
         ):
-            return helper._probe_channel_calls(0x1000, mode, target, list(fields))
+            return helper._probe_channel_calls(0x1000, mode, target, list(fields), debug=debug)
 
     def test_recovers_one_helper_across_repeated_literal_close_calls(self):
         literal = N(op="obj", obj_ea=0x8000)
@@ -133,6 +135,23 @@ class TestChannelCallProof(unittest.TestCase):
         ]
         self.assertIsNotNone(self._probe(body, "by_address", local_arrays=(8,)))
         self.assertIsNone(self._probe(body, "by_address"))
+
+    def test_reports_the_failed_channel_source_condition(self):
+        body = [
+            assignment(4, call(0x5000, [var(0), var(1), var(8)], 0x3010)),
+            call(0x2000, [var(0), var(4), number(0)], 0x3020),
+        ]
+        output = io.StringIO()
+        with redirect_stdout(output):
+            self.assertIsNone(self._probe(body, "by_address", debug=True))
+        self.assertIn("by_address at 0x1000", output.getvalue())
+        self.assertIn("lookup address is not a local object", output.getvalue())
+
+    def test_reports_an_unexpected_argument_count(self):
+        output = io.StringIO()
+        with redirect_stdout(output):
+            self.assertIsNone(self._probe([], "remove", argc=4, debug=True))
+        self.assertIn("expected 3 arguments, found 4", output.getvalue())
 
     def test_rejects_foreign_receivers_unproven_sources_and_nonzero_flags(self):
         for source in (
@@ -185,6 +204,20 @@ def seed(directory, index=7, *, stale=False):
 
 
 class TestChannelProbeTransport(unittest.IsolatedAsyncioTestCase):
+    async def test_relays_ida_diagnostics_only_in_debug_mode(self):
+        helper = importlib.import_module("ida_preprocessor_scripts._network_channel_remove_common")
+        for debug in (False, True):
+            session = AsyncMock()
+            session.call_tool.return_value = py_eval_payload(None)
+            diagnostic = "channel-removal by_address: source rejected"
+            with patch.object(
+                helper, "parse_mcp_result", return_value={"result": "null", "stdout": diagnostic, "stderr": ""}
+            ):
+                output = io.StringIO()
+                with redirect_stdout(output):
+                    self.assertIsNone(await helper.probe_channel_calls(session, 0x1000, "by_address", debug=debug))
+                self.assertEqual(diagnostic + "\n" if debug else "", output.getvalue())
+
     async def test_surfaces_ida_python_errors(self):
         helper = importlib.import_module("ida_preprocessor_scripts._network_channel_remove_common")
         with patch.object(helper, "parse_mcp_result", return_value={"result": "", "stderr": "IDA Python failed"}):
