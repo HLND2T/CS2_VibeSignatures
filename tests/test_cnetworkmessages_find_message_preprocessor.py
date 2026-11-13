@@ -1,4 +1,6 @@
+import io
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace as N
@@ -6,7 +8,7 @@ from unittest.mock import AsyncMock, patch
 
 import yaml
 
-from ida_preprocessor_test_support import load_module, py_eval_payload
+from ida_preprocessor_test_support import FakeCallToolResult, load_module, py_eval_payload
 
 
 SCRIPT = (
@@ -24,11 +26,13 @@ class TestNetworkMessageComparisonProbe(unittest.TestCase):
         def function(symbols, base):
             if symbols is None:
                 return None
+            if isinstance(symbols, Exception):
+                return symbols
             calls = []
             for index, symbol in enumerate(symbols):
                 address = base + index
                 names[address] = symbol
-                calls.append(N(op="call", x=N(op="cast", x=N(op="obj", obj_ea=address))))
+                calls.append(N(op="call", ea=address + 0x100, x=N(op="cast", x=N(op="obj", obj_ea=address))))
             return N(body=calls)
 
         functions = {0x1000: function(target_names, 0x8000), 0x2000: function(partial_names, 0x9000)}
@@ -41,8 +45,15 @@ class TestNetworkMessageComparisonProbe(unittest.TestCase):
                 for expression in body:
                     self.visit_expr(expression)
 
+        def decompile(address):
+            result = functions.get(address)
+            if isinstance(result, Exception):
+                raise result
+            return result
+
         hx = N(
-            decompile=functions.get,
+            decompile=decompile,
+            get_hexrays_version=lambda: "test-decompiler",
             ctree_visitor_t=Visitor,
             CV_FAST=0,
             cot_cast="cast",
@@ -55,12 +66,22 @@ class TestNetworkMessageComparisonProbe(unittest.TestCase):
                 "_Z14V_stristr_fastPKcS0_": "V_stristr_fast(char const *, char const *)",
             }.get(name),
         )
-        with patch.dict("sys.modules", {"ida_hexrays": hx, "ida_name": ida_names}):
+        with patch.dict(
+            "sys.modules",
+            {
+                "ida_hexrays": hx,
+                "ida_name": ida_names,
+                "idaapi": N(get_kernel_version=lambda: "test-ida"),
+                "ida_nalt": N(
+                    retrieve_input_file_md5=lambda: b"\xab" * 16, get_input_file_path=lambda: "/test/library"
+                ),
+            },
+        ):
             return finder._probe_network_message_comparisons(0x1000, 0x2000)
 
     def test_accepts_current_platform_comparator_names(self):
-        self.assertTrue(self._probe(["V_stricmp_fast"], ["?V_stristr_fast@@YAPEBDPEBD0@Z"]))
-        self.assertTrue(self._probe(["_V_stricmp_fast"], ["__Z14V_stristr_fastPKcS0_"]))
+        self.assertTrue(self._probe(["V_stricmp_fast"], ["?V_stristr_fast@@YAPEBDPEBD0@Z"])["valid"])
+        self.assertTrue(self._probe(["_V_stricmp_fast"], ["__Z14V_stristr_fastPKcS0_"])["valid"])
 
     def test_rejects_wrong_missing_or_mixed_comparison_calls(self):
         for target_names, partial_names in (
@@ -71,15 +92,50 @@ class TestNetworkMessageComparisonProbe(unittest.TestCase):
             (["V_stricmp_fast"], []),
         ):
             with self.subTest(target=target_names, partial=partial_names):
-                self.assertFalse(self._probe(target_names, partial_names))
+                self.assertFalse(self._probe(target_names, partial_names)["valid"])
 
     def test_rejects_unavailable_decompilations(self):
-        self.assertFalse(self._probe(None, ["V_stristr_fast"]))
-        self.assertFalse(self._probe(["V_stricmp_fast"], None))
+        self.assertFalse(self._probe(None, ["V_stristr_fast"])["valid"])
+        self.assertFalse(self._probe(["V_stricmp_fast"], None)["valid"])
+
+    def test_reports_call_targets_names_and_database_identity(self):
+        report = self._probe(["_V_stricmp_fast"], ["__Z14V_stristr_fastPKcS0_"])
+        self.assertEqual("ab" * 16, report["context"]["input_md5"])
+        self.assertEqual("test-ida", report["context"]["ida_version"])
+        self.assertEqual("0x1000", report["exact"]["func_va"])
+        self.assertEqual("_V_stricmp_fast", report["exact"]["calls"][0]["raw_name"])
+        self.assertEqual("0x8000", report["exact"]["calls"][0]["target_va"])
+        self.assertEqual(["V_stristr_fast"], report["partial"]["comparisons"])
+
+    def test_records_decompiler_exceptions_without_skipping_the_other_role(self):
+        report = self._probe(RuntimeError("cannot decompile"), ["V_stristr_fast"])
+        self.assertFalse(report["valid"])
+        self.assertIn("cannot decompile", report["exact"]["error"])
+        self.assertEqual(["V_stristr_fast"], report["partial"]["comparisons"])
+
+
+def _valid_probe():
+    return {
+        "valid": True,
+        "context": {},
+        "exact": {"func_va": "0x1000", "comparisons": ["V_stricmp_fast"], "calls": [], "error": None},
+        "partial": {"func_va": "0x2000", "comparisons": ["V_stristr_fast"], "calls": [], "error": None},
+    }
 
 
 class TestFindNetworkMessageSkill(unittest.IsolatedAsyncioTestCase):
-    async def _run(self, directory, *, platform="linux", partial_index=10, mutation=None, probe=True, fail_sig=False):
+    async def _run(
+        self,
+        directory,
+        *,
+        platform="linux",
+        partial_index=10,
+        mutation=None,
+        probe=True,
+        fail_sig=False,
+        stderr=None,
+        debug=False,
+    ):
         finder = load_module(SCRIPT, "find_network_message_skill_14197")
         entries = {partial_index - 1: "0x1000", partial_index: "0x2000"}
         partial = {
@@ -100,7 +156,11 @@ class TestFindNetworkMessageSkill(unittest.IsolatedAsyncioTestCase):
         if isinstance(probe, Exception):
             session.call_tool.side_effect = probe
         else:
-            session.call_tool.return_value = py_eval_payload(probe)
+            session.call_tool.return_value = (
+                FakeCallToolResult({"result": "", "stderr": stderr})
+                if stderr
+                else py_eval_payload(_valid_probe() if probe is True else probe)
+            )
         signature = None if fail_sig else {"func_rva": "0x1000", "func_size": "0x80", "func_sig": "48 89 5C 24 ?? 57"}
         with patch(SIGNATURE_GENERATOR, AsyncMock(return_value=signature)) as generate:
             result = await finder.preprocess_skill(
@@ -111,6 +171,7 @@ class TestFindNetworkMessageSkill(unittest.IsolatedAsyncioTestCase):
                 new_binary_dir=directory,
                 platform=platform,
                 image_base=0,
+                debug=debug,
             )
         payload = yaml.safe_load(output.read_text(encoding="utf-8")) if output.exists() else None
         return result, payload, session, generate
@@ -164,6 +225,36 @@ class TestFindNetworkMessageSkill(unittest.IsolatedAsyncioTestCase):
             result, payload, _session, _generate = await self._run(directory, fail_sig=True)
         self.assertFalse(result)
         self.assertIsNone(payload)
+
+    async def test_rejects_inconsistent_structured_reports(self):
+        for field, value in (("func_va", "0x9999"), ("comparisons", ["V_stristr_fast"]), ("error", "failed")):
+            report = _valid_probe()
+            report["exact"][field] = value
+            with self.subTest(field=field), TemporaryDirectory() as directory:
+                result, payload, _, generate = await self._run(directory, probe=report)
+                self.assertFalse(result)
+                self.assertIsNone(payload)
+                generate.assert_not_awaited()
+
+    async def test_surfaces_ida_python_stderr_before_signature_generation(self):
+        output = io.StringIO()
+        with TemporaryDirectory() as directory, redirect_stdout(output):
+            result, _, _, generate = await self._run(directory, stderr="decompiler import failed", debug=True)
+        self.assertFalse(result)
+        self.assertIn("decompiler import failed", output.getvalue())
+        generate.assert_not_awaited()
+
+    async def test_logs_structured_failure_evidence(self):
+        report = _valid_probe()
+        report["valid"] = False
+        report["exact"]["comparisons"] = []
+        report["exact"]["calls"] = [{"raw_name": "unresolved_comparator"}]
+        output = io.StringIO()
+        with TemporaryDirectory() as directory, redirect_stdout(output):
+            result, _, _, generate = await self._run(directory, probe=report, debug=True)
+        self.assertFalse(result)
+        self.assertIn("unresolved_comparator", output.getvalue())
+        generate.assert_not_awaited()
 
 
 if __name__ == "__main__":

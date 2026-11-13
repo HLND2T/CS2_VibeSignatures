@@ -576,3 +576,22 @@ or a validation of binaries in the other modules.
 Final quality gates: `unit` 1635 tests (18 skipped), `repository-contract` 124 tests,
 configuration dependency checks 3 tests, and `git diff --check`: all passed. The original
 unpacked IDB workspace was left untouched. Validation was completed before staging and publication.
+
+### CI comparison-probe diagnostics follow-up
+
+PR #1241's native Linux IDA run failed at the first exact-name lookup comparison probe in
+run `43386066873`, attempt 2. The Windows worker completed all 19 selected producers, and
+prospective-tree repository tests passed. Linux's later missing-output messages resulted from
+the first finder aborting the worker; they do not identify additional independent failures.
+
+The original boolean probe obscured both unresolved callee names and IDA Python errors. It now
+returns bounded per-call evidence, both comparator sets, role-specific errors, IDA/Hex-Rays
+versions, and the database input path/MD5. The caller surfaces MCP stderr and logs the structured
+report, requiring the same exact/partial semantic checks and matching role addresses before
+signature generation. It does not accept an unresolved comparison as a fallback.
+
+Twelve focused tests pass, including five new diagnostic/error-validation cases. Both platforms
+pass isolated IDA regeneration with old-version reuse disabled; Linux uses an independently
+created clean database. Both output YAMLs remain byte-identical. The repository formatting check
+and diff whitespace checks pass. Native Linux CI evidence is still required to identify its
+specific probe failure; local success is not presented as resolution of that CI discrepancy.

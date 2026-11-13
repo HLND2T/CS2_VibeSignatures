@@ -28,11 +28,11 @@ def _probe_network_message_comparisons(func_va, partial_va):
 
     import ida_hexrays as hx
     import ida_name
+    import ida_nalt
+    import idaapi
 
     def comparisons(address):
-        cfunc = hx.decompile(address)
-        if cfunc is None:
-            return None
+        report = {"func_va": hex(address), "comparisons": [], "calls": [], "error": None}
         found = set()
 
         class Calls(hx.ctree_visitor_t):
@@ -45,9 +45,21 @@ def _probe_network_message_comparisons(func_va, partial_va):
                 callee = expr.x
                 while callee.op == hx.cot_cast:
                     callee = callee.x
+                call = {
+                    "inst_va": hex(int(getattr(expr, "ea", 0))),
+                    "kind": getattr(callee, "opname", str(callee.op)),
+                    "target_va": None,
+                    "raw_name": "",
+                    "demangled": [],
+                }
+                if len(report["calls"]) < 64:
+                    report["calls"].append(call)
                 if callee.op != hx.cot_obj:
+                    call["raw_name"] = getattr(callee, "helper", "") or ""
                     return 0
                 raw = ida_name.get_name(callee.obj_ea) or ""
+                call["target_va"] = hex(int(callee.obj_ea))
+                call["raw_name"] = raw
                 if not raw:
                     return 0
                 texts = {raw.lstrip("_")}
@@ -55,6 +67,7 @@ def _probe_network_message_comparisons(func_va, partial_va):
                 for candidate in {raw, raw[1:] if raw.startswith("__Z") else raw}:
                     demangled = ida_name.demangle_name(candidate, 0)
                     if demangled:
+                        call["demangled"].append(demangled)
                         texts.add(demangled)
                 for name in ("V_stricmp_fast", "V_stristr_fast"):
                     pattern = rf"(?<![A-Za-z0-9_]){re.escape(name)}(?:\s*\(|@|$)"
@@ -62,10 +75,34 @@ def _probe_network_message_comparisons(func_va, partial_va):
                         found.add(name)
                 return 0
 
-        Calls().apply_to(cfunc.body, None)
-        return found
+        try:
+            cfunc = hx.decompile(address)
+            if cfunc is None:
+                report["error"] = "decompile returned no function"
+            else:
+                Calls().apply_to(cfunc.body, None)
+        except Exception as exc:
+            report["error"] = f"{type(exc).__name__}: {exc}"
+        report["comparisons"] = sorted(found)
+        return report
 
-    return comparisons(func_va) == {"V_stricmp_fast"} and comparisons(partial_va) == {"V_stristr_fast"}
+    exact, partial = comparisons(func_va), comparisons(partial_va)
+    return {
+        "valid": (
+            exact["error"] is None
+            and partial["error"] is None
+            and exact["comparisons"] == ["V_stricmp_fast"]
+            and partial["comparisons"] == ["V_stristr_fast"]
+        ),
+        "context": {
+            "ida_version": idaapi.get_kernel_version(),
+            "hexrays_version": hx.get_hexrays_version(),
+            "input_md5": ida_nalt.retrieve_input_file_md5().hex(),
+            "input_path": ida_nalt.get_input_file_path(),
+        },
+        "exact": exact,
+        "partial": partial,
+    }
 
 
 async def preprocess_skill(
@@ -97,7 +134,25 @@ async def preprocess_skill(
     )
     try:
         parsed = parse_mcp_result(await session.call_tool(name="py_eval", arguments={"code": code}))
-        if json.loads(parsed.get("result") or "null") is not True:
+        if parsed.get("stderr"):
+            raise ValueError(f"IDA Python comparison probe failed: {parsed['stderr']}")
+        report = json.loads(parsed.get("result") or "null")
+        if debug:
+            print(f"    Preprocess: lookup comparison evidence: {json.dumps(report, sort_keys=True)}")
+        valid = isinstance(report, dict) and report.get("valid") is True and isinstance(report.get("context"), dict)
+        for role, address, comparator in (
+            ("exact", entries[target_index], "V_stricmp_fast"),
+            ("partial", entries[partial_index], "V_stristr_fast"),
+        ):
+            detail = report.get(role) if isinstance(report, dict) else None
+            valid = valid and (
+                isinstance(detail, dict)
+                and detail.get("func_va") == hex(address)
+                and detail.get("comparisons") == [comparator]
+                and detail.get("error") is None
+                and isinstance(detail.get("calls"), list)
+            )
+        if not valid:
             if debug:
                 print("    Preprocess: exact/partial lookup comparison validation failed")
             return False
