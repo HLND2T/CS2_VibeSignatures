@@ -69,7 +69,7 @@ def _resolve_imported_comparison_names(target_va, import_names):
     return [{"target_va": hex(target), "name": import_names[target]} for target in sorted(targets)]
 
 
-def _probe_network_message_comparisons(func_va, partial_va):
+def _probe_network_message_comparisons(func_va, partial_va, resolve_imports):
     """Run inside IDA: distinguish equality lookup from its substring-lookup sibling."""
     import re
 
@@ -85,7 +85,8 @@ def _probe_network_message_comparisons(func_va, partial_va):
             import_names[int(address)] = name
         return True
 
-    for module_index in range(ida_nalt.get_import_module_qty()):
+    import_module_count = ida_nalt.get_import_module_qty()
+    for module_index in range(import_module_count):
         ida_nalt.enum_import_names(module_index, import_name)
     bindings_by_target = {}
 
@@ -121,7 +122,7 @@ def _probe_network_message_comparisons(func_va, partial_va):
                 call["target_va"] = hex(int(callee.obj_ea))
                 call["raw_name"] = raw
                 if callee.obj_ea not in bindings_by_target:
-                    bindings_by_target[callee.obj_ea] = _resolve_imported_comparison_names(callee.obj_ea, import_names)
+                    bindings_by_target[callee.obj_ea] = resolve_imports(callee.obj_ea, import_names)
                 call["import_bindings"] = bindings_by_target[callee.obj_ea]
                 identities = {raw} if raw else set()
                 identities.update(binding["name"] for binding in call["import_bindings"])
@@ -166,6 +167,8 @@ def _probe_network_message_comparisons(func_va, partial_va):
             "hexrays_version": hx.get_hexrays_version(),
             "input_md5": ida_nalt.retrieve_input_file_md5().hex(),
             "input_path": ida_nalt.get_input_file_path(),
+            "import_module_count": import_module_count,
+            "import_symbol_count": len(import_names),
         },
         "exact": exact,
         "partial": partial,
@@ -199,7 +202,7 @@ async def preprocess_skill(
         inspect.getsource(_resolve_imported_comparison_names)
         + "\n"
         + inspect.getsource(_probe_network_message_comparisons)
-        + f"\nimport json\nresult = json.dumps(_probe_network_message_comparisons({entries[target_index]}, {entries[partial_index]}))\n"
+        + f"\nimport json\nresult = json.dumps(_probe_network_message_comparisons({entries[target_index]}, {entries[partial_index]}, _resolve_imported_comparison_names))\n"
     )
     try:
         parsed = parse_mcp_result(await session.call_tool(name="py_eval", arguments={"code": code}))

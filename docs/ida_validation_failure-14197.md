@@ -613,7 +613,13 @@ were then cleared for the actual isolated linux validation run. Both platforms r
 `Successful: 2, Failed: 0, Skipped: 0`; both regenerated YAMLs remained byte-identical. The prior
 CI's 22 Windows repair targets also matched the source artifacts byte-for-byte.
 
-Seventeen focused tests pass, covering the diagnostic cases, unnamed PLT imports, direct import
+The next native Linux run exposed an MCP execution-scope difference: a separately emitted
+top-level resolver was unavailable from the probe's function globals. The resolver is now
+passed explicitly into the probe, and a regression test executes the actual emitted program
+with separate `exec` globals and locals. Import module/symbol counts are also included in the
+diagnostic context.
+
+Eighteen focused tests pass, covering the diagnostic cases, unnamed PLT imports, direct import
 and native thunk targets, ambiguous bindings, nonterminal jumps, oversized stubs, rejected
-ordinary wrappers, and safe treatment of non-helper ctree expressions. The repository formatting
+ordinary wrappers, separate execution namespaces, and safe treatment of non-helper ctree expressions. The repository formatting
 and diff whitespace checks pass. The PR workflow supplies the final native Linux verification.

@@ -1,4 +1,5 @@
 import io
+import json
 import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
@@ -19,7 +20,7 @@ PARTIAL_NAME = "CNetworkMessages_FindNetworkMessagePartial"
 
 
 class TestNetworkMessageComparisonProbe(unittest.TestCase):
-    def _probe(self, target_names, partial_names, *, bindings=None):
+    def _probe(self, target_names, partial_names, *, bindings=None, wire_code=None):
         finder = load_module(SCRIPT, "network_message_comparisons_14197")
         names = {}
 
@@ -83,6 +84,13 @@ class TestNetworkMessageComparisonProbe(unittest.TestCase):
                         get_input_file_path=lambda: "/test/library",
                         get_import_module_qty=lambda: 0,
                     ),
+                    "ida_funcs": N(get_func=lambda address: None),
+                    "ida_bytes": N(),
+                    "ida_idp": N(),
+                    "ida_segment": N(),
+                    "ida_ua": N(),
+                    "idautils": N(),
+                    "ida_idaapi": N(BADADDR=0xFFFFFFFFFFFFFFFF),
                 },
             ),
             patch.object(
@@ -92,7 +100,11 @@ class TestNetworkMessageComparisonProbe(unittest.TestCase):
                 create=True,
             ),
         ):
-            return finder._probe_network_message_comparisons(0x1000, 0x2000)
+            if wire_code is not None:
+                globals_, locals_ = {}, {}
+                exec(wire_code, globals_, locals_)
+                return json.loads(locals_["result"])
+            return finder._probe_network_message_comparisons(0x1000, 0x2000, finder._resolve_imported_comparison_names)
 
     def test_accepts_current_platform_comparator_names(self):
         self.assertTrue(self._probe(["V_stricmp_fast"], ["?V_stristr_fast@@YAPEBDPEBD0@Z"])["valid"])
@@ -233,6 +245,16 @@ def _valid_probe():
 
 
 class TestFindNetworkMessageSkill(unittest.IsolatedAsyncioTestCase):
+    async def test_emitted_probe_runs_with_separate_exec_globals_and_locals(self):
+        with TemporaryDirectory() as directory:
+            result, _, session, _ = await self._run(directory)
+        self.assertTrue(result)
+        request = session.call_tool.await_args_list[0].kwargs
+        report = TestNetworkMessageComparisonProbe()._probe(
+            ["V_stricmp_fast"], ["V_stristr_fast"], wire_code=request["arguments"]["code"]
+        )
+        self.assertTrue(report["valid"])
+
     async def _run(
         self,
         directory,
