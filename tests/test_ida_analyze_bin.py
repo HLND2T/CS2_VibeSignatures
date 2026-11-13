@@ -14,6 +14,7 @@ import ida_analyze_bin
 import agent_runner
 from ida_analyze_util import canonical_symbol_yaml_bytes
 from ida_mcp_session import (
+    McpConnectionError,
     McpDatabaseBinding,
     McpDatabaseSelectionError,
     McpDatabaseUnavailableError,
@@ -679,6 +680,62 @@ class TestOpenedBinaryIdentityValidation(unittest.TestCase):
 
         self.assertEqual(1, survey_binary.await_count)
         sleep.assert_not_called()
+
+    def test_verification_retries_while_a_large_binary_is_still_being_analyzed(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            binary_path = Path(temp_dir) / "libclient.so"
+            binary_path.write_bytes(b"client-binary")
+            ready_survey = {"metadata": {"path": str(binary_path)}}
+
+            with (
+                patch.object(
+                    ida_analyze_bin,
+                    "survey_binary_via_mcp",
+                    new=AsyncMock(
+                        side_effect=[
+                            McpConnectionError("unable to open IDA MCP session"),
+                            ready_survey,
+                        ]
+                    ),
+                ) as survey_binary,
+                patch.object(ida_analyze_bin.time, "sleep") as sleep,
+            ):
+                verified = ida_analyze_bin.verify_opened_binary_via_mcp(
+                    str(binary_path),
+                    "linux",
+                    verify_timeout=1.0,
+                    retry_interval=0.01,
+                )
+
+        self.assertTrue(verified)
+        self.assertEqual(2, survey_binary.await_count)
+        sleep.assert_called_once_with(0.01)
+
+    def test_verification_gives_up_when_the_verification_window_is_exhausted(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            binary_path = Path(temp_dir) / "libclient.so"
+            binary_path.write_bytes(b"client-binary")
+
+            with (
+                patch.object(
+                    ida_analyze_bin,
+                    "survey_binary_via_mcp",
+                    new=AsyncMock(side_effect=McpConnectionError("unable to open IDA MCP session")),
+                ) as survey_binary,
+                patch.object(ida_analyze_bin.time, "sleep") as sleep,
+                patch("sys.stdout", new_callable=io.StringIO) as stdout,
+            ):
+                verified = ida_analyze_bin.verify_opened_binary_via_mcp(
+                    str(binary_path),
+                    "linux",
+                    verify_timeout=0.0,
+                    retry_interval=0.01,
+                )
+
+        self.assertFalse(verified)
+        self.assertEqual(1, survey_binary.await_count)
+        sleep.assert_not_called()
+        self.assertIn("opened binary verification failed", stdout.getvalue())
 
     def test_verification_does_not_retry_mcp_tool_error(self) -> None:
         with TemporaryDirectory() as temp_dir:

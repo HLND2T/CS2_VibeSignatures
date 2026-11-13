@@ -1,0 +1,50 @@
+func_name: CGameEventSystem_RegisterGameEvent
+func_va: '0x37e830'
+disasm_code: |-
+  .text:000000000037E830                 push    rbp
+  .text:000000000037E831                 mov     rbp, rsp
+  .text:000000000037E834                 push    r13
+  .text:000000000037E836                 push    r12
+  .text:000000000037E838                 mov     r12, rdi
+  .text:000000000037E83B                 push    rbx
+  .text:000000000037E83C                 mov     rbx, rsi
+  .text:000000000037E83F                 sub     rsp, 8
+  .text:000000000037E843                 lea     r13, cs:0D1C488h
+  .text:000000000037E84A                 mov     rdi, [r13+0]
+  .text:000000000037E84E                 mov     rax, [rdi]
+  .text:000000000037E851                 call    qword ptr [rax+40h]
+  .text:000000000037E854                 test    byte ptr [rax+25h], 20h
+  .text:000000000037E858                 jnz     short loc_37E880
+  .text:000000000037E85A                 mov     rdi, [r13+0]
+  .text:000000000037E85E                 mov     rsi, rbx
+  .text:000000000037E861                 xor     ecx, ecx
+  .text:000000000037E863                 movzx   edx, byte ptr [r12+24h]
+  .text:000000000037E869                 mov     rax, [rdi]
+  .text:000000000037E86C                 add     edx, 1
+  .text:000000000037E86F                 mov     rax, [rax+8]
+  .text:000000000037E873                 add     rsp, 8
+  .text:000000000037E877                 pop     rbx
+  .text:000000000037E878                 pop     r12
+  .text:000000000037E87A                 pop     r13
+  .text:000000000037E87C                 pop     rbp
+  .text:000000000037E87D                 jmp     rax
+  .text:000000000037E880                 add     rsp, 8
+  .text:000000000037E884                 pop     rbx
+  .text:000000000037E885                 pop     r12
+  .text:000000000037E887                 pop     r13
+  .text:000000000037E889                 pop     rbp
+  .text:000000000037E88A                 retn
+procedure: |-
+  __int64 __fastcall sub_37E830(__int64 a1, __int64 a2)
+  {
+    __int64 result; // rax
+
+    result = (*(__int64 (__fastcall **)(_QWORD *))(*MEMORY[0xD1C488] + 64LL))(MEMORY[0xD1C488]);
+    if ( (*(_BYTE *)(result + 37) & 0x20) == 0 )
+      return (*(__int64 (__fastcall **)(_QWORD *, __int64, _QWORD, _QWORD))(*MEMORY[0xD1C488] + 8LL))(
+               MEMORY[0xD1C488],
+               a2,
+               (unsigned int)*(unsigned __int8 *)(a1 + 36) + 1,
+               0);
+    return result;
+  }

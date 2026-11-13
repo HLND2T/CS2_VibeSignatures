@@ -1,0 +1,40 @@
+func_name: CGameEventSystem_RegisterGameEvent
+func_va: '0x180215350'
+disasm_code: |-
+  .text:0000000180215350                 mov     [rsp+arg_0], rbx
+  .text:0000000180215355                 push    rdi
+  .text:0000000180215356                 sub     rsp, 20h
+  .text:000000018021535A                 mov     rdi, rcx
+  .text:000000018021535D                 mov     rbx, rdx
+  .text:0000000180215360                 mov     rcx, cs:18072B140h
+  .text:0000000180215367                 mov     rax, [rcx]
+  .text:000000018021536A                 call    qword ptr [rax+40h]
+  .text:000000018021536D                 test    byte ptr [rax+25h], 20h
+  .text:0000000180215371                 jnz     short loc_180215394
+  .text:0000000180215373                 mov     rcx, cs:18072B140h
+  .text:000000018021537A                 xor     r8d, r8d
+  .text:000000018021537D                 cmp     [rdi+28h], r8b
+  .text:0000000180215381                 mov     rdx, rbx
+  .text:0000000180215384                 setnz   r8b
+  .text:0000000180215388                 xor     r9d, r9d
+  .text:000000018021538B                 mov     rax, [rcx]
+  .text:000000018021538E                 inc     r8d
+  .text:0000000180215391                 call    qword ptr [rax+8]
+  .text:0000000180215394                 mov     rbx, [rsp+28h+arg_0]
+  .text:0000000180215399                 add     rsp, 20h
+  .text:000000018021539D                 pop     rdi
+  .text:000000018021539E                 retn
+procedure: |-
+  __int64 __fastcall sub_180215350(__int64 a1, __int64 a2)
+  {
+    __int64 result; // rax
+
+    result = (*(__int64 (__fastcall **)(__int64))(*(_QWORD *)MEMORY[0x18072B140] + 64LL))(MEMORY[0x18072B140]);
+    if ( (*(_BYTE *)(result + 37) & 0x20) == 0 )
+      return (*(__int64 (__fastcall **)(__int64, __int64, _QWORD, _QWORD))(*(_QWORD *)MEMORY[0x18072B140] + 8LL))(
+               MEMORY[0x18072B140],
+               a2,
+               (unsigned int)(*(_BYTE *)(a1 + 40) != 0) + 1,
+               0);
+    return result;
+  }
