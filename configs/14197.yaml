@@ -339,12 +339,11 @@ modules:
           - CNetworkMessages_AssociateNetMessageWithChannelCategoryAbstract.{platform}.yaml
         expected_input:
           - CNetworkMessages_vtable.{platform}.yaml
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14197.md"
-      #- name: find-CNetworkMessages_FindOrCreateNetMessage
-      #  expected_output:
-      #    - CNetworkMessages_FindOrCreateNetMessage.{platform}.yaml
-      #  expected_input:
-      #    - CNetworkMessages_vtable.{platform}.yaml
+      - name: find-CNetworkMessages_FindOrCreateNetMessage-14197
+        expected_output:
+          - CNetworkMessages_FindOrCreateNetMessage.{platform}.yaml
+        expected_input:
+          - CNetworkMessages_vtable.{platform}.yaml
       - name: find-CNetworkMessages_SerializeInternal
         expected_output:
           - CNetworkMessages_SerializeInternal.{platform}.yaml
@@ -365,61 +364,31 @@ modules:
           - CNetworkMessages_UnserializeFromStream.{platform}.yaml
         expected_input:
           - CNetworkMessages_vtable.{platform}.yaml
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14197.md"
-      #- name: find-CNetworkMessages_AllocateAndCopyConstructNetMessageAbstract
-      #  expected_output:
-      #    - CNetworkMessages_AllocateAndCopyConstructNetMessageAbstract.{platform}.yaml
-      #  expected_input:
-      #    - CNetworkMessages_vtable.{platform}.yaml
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14197.md"
-      #- name: find-CNetworkMessages_DeallocateNetMessageAbstract
-      #  expected_output:
-      #    - CNetworkMessages_DeallocateNetMessageAbstract.{platform}.yaml
-      #  expected_input:
-      #    - CNetworkMessages_vtable.{platform}.yaml
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14197.md"
-      #- name: find-CNetworkMessages_RegisterNetworkFieldSerializer
-      #  expected_output:
-      #    - CNetworkMessages_RegisterNetworkFieldSerializer.{platform}.yaml
-      #  expected_input:
-      #    - CNetworkMessages_vtable.{platform}.yaml
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14197.md"
-      #- name: find-CNetworkMessages_RegisterNetworkArrayFieldSerializer
-      #  expected_output:
-      #    - CNetworkMessages_RegisterNetworkArrayFieldSerializer.{platform}.yaml
-      #  expected_input:
-      #    - CNetworkMessages_vtable.{platform}.yaml
+      - name: find-CNetworkMessages_RegisterNetworkFieldSerializer-AND-CNetworkMessages_RegisterNetworkArrayFieldSerializer-14197
+        expected_output:
+          - CNetworkMessages_RegisterNetworkFieldSerializer.{platform}.yaml
+          - CNetworkMessages_RegisterNetworkArrayFieldSerializer.{platform}.yaml
+        expected_input:
+          - CNetworkMessages_vtable.{platform}.yaml
       - name: find-CNetworkMessages_AssociateNetMessageGroupIdWithChannelCategory
         expected_output:
           - CNetworkMessages_AssociateNetMessageGroupIdWithChannelCategory.{platform}.yaml
         expected_input:
           - CNetworkMessages_vtable.{platform}.yaml
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14197.md"
-      #- name: find-CNetworkMessages_RegisterNetworkFieldChangeCallbackInternal
-      #  expected_output:
-      #    - CNetworkMessages_RegisterNetworkFieldChangeCallbackInternal.{platform}.yaml
-      #  expected_input:
-      #    - CNetworkMessages_vtable.{platform}.yaml
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14197.md"
-      #- name: find-CNetworkMessages_vtable-decompiles
-      #  expected_output:
-      #    - CNetworkMessages_AllowAdditionalMessageRegistration.{platform}.yaml
-      #    - CNetworkMessages_IsAdditionalMessageRegistrationAllowed.{platform}.yaml
-      #  expected_input:
-      #    - CNetworkMessages_vtable.{platform}.yaml
-      #    - CNetworkMessages_RegisterNetworkFieldChangeCallbackInternal.{platform}.yaml
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14197.md"
-      #- name: find-CNetworkMessages_RegisterFieldChangeCallbackPriority
-      #  expected_output:
-      #    - CNetworkMessages_RegisterFieldChangeCallbackPriority.{platform}.yaml
-      #  expected_input:
-      #    - CNetworkMessages_vtable.{platform}.yaml
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14197.md"
-      #- name: find-CNetworkMessages_ComputeOrderForPriority
-      #  expected_output:
-      #    - CNetworkMessages_ComputeOrderForPriority.{platform}.yaml
-      #  expected_input:
-      #    - CNetworkMessages_vtable.{platform}.yaml
+      - name: find-CNetworkMessages_RegistryCallbacks-14197
+        expected_output:
+          - CNetworkMessages_RegisterNetworkFieldChangeCallbackInternal.{platform}.yaml
+          - CNetworkMessages_RegisterFieldChangeCallbackPriority.{platform}.yaml
+          - CNetworkMessages_ComputeOrderForPriority.{platform}.yaml
+        expected_input:
+          - CNetworkMessages_vtable.{platform}.yaml
+      - name: find-CNetworkMessages_vtable-decompiles-14197
+        expected_output:
+          - CNetworkMessages_AllowAdditionalMessageRegistration.{platform}.yaml
+          - CNetworkMessages_IsAdditionalMessageRegistrationAllowed.{platform}.yaml
+        expected_input:
+          - CNetworkMessages_vtable.{platform}.yaml
+          - CNetworkMessages_RegisterNetworkFieldChangeCallbackInternal.{platform}.yaml
       - name: find-CNetChan_ProcessMessages
         expected_output:
           - CNetChan_ProcessMessages.{platform}.yaml
@@ -492,27 +461,28 @@ modules:
           - CNetworkMessages_dtor.{platform}.yaml
         expected_input:
           - CNetworkMessages_vtable.{platform}.yaml
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14197.md"
-      #- name: find-CNetworkMessages_FindNetworkMessage
-      #  expected_output:
-      #    - CNetworkMessages_FindNetworkMessage.{platform}.yaml
-      #  expected_input:
-      #    - CNetworkMessages_vtable.{platform}.yaml
-      #    - CNetworkMessages_FindNetworkMessagePartial.{platform}.yaml
+      - name: find-CNetworkMessages_FindNetworkMessage-14197
+        expected_output:
+          - CNetworkMessages_FindNetworkMessage.{platform}.yaml
+        expected_input:
+          - CNetworkMessages_vtable.{platform}.yaml
+          - CNetworkMessages_FindNetworkMessagePartial.{platform}.yaml
       - name: find-CNetworkSystem_vtable
         expected_output:
+          - CNetworkSystem_vtable.{platform}.yaml
+      - name: find-CNetworkSystem_BufferToBufferDecompress-14197
+        expected_output:
+          - CNetworkSystem_BufferToBufferDecompress.{platform}.yaml
+        expected_input:
           - CNetworkSystem_vtable.{platform}.yaml
       - name: find-CNetworkSystem_InitGameServer
         expected_output:
           - CNetworkSystem_InitGameServer.{platform}.yaml
         expected_input:
           - CNetworkSystem_vtable.{platform}.yaml
-      # The eleven INetworkSystem-derived vfuncs (InitNetworkSystem, PollSocket,
-      # EnableLoopbackBetweenSockets, OpenSocket, ConnectSocket, CloseSocket,
-      # ShutdownGameServer, RemoveNetChannel, RemoveNetChannelByAddress,
-      # BufferToBufferDecompress, PrintNetworkStats) now inherit their vtable
-      # slot from the INetworkSystem_* interface artifacts produced in the
-      # engine pass; they run in the late networksystem pass below.
+      # Overrides with INetworkSystem_* interface anchors run in the late
+      # networksystem pass after their engine producers. The channel-removal
+      # pair also runs there, using its own current call-graph evidence.
       # CNetworkSystem::CloseAllSockets has no INetworkSystem interface call
       # site anywhere (only CNetworkSystem::Shutdown calls it directly), so it
       # keeps its string-xref finder.
@@ -521,18 +491,6 @@ modules:
           - CNetworkSystem_CloseAllSockets.{platform}.yaml
         expected_input:
           - CNetworkSystem_vtable.{platform}.yaml
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14197.md"
-      #- name: find-CNetworkSystem_SendNetworkStats
-      #  expected_output:
-      #    - CNetworkSystem_SendNetworkStats.{platform}.yaml
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14197.md"
-      #- name: find-CNetworkSystem_SendNetworkStats-decompiles
-      #  expected_output:
-      #    - INetworkMessages_GetNetworkGroupCount.{platform}.yaml
-      #    - INetworkMessages_GetNetworkGroupName.{platform}.yaml
-      #    - INetworkMessages_GetNetworkGroupColor.{platform}.yaml
-      #  expected_input:
-      #    - CNetworkSystem_SendNetworkStats.{platform}.yaml
       - name: find-CFlattenedSerializers_vtable
         expected_output:
           - CFlattenedSerializers_vtable.{platform}.yaml
@@ -588,16 +546,6 @@ modules:
         category: vfunc
         alias:
           - CNetworkMessages::UnserializeFromStream
-        shared: true
-      - name: CNetworkMessages_AllocateAndCopyConstructNetMessageAbstract
-        category: vfunc
-        alias:
-          - CNetworkMessages::AllocateAndCopyConstructNetMessageAbstract
-        shared: true
-      - name: CNetworkMessages_DeallocateNetMessageAbstract
-        category: vfunc
-        alias:
-          - CNetworkMessages::DeallocateNetMessageAbstract
         shared: true
       - name: CNetworkMessages_RegisterNetworkFieldSerializer
         category: vfunc
@@ -1326,30 +1274,29 @@ modules:
           - CGameEventSystem_PostEventAbstract.{platform}.yaml
         expected_input:
           - CGameEventSystem_vtable.{platform}.yaml
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14197.md"
-      #- name: find-CGameEventSystem_PostEventAbstract2
-      #  expected_output:
-      #    - CGameEventSystem_PostEventAbstract2.{platform}.yaml
-      #  expected_input:
-      #    - CGameEventSystem_vtable.{platform}.yaml
       - name: find-CGameEventSystem_PostEntityEventAbstract
         expected_output:
           - CGameEventSystem_PostEntityEventAbstract.{platform}.yaml
         expected_input:
           - CGameEventSystem_vtable.{platform}.yaml
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14197.md"
-      #- name: find-IGameEventSystem_PostEventAbstract_Local
-      #  expected_output:
-      #    - IGameEventSystem_PostEventAbstract_Local.{platform}.yaml
-      #  expected_input:
-      #    - CGameEventSystem_PostEventAbstract2.{platform}.yaml
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14197.md"
-      #- name: find-CGameEventSystem_PostEventAbstract_Local
-      #  expected_output:
-      #    - CGameEventSystem_PostEventAbstract_Local.{platform}.yaml
-      #  expected_input:
-      #    - CGameEventSystem_vtable.{platform}.yaml
-      #    - IGameEventSystem_PostEventAbstract_Local.{platform}.yaml
+      - name: find-CGameEventSystem_PostEventAbstract2-14197
+        expected_output:
+          - CGameEventSystem_PostEventAbstract2.{platform}.yaml
+        expected_input:
+          - CGameEventSystem_vtable.{platform}.yaml
+          - CGameEventSystem_PostEntityEventAbstract.{platform}.yaml
+      - name: find-IGameEventSystem_PostEventAbstract_Local-14197
+        expected_output:
+          - IGameEventSystem_PostEventAbstract_Local.{platform}.yaml
+        expected_input:
+          - CGameEventSystem_vtable.{platform}.yaml
+          - CGameEventSystem_PostEventAbstract2.{platform}.yaml
+      - name: find-CGameEventSystem_PostEventAbstract_Local-14197
+        expected_output:
+          - CGameEventSystem_PostEventAbstract_Local.{platform}.yaml
+        expected_input:
+          - CGameEventSystem_vtable.{platform}.yaml
+          - IGameEventSystem_PostEventAbstract_Local.{platform}.yaml
       - name: find-CGameEventSystem_ProcessQueuedEvents
         expected_output:
           - CGameEventSystem_ProcessQueuedEvents.{platform}.yaml
@@ -1838,12 +1785,13 @@ modules:
       - name: find-CHLTVDemoRecorder_WriteFrameImmediate
         expected_output:
           - CHLTVDemoRecorder_WriteFrameImmediate.{platform}.yaml
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14197.md"
-      #- name: find-INetworkMessages_FindNetworkMessageById
-      #  expected_output:
-      #    - INetworkMessages_FindNetworkMessageById.{platform}.yaml
-      #  expected_input:
-      #    - CDemoRecorder_WriteSpawnGroups.{platform}.yaml
+      - name: find-INetworkMessages_FindNetworkMessageById-14197
+        expected_output:
+          - INetworkMessages_FindNetworkMessageById.{platform}.yaml
+        expected_input:
+          - INetworkMessages_GetNetMessageInfo.{platform}.yaml
+          - ../networksystem/CNetworkMessages_vtable.{platform}.yaml
+          - ../networksystem/CNetworkMessages_RegisterFieldChangeCallbackPriority.{platform}.yaml
       - name: find-CNetworkGameClient_ProcessPacketEntitiesInternal-windows
         platform: windows
         expected_output:
@@ -3055,10 +3003,9 @@ modules:
           - ConnectSocketToAddressList.{platform}.yaml
         expected_input:
           - ParseNetadrList.{platform}.yaml
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14197.md"
-      #- name: find-CNetworkStringTableClient_ParseUpdate
-      #  expected_output:
-      #    - CNetworkStringTableClient_ParseUpdate.{platform}.yaml
+      - name: find-CNetworkStringTableClient_ParseUpdate-14197
+        expected_output:
+          - CNetworkStringTableClient_ParseUpdate.{platform}.yaml
       - name: find-CNetworkP2PService_UpdatePeerConnectionStatus
         expected_output:
           - CNetworkP2PService_UpdatePeerConnectionStatus.{platform}.yaml
@@ -3113,12 +3060,13 @@ modules:
           - INetworkSystem_PrintNetworkStats.{platform}.yaml
         expected_input:
           - CLoopTypeSimple_FrameUpdate.{platform}.yaml
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14197.md"
-      #- name: find-INetworkSystem_BufferToBufferDecompress
-      #  expected_output:
-      #    - INetworkSystem_BufferToBufferDecompress.{platform}.yaml
-      #  expected_input:
-      #    - CNetworkStringTableClient_ParseUpdate.{platform}.yaml
+      - name: find-INetworkSystem_BufferToBufferDecompress-14197
+        expected_output:
+          - INetworkSystem_BufferToBufferDecompress.{platform}.yaml
+        expected_input:
+          - CNetworkStringTableClient_ParseUpdate.{platform}.yaml
+          - ../networksystem/CNetworkSystem_vtable.{platform}.yaml
+          - ../networksystem/CNetworkSystem_BufferToBufferDecompress.{platform}.yaml
       - name: find-INetworkSystem_GetSteamUserNetworkingSockets
         expected_output:
           - INetworkSystem_GetSteamUserNetworkingSockets.{platform}.yaml
@@ -15998,30 +15946,17 @@ modules:
         expected_input:
           - CNetworkSystem_vtable.{platform}.yaml
           - ../engine/INetworkSystem_GetLocalAdr.{platform}.yaml
-      - name: find-CNetworkSystem_RemoveNetChannel
-        platform: windows
+      - name: find-CNetworkSystem_RemoveNetChannel-14197
         expected_output:
           - CNetworkSystem_RemoveNetChannel.{platform}.yaml
         expected_input:
           - CNetworkSystem_vtable.{platform}.yaml
-          - ../engine/INetworkSystem_RemoveNetChannel.{platform}.yaml
-      # RemoveNetChannelByAddress keeps its string-xref finder: no INetworkSystem
-      # interface call site exists for it on either platform (the only 0xC0
-      # vcall near the steam init flow targets g_pNetworkServerService).
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14197.md"
-      #- name: find-CNetworkSystem_RemoveNetChannelByAddress
-      #  expected_output:
-      #    - CNetworkSystem_RemoveNetChannelByAddress.{platform}.yaml
-      #  expected_input:
-      #    - CNetworkSystem_RemoveNetChannel.{platform}.yaml
-      #    - CNetworkSystem_vtable.{platform}.yaml
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14197.md"
-      #- name: find-CNetworkSystem_BufferToBufferDecompress
-      #  expected_output:
-      #    - CNetworkSystem_BufferToBufferDecompress.{platform}.yaml
-      #  expected_input:
-      #    - CNetworkSystem_vtable.{platform}.yaml
-      #    - ../engine/INetworkSystem_BufferToBufferDecompress.{platform}.yaml
+      - name: find-CNetworkSystem_RemoveNetChannelByAddress-14197
+        expected_output:
+          - CNetworkSystem_RemoveNetChannelByAddress.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_RemoveNetChannel.{platform}.yaml
+          - CNetworkSystem_vtable.{platform}.yaml
       - name: find-CNetworkSystem_GetSteamUserNetworkingSockets
         expected_output:
           - CNetworkSystem_GetSteamUserNetworkingSockets.{platform}.yaml
@@ -16082,10 +16017,10 @@ modules:
         expected_input:
           - CNetworkSystem_vtable.{platform}.yaml
           - ../engine/INetworkSystem_PrintNetworkStats.{platform}.yaml
-      # Linux keeps the original string-xref finders for five members whose
+      # Linux keeps the original string-xref finders for four members whose
       # interface-slot evidence only exists on Windows (or whose Linux vcall
       # is a tail-call register load that cannot produce a unique vfunc_sig):
-      # ConnectSocket, EnableLoopbackBetweenSockets, CloseSocket, RemoveNetChannel,
+      # ConnectSocket, EnableLoopbackBetweenSockets, CloseSocket,
       # PollSocket.
       - name: find-CNetworkSystem_ConnectSocket-linux
         platform: linux
@@ -16123,13 +16058,6 @@ modules:
           - CNetworkSystem_CloseSocket.{platform}.yaml
         prerequisite:
           - find-CNetworkSystem_CloseSocket-deinlined-linux
-      #  Awaiting fix, failure reason has been written into "docs/ida_validation_failure-14197.md"
-      #- name: find-CNetworkSystem_RemoveNetChannel-linux
-      #  platform: linux
-      #  expected_output:
-      #    - CNetworkSystem_RemoveNetChannel.{platform}.yaml
-      #  expected_input:
-      #    - CNetworkSystem_vtable.{platform}.yaml
       - name: find-CNetworkSystem_PollSocket-linux
         platform: linux
         expected_output:
@@ -16196,6 +16124,21 @@ modules:
         expected_input:
           - CNetworkMessages_vtable.{platform}.yaml
           - ../engine/INetworkMessages_FindNetworkGroup.{platform}.yaml
+      - name: find-CNetworkSystem_SendNetworkStats-14197
+        expected_output:
+          - CNetworkSystem_SendNetworkStats.{platform}.yaml
+        expected_input:
+          - CNetworkMessages_vtable.{platform}.yaml
+          - CNetworkMessages_FindNetworkGroup.{platform}.yaml
+      - name: find-CNetworkSystem_SendNetworkStats-decompiles-14197
+        expected_output:
+          - INetworkMessages_GetNetworkGroupCount.{platform}.yaml
+          - INetworkMessages_GetNetworkGroupName.{platform}.yaml
+          - INetworkMessages_GetNetworkGroupColor.{platform}.yaml
+        expected_input:
+          - CNetworkSystem_SendNetworkStats.{platform}.yaml
+          - CNetworkMessages_vtable.{platform}.yaml
+          - CNetworkMessages_FindNetworkGroup.{platform}.yaml
     symbols:
       - name: INetworkMessages_GetFieldChangeCallbackOrderCount
         category: vfunc
