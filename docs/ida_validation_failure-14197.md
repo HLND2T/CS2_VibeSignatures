@@ -648,3 +648,137 @@ The isolated CLI validation against that IDB and the existing Windows copy compl
 `Successful: 2, Failed: 0, Skipped: 0`; both generated YAMLs matched the tracked source bytes.
 Twenty-four focused tests pass, including raw relocation parsing, rebase handling, malformed
 table/index rejection, file identity mismatch, conflicting bindings, and missing IDB annotations.
+
+### Issue #1243: native Linux removal-pair investigation (2026-11-14)
+
+The continuation starts from PR #1244's diagnostic/fallback commit `a14165ffa` on native Linux
+(`HZTEST2`, x86-64), IDA 9.3, Hex-Rays `9.3.0.260213`, and Python 3.11.16. It does not
+reuse the earlier Windows-host validation as native evidence. All binaries, IDBs, logs,
+and generated YAMLs are under checkout-external `/tmp/cs2-issue-1243/`; tracked artifacts
+remain unchanged.
+
+The local `cs2ds` binary does **not** match build 14197 and was excluded. The exact Linux
+depot `2347773` / manifest `3634295490837307276` was downloaded with a single-file allowlist.
+Its 4,822,068-byte `libnetworksystem.so` has SHA-256
+`93c662f717982697d119685461ab1f0fd681e2e5b863bd03ca433a6ad0d06870`, matching the binary lock.
+A fresh native warm IDB was created with `warmup_idb_worker.py`. The IDB's recorded input
+SHA-256 and active input/database paths were verified through the real MCP transport.
+The unrelated database already attached to port 13337 was left untouched; these runs use
+independent analyzer-owned dynamic endpoints.
+
+With only `CNetworkSystem_vtable.linux.yaml` seeded, the unchanged resolver reports:
+
+```text
+Preprocess: close helper 0x2e9140 has 5 single-call callers; vtable slots=[18, 23, 48]
+Preprocess: channel-removal by_address at 0x2d4950: expected 3 arguments, found 2
+Preprocess: channel-removal remove at 0x2e98a0: expected 3 arguments, found 4
+Preprocess: close helper 0x2e9140 proves removal pair at slots 23, 24
+```
+
+The rejected candidates are normal exclusions, not the CI failure. Native decompilation
+of the dynamically proven address-based entry shows `_BYTE v8[28]`, the lookup
+`sub_2ED040(a1, a2, v8)`, its return through `v5`/`v6`, and
+`sub_2EDC90(a1, v6, 0)`. The removal body reads the receiver's fields at 96/104 and 176/184.
+Both target functions have three arguments. The standalone probe log and decoded ctree
+text are `fresh-probe.log` and `fresh-slot-{23,24}.c` under the scratch root.
+
+Each finder was then run separately through the real analyzer with `-oldgamever none
+-require_warm_idb -debug`, the original `configs/14197.yaml`, and scratch binary/artifact
+roots. Both target YAMLs were initially absent; each run reports `Successful: 1, Failed: 0,
+Skipped: 0`. The generated removal (`0x2edc90`, index 23, offset `0xb8`, 18-byte signature)
+and ByAddress (`0x2edf30`, index 24, offset `0xc0`, 13-byte signature) YAMLs are byte-identical
+to the tracked artifacts. Logs: `fresh-remove.log` and `fresh-by-address.log`.
+
+Both fallback skills also ran separately on native Linux with `-skip_pp -oldgamever none`
+and a separate copy of the native IDB. Each target output was initially absent. The logs
+explicitly show preprocessing skipped, the Agent skill started, and `Successful: 1,
+Failed: 0, Skipped: 0`. Both canonical YAMLs are byte-identical to Git. The removal fallback
+independently followed the lookup body, proving its socket/address comparisons and shared
+channel collection; it did not merely rerun the deterministic ctree probe. Logs:
+`fallback-remove.log` and `fallback-by-address.log`.
+
+Before the import repair, the 17 focused removal tests pass. Full `unittest discover -s tests -b` passes 1842 tests
+with 9 skipped on this Linux host (160.786 seconds). The 14197 artifact contract validates
+4167 tracked artifacts. Repository formatting and `git diff --check` pass.
+
+A scoped prelude replay uses the original config, `-modules networksystem -rename`, the
+14196 source-artifact baseline, initially absent networksystem outputs, and seeded
+engine/server/client dependencies. Both networksystem blocks run in their configured order.
+The first replay reports `Successful: 73, Failed: 0, Skipped: 10`; both removal finders pass
+the deterministic proof, and both target YAMLs match Git bytes. Log: `replay.log`.
+This is not equivalent to the release: the replay IDB had already undergone the initial
+probe, other modules were not executed, and `-force_all` rejects seeded roots/module filters.
+There are also preceding Agent/finalization differences, including a GetIsForServer retry.
+The local run therefore does not establish that the original CI state passes.
+
+PR #1244's native CI supplies an additional original-generation control:
+[run 43467126566, attempt 1](https://github.com/HLND2T/CS2_VibeSignatures/actions/runs/43467126566)
+at source `a14165ffa`. The warmup and validation job logs both bind the same immutable
+generation `fb3856980c91cdaa1d1d490e22b947fb6144b565eac83ee49e099285a672e803-43123816487-1`
+used by the failing release. Artifact `pr-platform-analysis-43467126566-1-14197`
+(ID `14059439380`) records Linux `Successful: 2, Failed: 0, Skipped: 0`: both removal
+finders directly pass the deterministic proof at slots 23/24, without Agent fallback.
+Windows also reports 2/0/0. This is selected execution of the two changed producers,
+not a full prelude replay; its success does not reproduce or explain the release failure.
+
+#### Neutral prelude replay reproduces the failing condition
+
+A second native warm IDB was created from the locked raw binary and copied **before any
+target probe or decompilation**. Its preserved baseline is
+`baseline/neutral-libnetworksystem.so.i64` under the scratch root. Replaying the same two
+networksystem blocks, with the same scoped dependencies and 14196 baseline as above, now
+reproduces zero candidates (`neutral-replay.log`):
+
+```text
+Preprocess: close helper 0x2e9140 has 5 single-call callers; vtable slots=[18, 23, 48]
+Preprocess: channel-removal remove at 0x2edc90: expected 3 arguments, found 5
+Preprocess: expected one channel removal pair, found 0
+```
+
+Both removal preprocessors fail in this replay. The final `Successful: 73, Failed: 0,
+Skipped: 10` summary comes from their independent Agent fallbacks recovering both outputs;
+it is not evidence that the deterministic proof passed.
+
+The persisted failing IDB shows removal with five arguments. The extra fourth/fifth
+arguments appear only in the call `sub_180880(a1, a2, a3, a4, a5)`. The PLT target's
+inferred type is `__int64 __fastcall(_QWORD, _QWORD, _QWORD, _QWORD, _QWORD)`. The current
+ELF relocation identifies it as `ThreadGetCurrentId`. The removal entry preserves `edx`
+as the flag and executes this PLT call without preparing argument registers; the supposed
+`rcx`/`r8` inputs are artifacts of the incorrect callee prototype. The SDK declaration in
+`s2sdk/public/tier0/threadtools.h` confirms a zero-argument function returning a 64-bit
+`ThreadId_t` on Linux. Full ctree, argument lists, types, callers, and disassembly are
+preserved in `native-failure-full.json`; the polluted DB is retained separately.
+
+In an isolated native experiment, changing **only** that verified import's prototype to
+`unsigned long long ThreadGetCurrentId(void)` and invalidating the caller ctrees changes
+removal's argument count from five to three. Both original strict probes then pass
+(`normalize-experiment.log`). This explains why probing removal before the prelude was
+an inadequate control: decompiler inference order can change the observed argument count.
+
+The fix extracts the existing verified ELF/PLT reader into `_elf_import_common.py`, without
+changing its binding rules. Before probing each Linux removal candidate and sibling, it
+scans current direct calls and corrects only a target backed by the exact
+`ThreadGetCurrentId` ELF relocation. The input must match the IDB MD5; decoded PLT bounds,
+terminal GOT jump, and relocation identity remain required. IDB names, old addresses,
+reference slots, and inferred prototypes cannot authorize the correction. Parse/apply or
+transport failures are surfaced. Both caller caches are invalidated afterward. The
+three-argument, receiver, channel-source, and constant-zero checks are unchanged.
+
+With the failing native IDB preserved, each patched finder independently rebuilds its
+initially absent target through the real analyzer (`fixed-remove.log`,
+`fixed-by-address.log`). Both report `Successful: 1, Failed: 0, Skipped: 0`, with the
+verified import normalized and the pair proven at slots 23/24, without Agent fallback.
+The 21 removal tests and 24 adjacent comparison/import tests pass, including regression
+coverage for the phantom argument state, unverified/ambiguous/lookalike/indirect targets,
+Linux gating, prototype failures, and malformed transport data.
+The patched full unit suite passes 1846 tests with 9 skipped (171.655 seconds); repository
+formatting and diff whitespace checks pass. A fresh neutral prelude re-execution is also
+retained as `fixed-replay.log`; its final status and the patched PR CI status are recorded
+in PR #1244's validation results.
+
+The original CI generation is still unavailable locally. The neutral native replay
+establishes a concrete failing branch and a tested correction, but cannot retrospectively
+prove every state transition in the original release log, which omitted those diagnostics.
+The prior selected CI run tested `a14165ffa`, not this import repair. Issue #1243 remains
+open for full release validation; none of the successful scoped controls alone establishes
+that a complete release rebuild passes.
