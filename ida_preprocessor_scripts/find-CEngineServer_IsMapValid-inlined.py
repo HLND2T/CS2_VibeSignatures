@@ -91,11 +91,13 @@ async def preprocess_skill(
     image_base,
     debug=False,
 ):
-    """Reuse previous gamever func_sig to locate target function(s) and write YAML."""
+    """Resolve the wrapper from its current helper call and vtable membership."""
     return await preprocess_common_skill(
         session=session,
         expected_outputs=expected_outputs,
-        old_yaml_map=old_yaml_map,
+        # The fallback must also validate the current callee when an old wrapper
+        # signature uniquely matches a different member of the same vtable.
+        old_yaml_map=None,
         new_binary_dir=new_binary_dir,
         platform=platform,
         image_base=image_base,

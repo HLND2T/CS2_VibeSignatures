@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Locate the reworked CNetworkMessages::FindOrCreateNetMessage in 14197."""
+"""Locate CNetworkMessages::FindOrCreateNetMessage across diagnostic changes."""
 
 from ida_analyze_util import preprocess_common_skill
 
@@ -10,9 +10,8 @@ TARGET_FUNCTION_NAMES = [
 FUNC_XREFS = [
     {
         "func_name": "CNetworkMessages_FindOrCreateNetMessage",
-        "xref_strings": [
-            "CNetworkMessages::FindOrCreateNetMessage: It is illegal to register new net messages after serialization!"
-        ],
+        # The registration-closed diagnostic changed in 14198b.
+        "xref_strings": ["CNetworkMessages::FindOrCreateNetMessage:"],
         "xref_gvs": [],
         "xref_signatures": [],
         "xref_funcs": [],
