@@ -711,6 +711,20 @@ class TestFindCNetworkServerServiceInit(unittest.IsolatedAsyncioTestCase):
 class TestEngineServerWrapperSemanticResolution(unittest.IsolatedAsyncioTestCase):
     CASES = (
         (
+            "CEngineServer_IsMapValid-noinline",
+            "CEngineServer_IsMapValid",
+            "CNetworkGameServer_IsMapValid",
+            33,
+            19,
+        ),
+        (
+            "CEngineServer_IsMapValid-inlined",
+            "CEngineServer_IsMapValid",
+            {"linux": "IsMapValid", "windows": "CMapListService_IsMapValid"},
+            33,
+            19,
+        ),
+        (
             "CEngineServer_GetPlayerNetworkIDString-noinline",
             "CEngineServer_GetPlayerNetworkIDString",
             "CNetworkGameServer_GetPlayerNetworkIDString",
@@ -737,6 +751,7 @@ class TestEngineServerWrapperSemanticResolution(unittest.IsolatedAsyncioTestCase
         for script, symbol, callee, correct_slot, sibling_slot in self.CASES:
             for platform in ("linux", "windows"):
                 with self.subTest(script=script, platform=platform), tempfile.TemporaryDirectory() as directory:
+                    expected_callee = callee[platform] if isinstance(callee, dict) else callee
                     finder = _load_module(
                         Path("ida_preprocessor_scripts") / f"find-{script}.py",
                         f"wrapper_{script}_{platform}",
@@ -763,7 +778,7 @@ class TestEngineServerWrapperSemanticResolution(unittest.IsolatedAsyncioTestCase
                         return function(0x3000) if kwargs["old_path"] else None
 
                     async def caller_match(**kwargs):
-                        if not anchor_available or kwargs["xref_funcs"] != [callee]:
+                        if not anchor_available or kwargs["xref_funcs"] != [expected_callee]:
                             return None
                         return function(0x2000)
 
