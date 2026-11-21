@@ -93,6 +93,28 @@ jobs:
               "$($Matches[1])=$($Matches[2])" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
             }
           }
+      - name: Prepare Windows compiler
+        if: runner.os == 'Windows'
+        id: windows-compiler
+        shell: pwsh
+        run: |
+          $version = '22.1.8'
+          $sha256 = '16e5709785fef73c854646241c4a92c5cd574318d1b33c63330dd7721903e55c'
+          $asset = "LLVM-$version-win64.exe"
+          $installer = Join-Path $env:RUNNER_TEMP $asset
+          $llvmRoot = Join-Path $env:RUNNER_TEMP "llvm-$version"
+          $url = "https://github.com/llvm/llvm-project/releases/download/llvmorg-$version/$asset"
+          curl.exe --fail --silent --show-error --location --retry 3 --output $installer $url
+          if ($LASTEXITCODE -ne 0) { throw "LLVM $version download failed." }
+          if ((Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash -ne $sha256) {
+            throw "LLVM $version installer SHA-256 mismatch."
+          }
+          $process = Start-Process -FilePath $installer -ArgumentList "/S /D=$llvmRoot" -WindowStyle Hidden -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "LLVM installer exited with code $($process.ExitCode)." }
+          $clang = Join-Path $llvmRoot 'bin/clang++.exe'
+          & $clang --version
+          if ($LASTEXITCODE -ne 0) { throw "LLVM $version clang++ could not start." }
+          "clang=$clang" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
       - name: Prepare Linux compiler
         if: runner.os == 'Linux'
         shell: bash
@@ -102,6 +124,8 @@ jobs:
           sudo apt-get install --yes clang build-essential
       - name: Validate requested ABI
         uses: ./.ci-tools/.github/actions/ci-command
+        env:
+          ABI_CLANG: ${{ steps.windows-compiler.outputs.clang }}
         with:
           command: cpp-run
       - name: Upload ABI result and diagnostics

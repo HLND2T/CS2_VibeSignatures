@@ -1052,6 +1052,7 @@ def cpp_run():
         output=temporary("cpp-result"),
         source_sha=env("SOURCE_SHA"),
         gamever=env("GAMEVER"),
+        clang=os.environ.get("ABI_CLANG") or None,
     )
     if code:
         raise ValueError(f"C++ validation failed with exit code {code}")
