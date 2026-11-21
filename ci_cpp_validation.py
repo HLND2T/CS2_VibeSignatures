@@ -126,7 +126,16 @@ def validate_result(document: dict, inputs: dict, platform: str, configured: int
         raise ValueError("Not every configured C++ test passed")
 
 
-def run_validation(*, root: Path, repo_root: Path, platform: str, output: Path, source_sha: str, gamever: str) -> int:
+def run_validation(
+    *,
+    root: Path,
+    repo_root: Path,
+    platform: str,
+    output: Path,
+    source_sha: str,
+    gamever: str,
+    clang: str | None = None,
+) -> int:
     inputs = validate_inputs(root, repo_root=repo_root, source_sha=source_sha, gamever=gamever)
     output.mkdir(parents=True, exist_ok=False)
     result_path = output / "test-result.json"
@@ -148,6 +157,8 @@ def run_validation(*, root: Path, repo_root: Path, platform: str, output: Path, 
         str(result_path),
         "-debug",
     ]
+    if clang:
+        command.extend(["-clang", clang])
     with (output / LOG_NAME).open("w", encoding="utf-8", newline="\n") as log:
         process = subprocess.Popen(
             command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace"
