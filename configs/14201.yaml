@@ -344,6 +344,13 @@ modules:
           - CNetworkMessages_FindOrCreateNetMessage.{platform}.yaml
         expected_input:
           - CNetworkMessages_vtable.{platform}.yaml
+      - name: find-NetMessageInfo_t_m_pfnAllocate-AND-NetMessageInfo_t_m_MessageId
+        platform: windows
+        expected_output:
+          - NetMessageInfo_t_m_pfnAllocate.{platform}.yaml
+          - NetMessageInfo_t_m_MessageId.{platform}.yaml
+        expected_input:
+          - CNetworkMessages_FindOrCreateNetMessage.{platform}.yaml
       - name: find-CNetworkMessages_SerializeInternal
         expected_output:
           - CNetworkMessages_SerializeInternal.{platform}.yaml
@@ -515,6 +522,23 @@ modules:
         category: vfunc
         alias:
           - CNetworkMessages::FindOrCreateNetMessage
+      - name: NetMessageInfo_t
+        category: struct
+        platform: windows
+      - name: NetMessageInfo_t_m_pfnAllocate
+        category: structmember
+        platform: windows
+        struct: NetMessageInfo_t
+        member: m_pfnAllocate
+        alias:
+          - NetMessageInfo_t::m_pfnAllocate
+      - name: NetMessageInfo_t_m_MessageId
+        category: structmember
+        platform: windows
+        struct: NetMessageInfo_t
+        member: m_MessageId
+        alias:
+          - NetMessageInfo_t::m_MessageId
         shared: true
       - name: CNetworkMessages_SerializeInternal
         category: func
@@ -1902,6 +1926,17 @@ modules:
         expected_input:
           - CNetworkClientService_vtable.{platform}.yaml
           - INetworkClientService_IsActive.{platform}.yaml
+      - name: find-CNetworkClientService_m_pGameClient
+        platform: windows
+        expected_output:
+          - CNetworkClientService_m_pGameClient.{platform}.yaml
+        expected_input:
+          - CNetworkClientService_IsActive.{platform}.yaml
+      - name: find-CGlobalVarsBase_realtime-AND-CGlobalVarsBase_curtime
+        platform: windows
+        expected_output:
+          - CGlobalVarsBase_realtime.{platform}.yaml
+          - CGlobalVarsBase_curtime.{platform}.yaml
       - name: find-CNetworkClientService_IsConnected
         expected_output:
           - CNetworkClientService_IsConnected.{platform}.yaml
@@ -4377,6 +4412,33 @@ modules:
         category: vfunc
         alias:
           - CNetworkClientService::IsActive
+      - name: CNetworkClientService
+        category: struct
+        platform: windows
+      - name: CNetworkClientService_m_pGameClient
+        category: structmember
+        platform: windows
+        struct: CNetworkClientService
+        member: m_pGameClient
+        alias:
+          - CNetworkClientService::m_pGameClient
+      - name: CGlobalVarsBase
+        category: struct
+        platform: windows
+      - name: CGlobalVarsBase_realtime
+        category: structmember
+        platform: windows
+        struct: CGlobalVarsBase
+        member: realtime
+        alias:
+          - CGlobalVarsBase::realtime
+      - name: CGlobalVarsBase_curtime
+        category: structmember
+        platform: windows
+        struct: CGlobalVarsBase
+        member: curtime
+        alias:
+          - CGlobalVarsBase::curtime
       - name: CNetworkClientService_IsConnected
         category: vfunc
         alias:
@@ -6405,6 +6467,14 @@ modules:
           - g_pEntitySystem.{platform}.yaml
         expected_input:
           - CEntitySystem_CreateEntitySystem.{platform}.yaml
+      - name: find-CEntitySystem_m_EntityList-AND-CEntityIdentity_m_pInstance-AND-CEntityIdentity_m_EHandle
+        platform: windows
+        expected_output:
+          - CEntitySystem_m_EntityList.{platform}.yaml
+          - CEntityIdentity_m_pInstance.{platform}.yaml
+          - CEntityIdentity_m_EHandle.{platform}.yaml
+        expected_input:
+          - CEntitySystem_ctor.{platform}.yaml
       - name: find-CEntitySystem_Init
         expected_output:
           - CEntitySystem_Init.{platform}.yaml
@@ -7338,6 +7408,33 @@ modules:
         category: func
       - name: g_pEntitySystem
         category: gv
+      - name: CEntitySystem
+        category: struct
+        platform: windows
+      - name: CEntitySystem_m_EntityList
+        category: structmember
+        platform: windows
+        struct: CEntitySystem
+        member: m_EntityList
+        alias:
+          - CEntitySystem::m_EntityList
+      - name: CEntityIdentity
+        category: struct
+        platform: windows
+      - name: CEntityIdentity_m_pInstance
+        category: structmember
+        platform: windows
+        struct: CEntityIdentity
+        member: m_pInstance
+        alias:
+          - CEntityIdentity::m_pInstance
+      - name: CEntityIdentity_m_EHandle
+        category: structmember
+        platform: windows
+        struct: CEntityIdentity
+        member: m_EHandle
+        alias:
+          - CEntityIdentity::m_EHandle
       - name: CEntitySystem_Init
         category: func
         alias:
