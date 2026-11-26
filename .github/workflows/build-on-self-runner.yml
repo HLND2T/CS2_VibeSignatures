@@ -473,9 +473,13 @@ jobs:
           --source-sha "$SOURCE_SHA" --publication-mode "$PUBLICATION_MODE"
   publish-release:
     needs: [preflight, build, verify-release, check-publication-target, finalize-release]
+    # check-publication-target is skipped for a tracked (rebuild-free) binding, the
+    # same way verify-binsync/publish-binsync are, so this gate accepts "skipped"
+    # but never "failure". The protected publisher re-checks the target itself.
     if: >-
       ${{ !cancelled() && needs.preflight.outputs.publication_mode != 'verify-only'
-      && needs.verify-release.result == 'success' && needs.check-publication-target.result == 'success' }}
+      && needs.verify-release.result == 'success'
+      && (needs.check-publication-target.result == 'success' || needs.check-publication-target.result == 'skipped') }}
     permissions:
       actions: read
       contents: write
