@@ -127,7 +127,14 @@ result = provider_layout()
 
 
 async def preprocess_skill(
-    session, skill_name, expected_outputs, old_yaml_map, new_binary_dir, platform, image_base, debug=False,
+    session,
+    skill_name,
+    expected_outputs,
+    old_yaml_map,
+    new_binary_dir,
+    platform,
+    image_base,
+    debug=False,
 ):
     if platform != "windows":
         return False
@@ -154,7 +161,11 @@ async def preprocess_skill(
         return False
 
     slot_signature = await preprocess_gen_vfunc_sig_via_mcp(
-        session, layout["site"], layout["slot"], allow_across_function_boundary=True, debug=debug,
+        session,
+        layout["site"],
+        layout["slot"],
+        allow_across_function_boundary=True,
+        debug=debug,
     )
     for name, (address, size) in layout["thunks"].items():
         function = f"{name}_GetPlayerName"
@@ -181,8 +192,15 @@ async def preprocess_skill(
     if not output:
         return False
     payload = await preprocess_gen_struct_offset_sig_via_mcp(
-        session, FRIENDS_PROVIDER, member, xuid_offset, getter, image_base,
-        size=POINTER_SIZE, allow_across_function_boundary=True, debug=debug,
+        session,
+        FRIENDS_PROVIDER,
+        member,
+        xuid_offset,
+        getter,
+        image_base,
+        size=POINTER_SIZE,
+        allow_across_function_boundary=True,
+        debug=debug,
     )
     if payload is None:
         # The getter can have byte-identical copies. Its containing RTTI

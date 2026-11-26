@@ -142,7 +142,14 @@ for api, component in api_components.items():
 
 
 async def preprocess_skill(
-    session, skill_name, expected_outputs, old_yaml_map, new_binary_dir, platform, image_base, debug=False,
+    session,
+    skill_name,
+    expected_outputs,
+    old_yaml_map,
+    new_binary_dir,
+    platform,
+    image_base,
+    debug=False,
 ):
     if platform != "windows":
         return False
