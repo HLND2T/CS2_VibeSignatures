@@ -5832,6 +5832,27 @@ modules:
     path_windows: game/csgo/bin/win64/client.dll
     path_linux: game/csgo/bin/linuxsteamrt64/libclient.so
     skills:
+      - name: find-CDecoratedPlayerNameProviders
+        platform: windows
+        expected_output:
+          - CDecoratedPlayerNameProviderViaFriendsListApi_vtable.{platform}.yaml
+          - CDecoratedPlayerNameProviderViaLobbyApi_vtable.{platform}.yaml
+          - CDecoratedPlayerNameProviderViaMatchDraftApi_vtable.{platform}.yaml
+          - CDecoratedPlayerNameProviderViaPartyListApi_vtable.{platform}.yaml
+          - CDecoratedPlayerNameProviderViaFriendsListApi_GetPlayerName.{platform}.yaml
+          - CDecoratedPlayerNameProviderViaLobbyApi_GetPlayerName.{platform}.yaml
+          - CDecoratedPlayerNameProviderViaMatchDraftApi_GetPlayerName.{platform}.yaml
+          - CDecoratedPlayerNameProviderViaPartyListApi_GetPlayerName.{platform}.yaml
+          - CDecoratedPlayerNameProviderViaFriendsListApi_m_xuid.{platform}.yaml
+      - name: find-PanoramaFriendDisplayItemDefs
+        platform: windows
+        expected_output:
+          - FriendsListAPI_GetFriendDisplayItemDefCount.{platform}.yaml
+          - FriendsListAPI_GetFriendDisplayItemDefByIndex.{platform}.yaml
+          - FriendsListAPI_GetFriendDisplayItemDefFeatured.{platform}.yaml
+          - PartyListAPI_GetFriendDisplayItemDefCount.{platform}.yaml
+          - PartyListAPI_GetFriendDisplayItemDefByIndex.{platform}.yaml
+          - PartyListAPI_GetFriendDisplayItemDefFeatured.{platform}.yaml
       - name: find-IGameSystem_vtable
         expected_output:
           - IGameSystem_vtable.{platform}.yaml
@@ -6777,6 +6798,78 @@ modules:
         expected_input:
           - GetRichPresenceStatusString.{platform}.yaml
     symbols:
+      - name: CDecoratedPlayerNameProviderViaFriendsListApi_vtable
+        category: vtable
+        platform: windows
+      - name: CDecoratedPlayerNameProviderViaFriendsListApi_GetPlayerName
+        category: vfunc
+        platform: windows
+        alias:
+          - CDecoratedPlayerNameProviderViaFriendsListApi::GetPlayerName
+      - name: CDecoratedPlayerNameProviderViaLobbyApi_vtable
+        category: vtable
+        platform: windows
+      - name: CDecoratedPlayerNameProviderViaLobbyApi_GetPlayerName
+        category: vfunc
+        platform: windows
+        alias:
+          - CDecoratedPlayerNameProviderViaLobbyApi::GetPlayerName
+      - name: CDecoratedPlayerNameProviderViaMatchDraftApi_vtable
+        category: vtable
+        platform: windows
+      - name: CDecoratedPlayerNameProviderViaMatchDraftApi_GetPlayerName
+        category: vfunc
+        platform: windows
+        alias:
+          - CDecoratedPlayerNameProviderViaMatchDraftApi::GetPlayerName
+      - name: CDecoratedPlayerNameProviderViaPartyListApi_vtable
+        category: vtable
+        platform: windows
+      - name: CDecoratedPlayerNameProviderViaPartyListApi_GetPlayerName
+        category: vfunc
+        platform: windows
+        alias:
+          - CDecoratedPlayerNameProviderViaPartyListApi::GetPlayerName
+      - name: CDecoratedPlayerNameProviderViaFriendsListApi
+        category: struct
+        platform: windows
+      - name: CDecoratedPlayerNameProviderViaFriendsListApi_m_xuid
+        category: structmember
+        platform: windows
+        struct: CDecoratedPlayerNameProviderViaFriendsListApi
+        member: m_xuid
+        alias:
+          - CDecoratedPlayerNameProviderViaFriendsListApi::m_xuid
+      - name: FriendsListAPI_GetFriendDisplayItemDefCount
+        category: func
+        platform: windows
+        alias:
+          - FriendsListAPI::GetFriendDisplayItemDefCount
+      - name: FriendsListAPI_GetFriendDisplayItemDefByIndex
+        category: func
+        platform: windows
+        alias:
+          - FriendsListAPI::GetFriendDisplayItemDefByIndex
+      - name: FriendsListAPI_GetFriendDisplayItemDefFeatured
+        category: func
+        platform: windows
+        alias:
+          - FriendsListAPI::GetFriendDisplayItemDefFeatured
+      - name: PartyListAPI_GetFriendDisplayItemDefCount
+        category: func
+        platform: windows
+        alias:
+          - PartyListAPI::GetFriendDisplayItemDefCount
+      - name: PartyListAPI_GetFriendDisplayItemDefByIndex
+        category: func
+        platform: windows
+        alias:
+          - PartyListAPI::GetFriendDisplayItemDefByIndex
+      - name: PartyListAPI_GetFriendDisplayItemDefFeatured
+        category: func
+        platform: windows
+        alias:
+          - PartyListAPI::GetFriendDisplayItemDefFeatured
       - name: CLoopModeGame_RegisterEventMapInternal
         category: func
         alias:
